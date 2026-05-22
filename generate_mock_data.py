@@ -3,11 +3,20 @@
 =================================================================
 项目名称：校园外卖两段式配送数据库系统 (campus_delivery_db)
 文件名称：generate_mock_data.py
-功能描述：使用 Faker 库生成海量模拟数据用于答辩大屏展示
-          包含 50用户 / 15商家(各5菜品) / 1000历史订单流水
+功能描述：使用真实中文词库生成海量模拟数据用于答辩大屏展示
+          包含 100用户 / 20商家(各8菜品) / 5000历史订单流水
+          15名骑手 / 12个寄存点
 适用环境：Python 3.8+ / pymysql / faker
 =================================================================
 """
+
+import sys
+import io
+
+# ---- 解决 Windows 终端中文乱码 ----
+if sys.platform == "win32":
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8")
 
 import random
 import time
@@ -33,18 +42,32 @@ DB_CONFIG = {
     "cursorclass": pymysql.cursors.DictCursor,
 }
 
-fake = Faker("zh_CN")  # 本地化中文模拟数据
+fake = Faker("zh_CN")
 
+# ==================================================================
+# 真实中文姓名库（60个真实校园风姓名）
+# ==================================================================
+CAMPUS_NAMES = [
+    "张伟", "王芳", "李娜", "刘洋", "陈静", "杨磊", "赵敏", "黄磊",
+    "周杰", "吴昊", "徐明", "孙丽", "马超", "朱婷", "胡涛", "郭晶",
+    "林峰", "何雪", "高峰", "罗强", "梁敏", "宋阳", "唐燕", "韩冰",
+    "曹鑫", "邓丽", "许杰", "彭娟", "苏畅", "潘浩", "田甜", "董亮",
+    "范琪", "蔡健", "袁媛", "夏雨", "方静", "石磊", "谭飞", "汪洁",
+    "余波", "廖辉", "邹霞", "陆勇", "孔慧", "白梅", "邱毅", "龚倩",
+    "岳鹏", "顾雪", "段鑫", "雷杰", "侯涛", "龙敏", "向晨", "文静",
+    "姜涛", "乔羽", "安琪", "司马悦",
+]
+DORM_ZONES = ["1期","2期","3期","4期","5期","6期","7期","8期","A区","B区","C区","D区"]
 
-# ------------------------------------------------------------------
+# ==================================================================
 # 工具函数：连接数据库
-# ------------------------------------------------------------------
+# ==================================================================
 def get_connection():
     return pymysql.connect(**DB_CONFIG)
 
 
 # ------------------------------------------------------------------
-# 步骤 0：清理旧数据（解决外键冲突，彻底清空）
+# 步骤 0：清理旧数据
 # ------------------------------------------------------------------
 def clean_old_data(conn):
     """清空所有涉及的表，避免外键冲突"""
@@ -64,22 +87,24 @@ def clean_old_data(conn):
 
 
 # ------------------------------------------------------------------
-# 步骤 1：生成学生数据 (50条)
+# 步骤 1：生成学生数据 (100条)
 # ------------------------------------------------------------------
-def generate_users(conn, num=50):
+def generate_users(conn, num=100):
     print(f"\n[步骤 1] 正在生成 {num} 个学生用户……")
     sql = """INSERT INTO users (username, phone, dorm_building, room_number, balance)
              VALUES (%s, %s, %s, %s, %s)"""
     data = []
-    for _ in range(num):
-        username = fake.name()
-        phone = fake.phone_number()
-        # 限制手机号长度不超过20
-        if len(phone) > 20:
-            phone = phone[:20]
-        building = f"{random.choice(['1期','2期','3期'])}{random.randint(1,15)}栋"
-        room = f"{random.randint(1,6)}{random.choice(['A','B','C'])}{random.randint(1,30):02d}"
-        balance = round(random.uniform(50, 500), 2)
+    used_phones = set()
+    for i in range(num):
+        username = CAMPUS_NAMES[i % len(CAMPUS_NAMES)]
+        while True:
+            phone = f"1{random.choice(['38','39','55','77','88','35','36','50','51','52'])}{random.randint(10000000,99999999):08d}"[:11]
+            if phone not in used_phones:
+                used_phones.add(phone)
+                break
+        building = f"{random.choice(DORM_ZONES)}{random.randint(1,18)}栋"
+        room = f"{random.randint(1,7)}{random.choice(['A','B','C','D'])}{random.randint(1,35):02d}"
+        balance = round(random.uniform(30, 800), 2)
         data.append((username, phone, building, room, balance))
 
     with conn.cursor() as cursor:
@@ -89,30 +114,30 @@ def generate_users(conn, num=50):
 
 
 # ------------------------------------------------------------------
-# 步骤 2：生成商家数据 (15条)
+# 步骤 2：生成商家数据 (20条)
 # ------------------------------------------------------------------
-def generate_merchants(conn, num=15):
+def generate_merchants(conn, num=20):
     print(f"\n[步骤 2] 正在生成 {num} 个商家……")
-    # 有真实感的店名词库
     prefix_list = ["好再来", "天天", "一品", "香满园", "味美滋",
                    "食尚", "舌尖", "小当家", "阿妈", "旺角",
-                   "老街", "校园", "学子", "翰林", "状元"]
+                   "老街", "校园", "学子", "翰林", "状元",
+                   "川湘", "粤港", "东北", "西北", "江南"]
     suffix_list = ["麻辣烫", "黄焖鸡", "奶茶店", "饺子馆", "盖浇饭",
                    "米线店", "炸鸡店", "烘焙坊", "水果捞", "面馆",
-                   "煲仔饭", "寿司店", "麻辣香锅", "烤鱼店", "煎饼果子"]
+                   "煲仔饭", "寿司店", "麻辣香锅", "烤鱼店", "煎饼果子",
+                   "冒菜馆", "螺蛳粉", "炒饭店", "瓦罐汤", "烤串店"]
     sql = """INSERT INTO merchants (merchant_name, phone, address, rating)
              VALUES (%s, %s, %s, %s)"""
     data = []
     used_names = set()
     for _ in range(num):
-        # 确保不重名
         while True:
             name = f"{random.choice(prefix_list)}{random.choice(suffix_list)}"
             if name not in used_names:
                 used_names.add(name)
                 break
-        phone = f"1{random.choice(['38','39','55','77','88'])}{random.randint(10000000,99999999)}"[:15]
-        addr = f"{random.choice(['丁香餐厅','玫瑰餐厅','紫荆餐厅','下沉广场','综合楼'])}{random.choice(['一楼','二楼','三楼','负一楼'])}{random.choice(['核心区','侧廊','尽头','入口处'])}"
+        phone = f"1{random.choice(['38','39','55','77','88'])}{random.randint(10000000,99999999):08d}"[:11]
+        addr = f"{random.choice(['丁香餐厅','玫瑰餐厅','紫荆餐厅','下沉广场','综合楼','学子餐厅'])}{random.choice(['一楼','二楼','三楼','负一楼','负二楼'])}{random.choice(['核心区','侧廊','尽头','入口处','天桥旁'])}"
         rating = round(random.uniform(3.5, 5.0), 1)
         data.append((name, phone, addr, rating))
 
@@ -123,16 +148,21 @@ def generate_merchants(conn, num=15):
 
 
 # ------------------------------------------------------------------
-# 步骤 3：生成菜品数据 (每个商家5道菜)
+# 步骤 3：生成菜品数据 (每个商家8道菜，共160道)
 # ------------------------------------------------------------------
-def generate_dishes(conn, dishes_per_merchant=5):
+def generate_dishes(conn, dishes_per_merchant=8):
     print(f"\n[步骤 3] 正在为每个商家生成 {dishes_per_merchant} 道菜品……")
     dish_names = [
         "经典麻辣烫", "番茄牛腩面", "宫保鸡丁饭", "鱼香肉丝饭", "糖醋里脊饭",
         "酸菜鱼米线", "香辣鸡腿堡", "珍珠奶茶", "芒果冰沙", "鸡蛋灌饼",
-        "牛肉拉面", "蛋炒饭", "葱油拌面", "小笼包(8只)", "煎饺(12只)",
-        "烤冷面", "手抓饼", "皮蛋瘦肉粥", "豆浆油条套餐", "卤肉饭",
+        "牛肉拉面", "蛋炒饭(加蛋)", "葱油拌面", "小笼包(8只)", "煎饺(12只)",
+        "烤冷面(加肠)", "手抓饼(加蛋)", "皮蛋瘦肉粥", "豆浆油条套餐", "卤肉饭",
         "咖喱鸡肉饭", "黑椒牛柳意面", "芝士焗饭", "日式拉面", "韩式拌饭",
+        "铁板牛肉饭", "红烧排骨饭", "酸辣土豆丝", "干锅手撕包菜", "麻婆豆腐饭",
+        "水煮鱼片", "蒜蓉生蚝(6个)", "烤茄子", "羊肉串(10串)", "章鱼小丸子",
+        "双皮奶", "杨枝甘露", "烧仙草", "芋圆奶茶", "抹茶拿铁",
+        "奥尔良烤鸡腿", "盐酥鸡", "甘梅地瓜条", "花甲粉丝", "锡纸金针菇",
+        "螺蛳粉(经典)", "炸酱面", "热干面", "担担面", "油泼面",
     ]
 
     with conn.cursor() as cursor:
@@ -147,8 +177,8 @@ def generate_dishes(conn, dishes_per_merchant=5):
         for _ in range(dishes_per_merchant):
             name = dish_names[idx % len(dish_names)]
             idx += 1
-            price = round(random.uniform(10, 30), 2)
-            stock = 500  # 故意设置大库存避免频繁触发超卖
+            price = round(random.uniform(8, 35), 2)
+            stock = random.choice([100, 150, 200, 300, 500, 800, 1000])
             status = 1
             data.append((mid, name, price, stock, status))
 
@@ -160,9 +190,9 @@ def generate_dishes(conn, dishes_per_merchant=5):
 
 
 # ------------------------------------------------------------------
-# 步骤 4：生成订单流水 (1000条) + 明细
+# 步骤 4：生成订单流水 (5000条) + 明细
 # ------------------------------------------------------------------
-def generate_orders(conn, num_orders=1000):
+def generate_orders(conn, num_orders=5000):
     print(f"\n[步骤 4] 正在生成 {num_orders} 条历史订单流水（含明细）……")
 
     with conn.cursor() as cursor:
@@ -182,14 +212,14 @@ def generate_orders(conn, num_orders=1000):
         cursor.execute("SELECT rider_id, rider_type FROM riders")
         riders_data = cursor.fetchall()
 
-    # 找出"3期智能寄存柜"的 ID（用来制造爆仓危机）
+    # 找出"3期智能寄存柜"的 ID（用来制造爆仓危机）容量=80
     overload_point_id = None
     for p in points_data:
         if "3期" in p["point_name"]:
             overload_point_id = p["point_id"]
             break
     if overload_point_id is None:
-        overload_point_id = point_ids[0]  # fallback
+        overload_point_id = point_ids[0]
 
     # 拆分骑手
     trunk_riders = [r["rider_id"] for r in riders_data if r["rider_type"] == "Stage1_Trunk"]
@@ -203,20 +233,15 @@ def generate_orders(conn, num_orders=1000):
 
     # 订单状态概率权重
     status_weights = [
-        ("Paid", 5),
-        ("Stage1_Assigned", 10),
-        ("Arrived_At_Point", 15),
-        ("Stage2_Assigned", 20),
-        ("Completed", 50),  # 一半的订单都是完成的，便于展示数据
+        ("Paid", 3),
+        ("Stage1_Assigned", 5),
+        ("Arrived_At_Point", 12),
+        ("Stage2_Assigned", 15),
+        ("Completed", 65),  # 大半已完成，让数据好看
     ]
     status_list = [s for s, w in status_weights for _ in range(w)]
 
-    # ===== 爆仓策略：强制塞满 3期智能寄存柜 =====
-    # capacity=80, 需要 >64 个 Arrived_At_Point 才能超过 80%
-    # 我们塞 68 个订单到 3期，状态全设为 Arrived_At_Point (68/80=85%)
-    OVERLOAD_COUNT = 68
-    overload_order_ids = []  # 记录这些订单的 order_id，方便后续追溯
-    overload_done = 0
+    OVERLOAD_COUNT = 72  # 3期容量80，塞72个到寄存点 = 90%
     print(f"\n   [爆仓] 正在向 '3期智能寄存柜' 注入 {OVERLOAD_COUNT} 个滞留包裹……")
 
     order_insert_sql = """INSERT INTO orders
@@ -245,10 +270,22 @@ def generate_orders(conn, num_orders=1000):
                 point_id = random.choice(point_ids)
                 order_status = random.choice(status_list)
 
-            # ---- 构造时间线（下单时间在过去30天内） ----
+            # ---- 构造时间线：跨越 120 天（约一个学期），按真实分布加权 ----
+            # 越近的订单越多（模拟业务增长趋势），使用指数分布让数据更真实
+            # 0-30天: 40%, 30-60天: 30%, 60-90天: 20%, 90-120天: 10%
+            rand_val = random.random()
+            if rand_val < 0.40:
+                days_ago = random.randint(0, 30)
+            elif rand_val < 0.70:
+                days_ago = random.randint(31, 60)
+            elif rand_val < 0.90:
+                days_ago = random.randint(61, 90)
+            else:
+                days_ago = random.randint(91, 120)
+
             created_at = now - timedelta(
-                days=random.randint(0, 30),
-                hours=random.randint(0, 23),
+                days=days_ago,
+                hours=random.randint(8, 22),   # 营业时间 8:00-22:00
                 minutes=random.randint(0, 59),
                 seconds=random.randint(0, 59),
             )
@@ -256,7 +293,6 @@ def generate_orders(conn, num_orders=1000):
             stage1_completed_at = None
             stage2_completed_at = None
 
-            # ---- 根据状态推进时间线 ----
             if order_status in ("Stage1_Assigned", "Arrived_At_Point", "Stage2_Assigned", "Completed"):
                 stage1_completed_at = created_at + timedelta(minutes=random.randint(10, 40))
 
@@ -264,7 +300,6 @@ def generate_orders(conn, num_orders=1000):
                 stage2_completed_at = stage1_completed_at + timedelta(minutes=random.randint(5, 25))
 
             if order_status == "Completed":
-                # 确保完成时间一定在派送后
                 stage2_completed_at = stage1_completed_at + timedelta(minutes=random.randint(5, 25))
 
             # ---- 拼装菜品明细 ----
@@ -281,7 +316,6 @@ def generate_orders(conn, num_orders=1000):
             stage1_rider = random.choice(trunk_riders) if trunk_riders else None
             stage2_rider = random.choice(floor_riders) if floor_riders else None
 
-            # ---- 插入订单（单条插入确保拿到准确的 order_id） ----
             cursor.execute(order_insert_sql, (
                 user_id, merchant_id, point_id, total_amount, order_status,
                 stage1_rider, stage2_rider,
@@ -289,16 +323,14 @@ def generate_orders(conn, num_orders=1000):
             ))
             order_id = cursor.lastrowid
 
-            # ---- 插入明细 ----
             cursor.execute(item_insert_sql, (order_id, selected_dish["dish_id"], quantity, price_at_order))
 
-            # ---- 每 50 条提交一次 + 打印进度 ----
-            if (order_index + 1) % 50 == 0 or order_index == num_orders - 1:
+            if (order_index + 1) % 200 == 0 or order_index == num_orders - 1:
                 conn.commit()
                 progress = order_index + 1
                 print(f"   [进度] {progress}/{num_orders} 条订单已生成 ({progress*100/num_orders:.0f}%)")
 
-    # ---- 更新骑手状态：有未完成订单的骑手设为 Delivering ----
+    # ---- 更新骑手状态 ----
     print(f"\n   [骑手] 正在更新骑手配送状态……")
     with conn.cursor() as cursor:
         cursor.execute("""
@@ -325,16 +357,11 @@ def generate_orders(conn, num_orders=1000):
 
 
 # ------------------------------------------------------------------
-# 步骤 5：同步寄存点包裹计数（让大屏正确显示饱和度）
+# 步骤 5：同步寄存点包裹计数
 # ------------------------------------------------------------------
 def sync_pickup_packages(conn, overload_point_id):
-    """
-    根据 orders 表中 Arrived_At_Point 状态的订单数，
-    更新 pickup_points 表的 current_packages 字段。
-    """
     print(f"\n[步骤 5] 正在同步寄存点包裹计数……")
     with conn.cursor() as cursor:
-        # 先统计每个寄存点中有多少 Arrived_At_Point 状态的订单
         cursor.execute("""
             SELECT pp.point_id, pp.capacity, COUNT(o.pickup_point_id) AS cnt
             FROM pickup_points pp
@@ -345,14 +372,13 @@ def sync_pickup_packages(conn, overload_point_id):
         for row in stats:
             pid = row["point_id"]
             cap = row["capacity"]
-            cnt = min(row["cnt"], cap)  # 不能超过容量（防 check constraint 冲突）
+            cnt = min(row["cnt"], cap)
             cursor.execute(
                 "UPDATE pickup_points SET current_packages = %s WHERE point_id = %s",
                 (cnt, pid)
             )
         conn.commit()
         print(f"   已更新 {len(stats)} 个寄存点的包裹计数！")
-        # 打印爆仓点的最终饱和度
         for row in stats:
             if row["point_id"] == overload_point_id:
                 real_cnt = min(row["cnt"], row["capacity"])
@@ -374,22 +400,12 @@ def main():
 
     conn = get_connection()
     try:
-        # 步骤 0：清理旧数据（修复乱码脏数据）
         clean_old_data(conn)
 
-        # 步骤 1：50个学生
-        generate_users(conn, 50)
-
-        # 步骤 2：15个商家
-        generate_merchants(conn, 15)
-
-        # 步骤 3：每个商家5道菜品
-        generate_dishes(conn, 5)
-
-        # 步骤 4：1000条订单流水
-        overload_point_id = generate_orders(conn, 1000)
-
-        # 步骤 5：同步寄存点包裹计数（确保大屏正确显示饱和度）
+        generate_users(conn, 100)
+        generate_merchants(conn, 20)
+        generate_dishes(conn, 8)
+        overload_point_id = generate_orders(conn, 5000)
         sync_pickup_packages(conn, overload_point_id)
 
         elapsed = time.time() - start_time
