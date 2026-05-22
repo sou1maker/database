@@ -252,6 +252,8 @@ Paid ---> Stage1_Assigned ---> Arrived_At_Point ---> Stage2_Assigned ---> Comple
 
 | 模块 | 功能 | 技术实现 |
 |------|------|----------|
+| **时间范围筛选** | 侧边栏选择"今天/最近7天/最近30天/本月/全部"，所有图表联动刷新 | Streamlit session_state + 动态 SQL 拼接 |
+| **时段订单分布（高峰分析）** | 按早餐/午餐高峰/晚餐高峰/夜宵展示订单量，统计高峰占比 | Matplotlib 柱状图 + CASE WHEN 分组 |
 | **寄存点饱和度监控** | 容量柱状图 + 爆仓阈值线 + 预警卡片 | Matplotlib 条件着色 |
 | **商户销售排行** | 横向柱状图 Top 10 + 数据表格 | Seaborn 渐变色板 + Pandas |
 | **订单状态分布** | 环形饼图 + 健康进度条 | Matplotlib 环形图 + 自定义 CSS |
@@ -266,7 +268,8 @@ Paid ---> Stage1_Assigned ---> Arrived_At_Point ---> Stage2_Assigned ---> Comple
 - **感知数据库结构**：AI 预加载完整的数据库 Schema 信息，理解字段语义和关系
 - **安全拦截**：只允许 SELECT 查询，INSERT/UPDATE/DELETE 等操作自动拦截
 - **对话交互**：支持多轮对话历史，一键示例问题
-- **结果可视化**：查询结果以 Pandas DataFrame 展示，同时显示生成的 SQL 语句
+- **自动图表**：查询结果含数值列时，自动生成柱状图和折线图
+- **CSV 下载**：查询结果支持一键下载为 CSV 文件
 
 **示例问题：**
 - "哪个商家销售额最高？"
