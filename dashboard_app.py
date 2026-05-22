@@ -13,10 +13,14 @@
 import streamlit as st
 import pandas as pd
 import pymysql
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
-import matplotlib.font_manager as fm
+import sys
+import io
+
+# ---- 解决 Windows 终端中文乱码 ----
+if sys.platform == "win32":
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8")
+
 import seaborn as sns
 from datetime import datetime, timedelta
 import os
@@ -31,46 +35,93 @@ from openai import OpenAI
 load_dotenv(os.path.join(os.path.dirname(__file__), '.env'))
 
 # ---------------------------------------------------------------
-# Matplotlib 中文字体配置
+# Matplotlib 中文字体配置（强力修复版）
 # ---------------------------------------------------------------
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import matplotlib.font_manager as fm
+
 plt.rcParams['axes.unicode_minus'] = False
 
-_CHINESE_FONT_PATHS = [
-    r"C:\Windows\Fonts\msyh.ttc",
-    r"C:\Windows\Fonts\msyhbd.ttc",
-    r"C:\Windows\Fonts\simhei.ttf",
-    r"C:\Windows\Fonts\msyh.ttf",
-    r"C:\Windows\Fonts\SIMHEI.TTF",
-]
+def _setup_chinese_font():
+    """配置 Matplotlib 中文字体，返回可用的 FontProperties 对象"""
+    # 1. 清除 matplotlib 字体缓存，确保重新扫描
+    try:
+        fm._load_fontmanager(try_read_cache=False)
+    except Exception:
+        pass
 
-_FONT_PATH = None
-for _fp in _CHINESE_FONT_PATHS:
-    if os.path.exists(_fp):
-        _FONT_PATH = _fp
-        break
+    # 2. 手动添加所有可能的系统字体路径
+    _font_dirs = [
+        r"C:\Windows\Fonts",
+        r"C:\Windows\Fonts\msyh.ttc",
+        r"C:\Windows\Fonts\msyhbd.ttc",
+        r"C:\Windows\Fonts\simhei.ttf",
+        r"C:\Windows\Fonts\msyh.ttf",
+        r"C:\Windows\Fonts\SIMHEI.TTF",
+        r"C:\Windows\Fonts\simsun.ttc",
+        r"C:\Windows\Fonts\SIMYOU.TTF",
+    ]
+    for _d in _font_dirs:
+        if os.path.isdir(_d):
+            for _f in fm.findSystemFonts(fontpaths=[_d]):
+                try:
+                    fm.fontManager.addfont(_f)
+                except Exception:
+                    pass
+        elif os.path.isfile(_d):
+            try:
+                fm.fontManager.addfont(_d)
+            except Exception:
+                pass
 
-if _FONT_PATH:
-    fm.fontManager.addfont(_FONT_PATH)
-    _fp_obj = fm.FontProperties(fname=_FONT_PATH)
-    _font_name = _fp_obj.get_name()
-    plt.rcParams['font.family'] = 'sans-serif'
-    if _font_name not in plt.rcParams['font.sans-serif']:
-        plt.rcParams['font.sans-serif'].insert(0, _font_name)
-    FONT_PROP = fm.FontProperties(fname=_FONT_PATH)
-else:
-    _fallback_names = ['Microsoft YaHei', 'SimHei', 'Noto Sans SC', 'Noto Sans CJK SC', 'SimSun']
-    FONT_PROP = fm.FontProperties()
-    for _name in _fallback_names:
+    # 3. 按优先级探测可用中文字体
+    _candidate_families = [
+        "Microsoft YaHei", "SimHei", "Noto Sans SC",
+        "Noto Sans CJK SC", "WenQuanYi Micro Hei", "SimSun",
+        "KaiTi", "FangSong", "Arial Unicode MS",
+    ]
+
+    _found_family = None
+    for _fam in _candidate_families:
         try:
-            _test_fp = fm.FontProperties(family=_name)
-            _test_path = fm.findfont(_test_fp)
-            if _test_path:
-                plt.rcParams['font.sans-serif'].insert(0, _name)
-                plt.rcParams['font.family'] = 'sans-serif'
-                FONT_PROP = fm.FontProperties(family=_name)
+            _fp = fm.FontProperties(family=_fam)
+            _test_path = fm.findfont(_fp, fallback_to_default=False)
+            if _test_path and os.path.exists(_test_path):
+                _found_family = _fam
                 break
         except Exception:
             continue
+
+    # 4. 如果上述都没找到，暴力搜索系统里所有含中文的字体
+    if _found_family is None:
+        for _f in fm.fontManager.ttflist:
+            if _f.name in _candidate_families:
+                _found_family = _f.name
+                break
+
+    # 5. 应用字体设置
+    if _found_family:
+        plt.rcParams['font.sans-serif'] = [_found_family, 'DejaVu Sans', 'Arial']
+        plt.rcParams['font.family'] = 'sans-serif'
+        return fm.FontProperties(family=_found_family)
+    else:
+        # 终极兜底：不依赖 family 名称，直接指定字体文件路径
+        for _p in _font_dirs:
+            if os.path.isfile(_p):
+                try:
+                    _fp = fm.FontProperties(fname=_p)
+                    _name = _fp.get_name()
+                    plt.rcParams['font.sans-serif'] = [_name, 'DejaVu Sans']
+                    plt.rcParams['font.family'] = 'sans-serif'
+                    return _fp
+                except Exception:
+                    continue
+        # 彻底放弃，返回默认
+        return fm.FontProperties()
+
+FONT_PROP = _setup_chinese_font()
 
 # ================================================================
 # 数据库连接配置 — 完全从 .env 读取，绝不硬编码

@@ -6,6 +6,7 @@
   <img src="https://img.shields.io/badge/Matplotlib-3.5%2B-11557C?style=for-the-badge&logo=plotly&logoColor=white" alt="Matplotlib">
   <img src="https://img.shields.io/badge/Seaborn-0.12%2B-7C6B8E?style=for-the-badge&logo=python&logoColor=white" alt="Seaborn">
   <img src="https://img.shields.io/badge/Status-Defense%20Passed-22C55E?style=for-the-badge&logo=checkmarx&logoColor=white" alt="Status">
+  <img src="https://img.shields.io/github/actions/workflow/status/sou1maker/database/auto-deploy.yml?branch=master&style=for-the-badge&logo=githubactions&logoColor=white" alt="CI Status">
 </p>
 
 <h1 align="center">校园外卖两段式配送数据库系统</h1>
@@ -41,13 +42,19 @@
 
 ```
 campus_delivery_project/
+├── .github/workflows/          # GitHub Actions CI/CD 自动部署
+│   └── auto-deploy.yml         #   代码检查 + 自动部署工作流
 ├── campus_delivery_db.sql      # 完整数据库建库脚本（DDL + 存储过程 + 视图 + 种子数据）
 ├── dashboard_app.py            # Streamlit 数据可视化大屏（含 AI 助手）
 ├── generate_mock_data.py       # 模拟数据生成器（Faker）
+├── check_data.py               # 数据检查脚本
+├── add_extra_data.py           # 追加寄存点/骑手脚本
+├── reinit_db.py                # Python 版数据库重建脚本
 ├── requirements.txt            # Python 依赖列表
 ├── .env.example                # 环境变量配置模板
 ├── .env                        # 本地环境变量（已加入 .gitignore，永不提交）
 ├── .gitignore                  # Git 忽略规则
+├── .gitattributes              # Git 属性配置（跨平台 LF 换行符）
 └── README.md                   # 项目说明文档（当前文件）
 ```
 
@@ -57,7 +64,7 @@ campus_delivery_project/
 
 ### 环境要求
 
-- Python 3.8+
+- Python 3.8+（推荐 Python 3.12）
 - MySQL 8.0+（支持窗口函数和 SIGNAL 语法）
 - Git（可选，用于版本控制）
 - DeepSeek API Key（可选，用于 AI 助手，[免费申请](https://platform.deepseek.com/)）
@@ -65,11 +72,30 @@ campus_delivery_project/
 ### 第一步：克隆 / 下载
 
 ```bash
-git clone <仓库地址>
+git clone https://github.com/sou1maker/database.git
 cd campus_delivery_project
 ```
 
-### 第二步：配置数据库
+### 第二步：创建并激活虚拟环境（推荐）
+
+**Windows：**
+```bash
+python -m venv venv
+venv\Scripts\activate
+```
+
+**macOS / Linux：**
+```bash
+python3 -m venv venv
+source venv/bin/activate
+```
+
+> **💡 为什么要用虚拟环境？**
+> - 隔离项目依赖，避免与全局 Python 环境冲突
+> - 保证依赖版本一致，团队协作不出现"在我电脑上能跑"
+> - `venv/` 已加入 `.gitignore`，不会提交到 Git 仓库
+
+### 第三步：配置数据库
 
 在 MySQL 中执行建库脚本：
 
@@ -82,7 +108,7 @@ mysql -u root -p < campus_delivery_db.sql
 - 创建所有表、索引、视图、触发器、存储过程
 - 插入预设的种子数据
 
-### 第三步：配置环境变量
+### 第四步：配置环境变量
 
 ```bash
 cp .env.example .env
@@ -104,28 +130,39 @@ DEEPSEEK_BASE_URL=https://api.deepseek.com
 DEEPSEEK_MODEL=deepseek-chat
 ```
 
-> **安全提示**：`.env` 文件已加入 `.gitignore`，禁止提交到 Git 仓库。
+> **🔒 安全提示**：`.env` 文件已加入 `.gitignore`，禁止提交到 Git 仓库。
 
-### 第四步：安装 Python 依赖
+### 第五步：安装 Python 依赖
 
 ```bash
+# 确保已激活虚拟环境（命令行前缀显示 (venv)）
 pip install -r requirements.txt
 ```
 
-> 建议使用虚拟环境：`python -m venv venv`
+> 所有依赖已安装至 `venv/` 目录下，不会影响系统全局 Python。
 
-### 第五步：生成模拟数据（可选）
+### 第六步：重建数据库（可选）
+
+如果不想使用 `campus_delivery_db.sql`，可以用 Python 脚本重建：
+
+```bash
+# 确保已激活虚拟环境
+python reinit_db.py
+```
+
+### 第七步：生成模拟数据（可选）
 
 ```bash
 python generate_mock_data.py
 ```
 
 将会生成：
-- **50** 名学生用户
-- **15** 家商家（每家 5 道菜品）
-- **1000** 条历史订单记录
+- **100** 名学生用户
+- **20** 家商家（每家 8 道菜品）
+- **5000** 条历史订单记录
+- 寄存点爆仓预警数据
 
-### 第六步：启动大屏
+### 第八步：启动大屏
 
 ```bash
 streamlit run dashboard_app.py
@@ -292,6 +329,20 @@ Paid ---> Stage1_Assigned ---> Arrived_At_Point ---> Stage2_Assigned ---> Comple
 | **PyMySQL** | Python MySQL 数据库驱动 |
 | **Faker** | 模拟数据生成 |
 | **python-dotenv** | 环境变量安全管理 |
+
+---
+
+## GitHub Actions 自动部署
+
+每次推送 `master` 分支时，GitHub Actions 会自动执行：
+
+| 阶段 | 检查项 | 说明 |
+|------|--------|------|
+| 🔍 **代码检查** | Python 语法编译检测 | 对所有 `.py` 文件执行 `py_compile` 语法检查 |
+| 📦 **依赖安装** | `pip install -r requirements.txt` | 验证所有依赖可正常安装 |
+| 📊 **状态报告** | 生成 CI 部署摘要 | 输出到 GitHub Actions 页面 |
+
+> 工作流配置文件：`.github/workflows/auto-deploy.yml`
 
 ---
 
