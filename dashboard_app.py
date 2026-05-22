@@ -159,7 +159,7 @@ COLOR_TEXT = "#1E293B"
 # ---- Streamlit 页面配置 ----
 st.set_page_config(
     page_title="校园外卖两段式配送 · 实时数据监控大屏",
-    page_icon="",
+    page_icon="📊",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
@@ -291,26 +291,15 @@ def get_connection():
     return pymysql.connect(**DB_CONFIG)
 
 
-def _build_date_filter():
-    """根据 session 中选中的时间范围生成 SQL 条件"""
-    option = st.session_state.get("date_filter_opt", "全部数据")
-    today_sql = "DATE(o.created_at) = CURDATE()"
-    week_sql = "o.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)"
-    month_sql = "o.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)"
-    month_cal = "DATE_FORMAT(o.created_at, '%Y-%m') = DATE_FORMAT(NOW(), '%Y-%m')"
-    mapping = {
-        "今天": (" AND " + today_sql, " AND " + today_sql),
-        "最近 7 天": (" AND " + week_sql, " AND " + week_sql),
-        "最近 30 天": (" AND " + month_sql, " AND " + month_sql),
-        "本月": (" AND " + month_cal, " AND " + month_cal),
-        "全部数据": ("", ""),
-    }
-    return mapping.get(option, ("", ""))
+def _get_date_option():
+    """获取当前选中的时间范围选项"""
+    return st.session_state.get("date_filter_opt", "全部数据")
 
 
-def _build_date_filter_generic(table_alias="o"):
-    """根据 session 中选中的时间范围生成通用 SQL 条件，可指定表别名"""
-    option = st.session_state.get("date_filter_opt", "全部数据")
+def _build_date_filter_generic(table_alias="o", date_option=None):
+    """根据选中的时间范围生成通用 SQL 条件，可指定表别名"""
+    if date_option is None:
+        date_option = _get_date_option()
     col = f"{table_alias}.created_at"
     today_sql = f"DATE({col}) = CURDATE()"
     week_sql = f"{col} >= DATE_SUB(NOW(), INTERVAL 7 DAY)"
@@ -323,12 +312,12 @@ def _build_date_filter_generic(table_alias="o"):
         "本月": " AND " + month_cal,
         "全部数据": "",
     }
-    return mapping.get(option, "")
+    return mapping.get(date_option, "")
 
 
 @st.cache_data(ttl=60)
 def load_pickup_analytics():
-    """读取寄存点饱和度分析"""
+    """读取寄存点饱和度分析（查询视图 vw_pickup_point_analytics）"""
     conn = get_connection()
     try:
         sql = """
@@ -354,7 +343,7 @@ def load_pickup_analytics():
 
 @st.cache_data(ttl=60)
 def load_merchant_sales_rank():
-    """读取商户销售排行"""
+    """读取商户销售排行（查询视图 vw_merchant_sales_rank）"""
     conn = get_connection()
     try:
         sql = """
@@ -376,11 +365,11 @@ def load_merchant_sales_rank():
 
 
 @st.cache_data(ttl=60)
-def load_order_status_distribution():
-    """读取订单状态分布"""
+def load_order_status_distribution(date_option="全部数据"):
+    """读取订单状态分布（支持动态时间筛选）"""
     conn = get_connection()
     try:
-        date_filter = _build_date_filter_generic("o")
+        date_filter = _build_date_filter_generic("o", date_option)
         query = f"""
             SELECT o.order_status, COUNT(*) AS order_count
             FROM orders o
@@ -398,11 +387,11 @@ def load_order_status_distribution():
 
 
 @st.cache_data(ttl=60)
-def load_basic_stats():
-    """读取基本统计指标"""
+def load_basic_stats(date_option="全部数据"):
+    """读取基本统计指标（支持动态时间筛选）"""
     conn = get_connection()
     try:
-        date_filter_orders = _build_date_filter_generic("o")
+        date_filter_orders = _build_date_filter_generic("o", date_option)
         stats = {}
         with conn.cursor() as cursor:
             cursor.execute("SELECT COUNT(*) FROM users")
@@ -437,11 +426,13 @@ def load_basic_stats():
 
 
 @st.cache_data(ttl=60)
-def load_recent_orders(limit=10):
-    """读取最近订单"""
+def load_recent_orders(limit=10, date_option="全部数据"):
+    """读取最近订单（支持动态时间筛选，查询 orders 表）
+    使用 Pandas 的 .dt.strftime('%m-%d %H:%M') 正确格式化时间
+    """
     conn = get_connection()
     try:
-        date_filter = _build_date_filter_generic("o")
+        date_filter = _build_date_filter_generic("o", date_option)
         query = f"""
             SELECT 
                 o.order_id AS '订单号',
@@ -449,7 +440,7 @@ def load_recent_orders(limit=10):
                 m.merchant_name AS '商家',
                 o.total_amount AS '金额(元)',
                 o.order_status AS '状态',
-                DATE_FORMAT(o.created_at, '%%m-%%d %%H:%%i') AS '下单时间'
+                o.created_at AS '下单时间_raw'
             FROM orders o
             JOIN users u ON o.user_id = u.user_id
             JOIN merchants m ON o.merchant_id = m.merchant_id
@@ -461,17 +452,22 @@ def load_recent_orders(limit=10):
             cursor.execute(query)
             rows = cursor.fetchall()
             columns = [desc[0] for desc in cursor.description]
-        return pd.DataFrame(rows, columns=columns)
+        df = pd.DataFrame(rows, columns=columns)
+        if not df.empty and '下单时间_raw' in df.columns:
+            # 正确格式化：%M 是大写 M 表示分钟（Python 标准）
+            df['下单时间'] = pd.to_datetime(df['下单时间_raw']).dt.strftime('%m-%d %H:%M')
+            df = df.drop(columns=['下单时间_raw'])
+        return df
     finally:
         conn.close()
 
 
 @st.cache_data(ttl=60)
-def load_time_period_distribution():
-    """读取时段订单分布（早餐/午餐高峰/下午/晚餐高峰/夜宵）"""
+def load_time_period_distribution(date_option="全部数据"):
+    """读取时段订单分布（支持动态时间筛选）"""
     conn = get_connection()
     try:
-        date_filter = _build_date_filter_generic("o")
+        date_filter = _build_date_filter_generic("o", date_option)
         query = f"""
             SELECT
                 CASE
@@ -501,7 +497,7 @@ def load_time_period_distribution():
 
 @st.cache_data(ttl=60)
 def load_merchant_info():
-    """读取商户信息列表"""
+    """读取商户信息列表（Pandas 格式化时间）"""
     conn = get_connection()
     try:
         query = """
@@ -510,7 +506,7 @@ def load_merchant_info():
                 merchant_name AS '店铺名称',
                 phone AS '联系电话',
                 rating AS '评分',
-                DATE_FORMAT(created_at, '%%Y-%%m-%%d') AS '入驻时间'
+                created_at AS '入驻时间_raw'
             FROM merchants
             ORDER BY merchant_id
         """
@@ -518,14 +514,18 @@ def load_merchant_info():
             cursor.execute(query)
             rows = cursor.fetchall()
             columns = [desc[0] for desc in cursor.description]
-        return pd.DataFrame(rows, columns=columns)
+        df = pd.DataFrame(rows, columns=columns)
+        if not df.empty and '入驻时间_raw' in df.columns:
+            df['入驻时间'] = pd.to_datetime(df['入驻时间_raw']).dt.strftime('%Y-%m-%d')
+            df = df.drop(columns=['入驻时间_raw'])
+        return df
     finally:
         conn.close()
 
 
 @st.cache_data(ttl=60)
 def load_student_info():
-    """读取学生用户信息列表"""
+    """读取学生用户信息列表（Pandas 格式化时间）"""
     conn = get_connection()
     try:
         query = """
@@ -535,7 +535,7 @@ def load_student_info():
                 phone AS '手机号',
                 dorm_building AS '宿舍楼栋',
                 balance AS '校园卡余额(元)',
-                DATE_FORMAT(created_at, '%%Y-%%m-%%d') AS '注册时间'
+                created_at AS '注册时间_raw'
             FROM users
             ORDER BY user_id
         """
@@ -543,7 +543,11 @@ def load_student_info():
             cursor.execute(query)
             rows = cursor.fetchall()
             columns = [desc[0] for desc in cursor.description]
-        return pd.DataFrame(rows, columns=columns)
+        df = pd.DataFrame(rows, columns=columns)
+        if not df.empty and '注册时间_raw' in df.columns:
+            df['注册时间'] = pd.to_datetime(df['注册时间_raw']).dt.strftime('%Y-%m-%d')
+            df = df.drop(columns=['注册时间_raw'])
+        return df
     finally:
         conn.close()
 
@@ -764,7 +768,7 @@ def render_kpi_row(stats):
         ("总订单量", f"{int(stats['total_orders'])} 单", COLOR_PRIMARY),
         ("活跃商家", f"{int(stats['total_merchants'])} 家", COLOR_SECONDARY),
         ("在途骑手", f"{int(stats['active_riders'])} 人", COLOR_WARNING),
-        ("总营业额", f"\u00a5{float(stats['total_revenue']):,.2f}", COLOR_SUCCESS),
+        ("总营业额", f"¥{float(stats['total_revenue']):,.2f}", COLOR_SUCCESS),
     ]
     cols = st.columns(4)
     for col, (label, value, color) in zip(cols, kpi_items):
@@ -810,7 +814,7 @@ def render_pickup_saturation_chart(df_points):
     if not overflow_points.empty:
         for _, row in overflow_points.iterrows():
             st.warning(
-                f"爆仓预警: {row['point_name']} 饱和度 {row['saturation_pct']:.1f}% "
+                f"⚠️ 爆仓预警: {row['point_name']} 饱和度 {row['saturation_pct']:.1f}% "
                 f"(已用 {int(row['current_packages'])} / 最大 {int(row['max_capacity'])} 格, "
                 f"滞留 {int(row['backlog_count'])} 件)"
             )
@@ -828,13 +832,13 @@ def render_merchant_rank_chart(df_merchants):
     for bar, (_, row) in zip(bars, top10.iterrows()):
         w = bar.get_width()
         ax.text(w + 10, bar.get_y() + bar.get_height()/2,
-                f'\u00a5{w:,.0f}  ({int(row["total_orders"])} 单)',
+                f'¥{w:,.0f}  ({int(row["total_orders"])} 单)',
                 ha='left', va='center', fontsize=9, fontweight='bold',
                 color='#1E293B', fontproperties=FONT_PROP)
     ax.set_yticks(range(len(top10)))
     ax.set_yticklabels(top10['merchant_name'], fontproperties=FONT_PROP)
     style_axis(ax)
-    ax.set_xlabel('总销售额 (\u00a5)', fontsize=10, color='#64748B', fontproperties=FONT_PROP)
+    ax.set_xlabel('总销售额 (¥)', fontsize=10, color='#64748B', fontproperties=FONT_PROP)
     ax.margins(x=0.25)
     st.pyplot(fig, width='stretch')
     plt.close()
@@ -927,7 +931,7 @@ def render_recent_orders_table(df_recent):
                 val = style_status(val)
                 html += f'<td style="padding:10px 12px;font-size:0.9rem;">{val}</td>'
             elif col == '金额(元)':
-                html += f'<td style="padding:10px 12px;font-size:0.9rem;font-weight:600;">\u00a5{val:.2f}</td>'
+                html += f'<td style="padding:10px 12px;font-size:0.9rem;font-weight:600;">¥{val:.2f}</td>'
             else:
                 html += f'<td style="padding:10px 12px;font-size:0.9rem;">{val}</td>'
         html += '</tr>'
@@ -940,53 +944,93 @@ def render_recent_orders_table(df_recent):
 # ================================================================
 
 def main():
-    # ---- 侧边栏：时间范围过滤器 ----
+    # ==================== 侧边栏：明细数据（信息表格） ====================
     with st.sidebar:
-        st.markdown("### 筛选条件")
-        date_options = ["今天", "最近 7 天", "最近 30 天", "本月", "全部数据"]
-        selected_date = st.selectbox(
-            "时间范围",
-            date_options,
-            index=date_options.index(st.session_state.get("date_filter_opt", "全部数据")),
-            key="date_filter_opt",
-        )
+        st.markdown("## 明细数据")
+        with st.expander("商户信息一览", expanded=False):
+            try:
+                df_mer_info = load_merchant_info()
+                if df_mer_info.empty:
+                    st.info("暂无商户数据。")
+                else:
+                    st.dataframe(df_mer_info, width='stretch', hide_index=True)
+            except Exception as e:
+                st.error("加载商户信息失败")
+                st.code(traceback.format_exc())
+
+        with st.expander("学生用户信息一览", expanded=False):
+            try:
+                df_stu = load_student_info()
+                if df_stu.empty:
+                    st.info("暂无学生数据。")
+                else:
+                    st.dataframe(df_stu, width='stretch', hide_index=True)
+            except Exception as e:
+                st.error("加载学生信息失败")
+                st.code(traceback.format_exc())
+
+        with st.expander("菜品信息一览", expanded=False):
+            try:
+                df_dishes = load_merchant_dishes()
+                if df_dishes.empty:
+                    st.info("暂无菜品数据。")
+                else:
+                    st.dataframe(df_dishes, width='stretch', hide_index=True)
+            except Exception as e:
+                st.error("加载菜品信息失败")
+                st.code(traceback.format_exc())
+
         st.markdown("---")
         st.caption("校园外卖两段式配送数据库系统")
         st.caption(f"数据更新时间: {datetime.now().strftime('%m-%d %H:%M')}")
 
+    # ==================== 顶部标题 ====================
+    now = datetime.now()
+    st.markdown(f"""
+    <div class="header-container">
+        <div class="header-title">校园外卖两段式配送 · 实时数据监控大屏</div>
+        <div class="header-sub">{now.year}-{now.month:02d}-{now.day:02d} {now:%H:%M:%S} UTC+8 · 数据来源: campus_delivery_db</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # ==================== 全局时间范围筛选器（顶部中央，紧挨主标题下方） ====================
+    col_filter_label, col_filter_select = st.columns([1, 4])
+    with col_filter_label:
+        st.markdown('<div style="padding-top:6px;font-weight:600;color:#4F46E5;">⏱ 时间范围筛选:</div>', unsafe_allow_html=True)
+    with col_filter_select:
+        date_options = ["今天", "最近 7 天", "最近 30 天", "本月", "全部数据"]
+        current_opt = _get_date_option()
+        selected_date = st.selectbox(
+            "时间范围",
+            date_options,
+            index=date_options.index(current_opt) if current_opt in date_options else 4,
+            key="date_filter_opt",
+            label_visibility="collapsed",
+        )
+    # 获取最新选中的值（从 session_state 读取，因上面已设 key 触发 rerun 后自动更新）
+    date_option = _get_date_option()
+
     # ---- 数据库连接检测 ----
     try:
-        stats = load_basic_stats()
+        stats = load_basic_stats(date_option)
     except Exception as e:
         st.error(f"数据库连接失败！请检查 .env 文件中的 MYSQL_PASSWORD 配置。\n\n错误信息: {e}")
         st.info("请确保 .env 文件存在且 MYSQL_PASSWORD 配置正确。")
         return
 
-    # ==================== 头部标题 ====================
-    now = datetime.now()
-    time_label = st.session_state.get("date_filter_opt", "全部数据")
-    st.markdown(f"""
-    <div class="header-container">
-        <div class="header-title">校园外卖两段式配送 · 实时数据监控大屏</div>
-        <div class="header-sub">{now.year}-{now.month:02d}-{now.day:02d} {now:%H:%M:%S} UTC+8 · 数据来源: campus_delivery_db · 筛选: {time_label}</div>
-    </div>
-    """, unsafe_allow_html=True)
-
     # ==================== KPI 指标行 ====================
     render_kpi_row(stats)
-
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # ==================== 新增行：时段订单分布（全宽） ====================
+    # ==================== 时段订单分布（全宽） ====================
     st.markdown('<div class="chart-card">', unsafe_allow_html=True)
     st.markdown('<div class="chart-title">时段订单分布（高峰分析）</div>', unsafe_allow_html=True)
     try:
-        df_period = load_time_period_distribution()
+        df_period = load_time_period_distribution(date_option)
         if df_period.empty:
             st.info("暂无订单数据。")
         else:
             render_time_period_chart(df_period)
-            # 显示高峰 vs 非高峰对比摘要
             peak_mask = df_period['time_period'].str.contains('高峰|夜宵')
             peak_orders = int(df_period[peak_mask]['order_count'].sum())
             total_orders = int(df_period['order_count'].sum())
@@ -1004,7 +1048,7 @@ def main():
     st.markdown('</div>', unsafe_allow_html=True)
 
     # ==================== 宽屏网格布局 ====================
-    # 第一行：左（商户排行）+ 右（运力饼图）
+    # 第一行：左（商户排行）+ 右（订单状态饼图）
     col_left, col_right = st.columns([1.2, 1])
 
     with col_left:
@@ -1025,7 +1069,7 @@ def main():
         st.markdown('<div class="chart-card">', unsafe_allow_html=True)
         st.markdown('<div class="chart-title">订单状态分布</div>', unsafe_allow_html=True)
         try:
-            df_status = load_order_status_distribution()
+            df_status = load_order_status_distribution(date_option)
             if df_status.empty:
                 st.info("暂无订单数据。")
             else:
@@ -1056,69 +1100,7 @@ def main():
         st.markdown('<div class="chart-card">', unsafe_allow_html=True)
         st.markdown('<div class="chart-title">近期订单流水（最新10条）</div>', unsafe_allow_html=True)
         try:
-            df_recent = load_recent_orders(10)
-            if df_recent.empty:
-                st.info("暂无订单数据。")
-            else:
-                render_recent_orders_table(df_recent)
-        except Exception as e:
-            st.error("加载近期订单数据失败")
-            st.code(traceback.format_exc())
-        st.markdown('</div>', unsafe_allow_html=True)
-
-    # ==================== 多页签：数据图表 / 信息表格 / AI 助手 ====================
-    st.markdown("<br>", unsafe_allow_html=True)
-    tab_charts, tab_tables, tab_ai = st.tabs(["数据图表", "信息表格", "AI 智能数据助手"])
-
-    with tab_tables:
-        col_mer, col_stu = st.columns(2)
-        with col_mer:
-            st.markdown('<div class="chart-card">', unsafe_allow_html=True)
-            st.markdown('<div class="chart-title">商户信息一览</div>', unsafe_allow_html=True)
-            try:
-                df_mer_info = load_merchant_info()
-                if df_mer_info.empty:
-                    st.info("暂无商户数据。")
-                else:
-                    st.dataframe(df_mer_info, width='stretch', hide_index=True)
-            except Exception as e:
-                st.error("加载商户信息失败")
-                st.code(traceback.format_exc())
-            st.markdown('</div>', unsafe_allow_html=True)
-
-        with col_stu:
-            st.markdown('<div class="chart-card">', unsafe_allow_html=True)
-            st.markdown('<div class="chart-title">学生用户信息一览</div>', unsafe_allow_html=True)
-            try:
-                df_stu = load_student_info()
-                if df_stu.empty:
-                    st.info("暂无学生数据。")
-                else:
-                    st.dataframe(df_stu, width='stretch', hide_index=True)
-            except Exception as e:
-                st.error("加载学生信息失败")
-                st.code(traceback.format_exc())
-            st.markdown('</div>', unsafe_allow_html=True)
-
-        st.markdown('<div class="chart-card">', unsafe_allow_html=True)
-        st.markdown('<div class="chart-title">菜品信息一览</div>', unsafe_allow_html=True)
-        try:
-            df_dishes = load_merchant_dishes()
-            if df_dishes.empty:
-                st.info("暂无菜品数据。")
-            else:
-                st.dataframe(df_dishes, width='stretch', hide_index=True)
-        except Exception as e:
-            st.error("加载菜品信息失败")
-            st.code(traceback.format_exc())
-        st.markdown('</div>', unsafe_allow_html=True)
-
-    # ==================== 近期订单流水（放入 tab_charts 底部） ====================
-    with tab_charts:
-        st.markdown('<div class="chart-card">', unsafe_allow_html=True)
-        st.markdown('<div class="chart-title">近期订单流水（最新10条）</div>', unsafe_allow_html=True)
-        try:
-            df_recent = load_recent_orders(10)
+            df_recent = load_recent_orders(10, date_option)
             if df_recent.empty:
                 st.info("暂无订单数据。")
             else:
@@ -1129,137 +1111,124 @@ def main():
         st.markdown('</div>', unsafe_allow_html=True)
 
     # ==================== AI 智能数据助手 ====================
-    with tab_ai:
-        st.markdown('<div class="chart-card">', unsafe_allow_html=True)
-        st.markdown('<div class="chart-title">AI 智能数据助手 (DeepSeek Text-to-SQL)</div>', unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown('<div class="chart-card">', unsafe_allow_html=True)
+    st.markdown('<div class="chart-title">AI 智能数据助手 (DeepSeek Text-to-SQL)</div>', unsafe_allow_html=True)
 
-        if not DEEPSEEK_API_KEY:
-            st.warning("DeepSeek API Key 未配置！请添加到 .env 文件中:\n\n```\nDEEPSEEK_API_KEY=your_api_key\n```")
-            st.info("获取 DeepSeek API Key: https://platform.deepseek.com/")
-        else:
-            st.markdown("""
-                <div class="ai-chat-container">
-                    <div style="font-size:1rem;font-weight:600;margin-bottom:0.5rem;">AI 自然语言数据查询</div>
-                    <div style="font-size:0.85rem;color:#64748B;margin-bottom:1rem;">
-                        输入中文问题，AI 自动转换为 SQL 并返回查询结果表格。
-                        例如: "哪个商家销售额最高？" "共有多少学生注册？" "各寄存点饱和度情况"
-                    </div>
+    if not DEEPSEEK_API_KEY:
+        st.warning("DeepSeek API Key 未配置！请添加到 .env 文件中:\n\n```\nDEEPSEEK_API_KEY=your_api_key\n```")
+        st.info("获取 DeepSeek API Key: https://platform.deepseek.com/")
+    else:
+        st.markdown("""
+            <div class="ai-chat-container">
+                <div style="font-size:1rem;font-weight:600;margin-bottom:0.5rem;">AI 自然语言数据查询</div>
+                <div style="font-size:0.85rem;color:#64748B;margin-bottom:1rem;">
+                    输入中文问题，AI 自动转换为 SQL 并返回查询结果表格。
+                    例如: "哪个商家销售额最高？" "共有多少学生注册？" "各寄存点饱和度情况"
                 </div>
-                """, unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
+            </div>
+            """, unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
-        # 初始化聊天历史
-        if "ai_chat_history" not in st.session_state:
+    # 初始化聊天历史
+    if "ai_chat_history" not in st.session_state:
+        st.session_state.ai_chat_history = []
+
+    # 示例问题快捷按钮
+    st.markdown("##### 快捷问题示例")
+    example_cols = st.columns(3)
+    examples = [
+        "哪个商家销售额最高？",
+        "共有多少学生注册？",
+        "各寄存点饱和度如何？",
+    ]
+    for i, (col, example) in enumerate(zip(example_cols, examples)):
+        with col:
+            if st.button(example, key=f"ai_example_{i}", width='stretch'):
+                st.session_state.ai_input = example
+
+    user_input = st.text_input(
+        "请输入您的问题:",
+        key="ai_input",
+        placeholder="例如: 哪个商家销售额最高？",
+        label_visibility="collapsed",
+    )
+
+    col_submit, col_clear = st.columns([1, 5])
+    with col_submit:
+        submit_clicked = st.button("发送", type="primary", width='stretch')
+    with col_clear:
+        if st.button("清除记录", width='stretch'):
             st.session_state.ai_chat_history = []
+            st.rerun()
 
-        # 示例问题快捷按钮
-        st.markdown("##### 快捷问题示例")
-        example_cols = st.columns(3)
-        examples = [
-            "哪个商家销售额最高？",
-            "共有多少学生注册？",
-            "各寄存点饱和度如何？",
-        ]
-        for i, (col, example) in enumerate(zip(example_cols, examples)):
-            with col:
-                if st.button(example, key=f"ai_example_{i}", width='stretch'):
-                    st.session_state.ai_input = example
+    if submit_clicked and user_input:
+        with st.spinner("AI 正在思考并生成 SQL..."):
+            result = ai_text_to_sql(user_input)
 
-        # 用户输入
-        user_input = st.text_input(
-            "请输入您的问题:",
-            key="ai_input",
-            placeholder="例如: 哪个商家销售额最高？",
-            label_visibility="collapsed",
-        )
+        st.session_state.ai_chat_history.append({
+            "role": "user",
+            "content": user_input,
+        })
 
-        col_submit, col_clear = st.columns([1, 5])
-        with col_submit:
-            submit_clicked = st.button("发送", type="primary", width='stretch')
-        with col_clear:
-            if st.button("清除记录", width='stretch'):
-                st.session_state.ai_chat_history = []
-                st.rerun()
-
-        if submit_clicked and user_input:
-            with st.spinner("AI 正在思考并生成 SQL..."):
-                result = ai_text_to_sql(user_input)
-
-            # 添加到聊天历史
+        if result["success"]:
             st.session_state.ai_chat_history.append({
-                "role": "user",
-                "content": user_input,
+                "role": "assistant",
+                "content": f"查询成功！共找到 {result['row_count']} 条记录",
+                "sql": result["sql"],
+                "result": result["result"],
+                "columns": result["columns"],
+            })
+        else:
+            st.session_state.ai_chat_history.append({
+                "role": "assistant",
+                "content": result["error"],
+                "sql": result.get("sql", ""),
+                "result": [],
+                "columns": [],
+                "is_error": True,
             })
 
-            if result["success"]:
-                st.session_state.ai_chat_history.append({
-                    "role": "assistant",
-                    "content": f"查询成功！共找到 {result['row_count']} 条记录",
-                    "sql": result["sql"],
-                    "result": result["result"],
-                    "columns": result["columns"],
-                })
+    for msg in st.session_state.ai_chat_history:
+        if msg["role"] == "user":
+            st.markdown(f'<div class="ai-message user"><strong>您:</strong> {msg["content"]}</div>', unsafe_allow_html=True)
+        else:
+            if msg.get("is_error"):
+                st.markdown(f'<div class="ai-message error"><strong>AI:</strong> {msg["content"]}</div>', unsafe_allow_html=True)
             else:
-                st.session_state.ai_chat_history.append({
-                    "role": "assistant",
-                    "content": result["error"],
-                    "sql": result.get("sql", ""),
-                    "result": [],
-                    "columns": [],
-                    "is_error": True,
-                })
-
-        # 显示聊天历史
-        for msg in st.session_state.ai_chat_history:
-            if msg["role"] == "user":
-                st.markdown(f'<div class="ai-message user"><strong>您:</strong> {msg["content"]}</div>', unsafe_allow_html=True)
-            else:
-                if msg.get("is_error"):
-                    st.markdown(f'<div class="ai-message error"><strong>AI:</strong> {msg["content"]}</div>', unsafe_allow_html=True)
-                else:
-                    st.markdown(f'<div class="ai-message assistant"><strong>AI:</strong> {msg["content"]}</div>', unsafe_allow_html=True)
-
-                # 显示 SQL
-                if msg.get("sql"):
-                    st.markdown(f'<div class="ai-message sql"><strong>生成的 SQL:</strong>\n{msg["sql"]}</div>', unsafe_allow_html=True)
-
-                # 显示结果表格
-                if msg.get("result") and len(msg["result"]) > 0:
-                    df_result = pd.DataFrame(msg["result"])
-
-                    # 表格展示
-                    st.dataframe(df_result, width='stretch', hide_index=True)
-
-                    # 自动图表：如果有数值列且行数>1，自动生成柱状图
-                    num_cols = df_result.select_dtypes(include=['float64', 'int64']).columns.tolist()
-                    if len(num_cols) >= 1 and len(df_result) > 1:
-                        with st.expander("查看图表"):
-                            chart_tab1, chart_tab2 = st.columns(2)
-                            with chart_tab1:
-                                st.caption("柱状图（第一列数值）")
+                st.markdown(f'<div class="ai-message assistant"><strong>AI:</strong> {msg["content"]}</div>', unsafe_allow_html=True)
+            if msg.get("sql"):
+                st.markdown(f'<div class="ai-message sql"><strong>生成的 SQL:</strong>\n{msg["sql"]}</div>', unsafe_allow_html=True)
+            if msg.get("result") and len(msg["result"]) > 0:
+                df_result = pd.DataFrame(msg["result"])
+                st.dataframe(df_result, width='stretch', hide_index=True)
+                num_cols = df_result.select_dtypes(include=['float64', 'int64']).columns.tolist()
+                if len(num_cols) >= 1 and len(df_result) > 1:
+                    with st.expander("查看图表"):
+                        chart_tab1, chart_tab2 = st.columns(2)
+                        with chart_tab1:
+                            st.caption("柱状图（第一列数值）")
+                            try:
+                                first_text_col = df_result.select_dtypes(exclude=['float64', 'int64']).columns[0]
+                                st.bar_chart(df_result.set_index(first_text_col)[num_cols[0]], width='stretch')
+                            except Exception:
+                                pass
+                        with chart_tab2:
+                            if len(num_cols) > 1:
+                                st.caption("折线图（前 3 列数值）")
                                 try:
                                     first_text_col = df_result.select_dtypes(exclude=['float64', 'int64']).columns[0]
-                                    st.bar_chart(df_result.set_index(first_text_col)[num_cols[0]], width='stretch')
+                                    st.line_chart(df_result.set_index(first_text_col)[num_cols[:3]], width='stretch')
                                 except Exception:
                                     pass
-                            with chart_tab2:
-                                if len(num_cols) > 1:
-                                    st.caption("折线图（前 3 列数值）")
-                                    try:
-                                        first_text_col = df_result.select_dtypes(exclude=['float64', 'int64']).columns[0]
-                                        st.line_chart(df_result.set_index(first_text_col)[num_cols[:3]], width='stretch')
-                                    except Exception:
-                                        pass
-
-                    # CSV 下载按钮
-                    csv_data = df_result.to_csv(index=False, encoding='utf-8-sig')
-                    st.download_button(
-                        label="下载 CSV",
-                        data=csv_data,
-                        file_name=f"ai_query_result_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                        mime="text/csv",
-                        use_container_width=True,
-                    )
+                csv_data = df_result.to_csv(index=False, encoding='utf-8-sig')
+                st.download_button(
+                    label="下载 CSV",
+                    data=csv_data,
+                    file_name=f"ai_query_result_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                    mime="text/csv",
+                    use_container_width=True,
+                )
 
     # ---- 页脚 ----
     st.markdown("""
