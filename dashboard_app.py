@@ -108,7 +108,7 @@ COLOR_TEXT = "#1E293B"
 # ---- Streamlit 页面配置 ----
 st.set_page_config(
     page_title="校园外卖两段式配送 · 实时数据监控大屏",
-    page_icon="\U0001F680",
+    page_icon="",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
@@ -581,9 +581,9 @@ def render_pickup_saturation_chart(df_points):
     bars = ax.bar(names, values, color=colors_bar, width=0.5,
                   edgecolor='white', linewidth=2, zorder=3)
     ax.axhline(y=80, color='#EF4444', linestyle='--', linewidth=1.5,
-               alpha=0.7, label='Overflow Threshold 80%', zorder=2)
+               alpha=0.7, label='爆仓阈值 80%', zorder=2)
     ax.axhline(y=60, color='#F59E0B', linestyle='--', linewidth=1,
-               alpha=0.5, label='Warning Threshold 60%', zorder=2)
+               alpha=0.5, label='预警阈值 60%', zorder=2)
     for bar, v in zip(bars, values):
         ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 2,
                 f'{v:.1f}%', ha='center', va='bottom',
@@ -594,7 +594,7 @@ def render_pickup_saturation_chart(df_points):
     ax.set_ylim(0, 105)
     style_axis(ax)
     ax.legend(fontsize=9, loc='upper right', framealpha=0.8, prop=FONT_PROP)
-    ax.set_ylabel('Saturation (%)', fontsize=10, color='#64748B', fontproperties=FONT_PROP)
+    ax.set_ylabel('饱和度 (%)', fontsize=10, color='#64748B', fontproperties=FONT_PROP)
     st.pyplot(fig, use_container_width=True)
     plt.close()
 
@@ -603,9 +603,9 @@ def render_pickup_saturation_chart(df_points):
     if not overflow_points.empty:
         for _, row in overflow_points.iterrows():
             st.warning(
-                f"Overflow Alert: {row['point_name']} saturation {row['saturation_pct']:.1f}% "
-                f"(in use {int(row['current_packages'])} / max {int(row['max_capacity'])} slots, "
-                f"backlog {int(row['backlog_count'])} items)"
+                f"爆仓预警: {row['point_name']} 饱和度 {row['saturation_pct']:.1f}% "
+                f"(已用 {int(row['current_packages'])} / 最大 {int(row['max_capacity'])} 格, "
+                f"滞留 {int(row['backlog_count'])} 件)"
             )
 
 
@@ -621,13 +621,13 @@ def render_merchant_rank_chart(df_merchants):
     for bar, (_, row) in zip(bars, top10.iterrows()):
         w = bar.get_width()
         ax.text(w + 10, bar.get_y() + bar.get_height()/2,
-                f'\u00a5{w:,.0f}  ({int(row["total_orders"])} orders)',
+                f'\u00a5{w:,.0f}  ({int(row["total_orders"])} 单)',
                 ha='left', va='center', fontsize=9, fontweight='bold',
                 color='#1E293B', fontproperties=FONT_PROP)
     ax.set_yticks(range(len(top10)))
     ax.set_yticklabels(top10['merchant_name'], fontproperties=FONT_PROP)
     style_axis(ax)
-    ax.set_xlabel('Total Sales (\u00a5)', fontsize=10, color='#64748B', fontproperties=FONT_PROP)
+    ax.set_xlabel('总销售额 (\u00a5)', fontsize=10, color='#64748B', fontproperties=FONT_PROP)
     ax.margins(x=0.25)
     st.pyplot(fig, use_container_width=True)
     plt.close()
@@ -636,12 +636,12 @@ def render_merchant_rank_chart(df_merchants):
 def render_order_status_pie(df_status):
     """渲染订单状态分布环形饼图"""
     status_map = {
-        "Paid": ("Paid", "#F59E0B"),
-        "Stage1_Assigned": ("Trunk Delivery", "#3B82F6"),
-        "Arrived_At_Point": ("At Pickup Point", "#8B5CF6"),
-        "Stage2_Assigned": ("Floor Delivery", "#06B6D4"),
-        "Completed": ("Completed", "#22C55E"),
-        "Cancelled": ("Cancelled", "#EF4444"),
+        "Paid": ("已支付", "#F59E0B"),
+        "Stage1_Assigned": ("干线配送中", "#3B82F6"),
+        "Arrived_At_Point": ("已到寄存点", "#8B5CF6"),
+        "Stage2_Assigned": ("楼栋配送中", "#06B6D4"),
+        "Completed": ("已完成", "#22C55E"),
+        "Cancelled": ("已取消", "#EF4444"),
     }
     df_status['display_name'] = df_status['order_status'].map(
         lambda x: status_map.get(x, (x, "#94A3B8"))[0])
@@ -665,7 +665,7 @@ def render_order_status_pie(df_status):
         at.set_fontsize(10)
     centre_circle = plt.Circle((0, 0), 0.50, fc='white', alpha=0.8)
     ax.add_artist(centre_circle)
-    ax.text(0, 0, f'{df_status["order_count"].sum()}\nTotal',
+    ax.text(0, 0, f'{df_status["order_count"].sum()}\n总计',
             ha='center', va='center', fontsize=12, fontweight='bold', color='#1E293B')
     st.pyplot(fig, use_container_width=True)
     plt.close()
@@ -675,12 +675,12 @@ def render_recent_orders_table(df_recent):
     """渲染近期订单流水表格"""
     def style_status(s):
         color_map = {
-            'Paid': ('Paid', '#F59E0B'),
-            'Stage1_Assigned': ('Trunk Delivery', '#3B82F6'),
-            'Arrived_At_Point': ('At Pickup Point', '#8B5CF6'),
-            'Stage2_Assigned': ('Floor Delivery', '#06B6D4'),
-            'Completed': ('Completed', '#22C55E'),
-            'Cancelled': ('Cancelled', '#EF4444'),
+            'Paid': ('已支付', '#F59E0B'),
+            'Stage1_Assigned': ('干线配送中', '#3B82F6'),
+            'Arrived_At_Point': ('已到寄存点', '#8B5CF6'),
+            'Stage2_Assigned': ('楼栋配送中', '#06B6D4'),
+            'Completed': ('已完成', '#22C55E'),
+            'Cancelled': ('已取消', '#EF4444'),
         }
         label, color = color_map.get(s, (s, '#94A3B8'))
         return f'<span style="background:{color}20;color:{color};padding:2px 12px;border-radius:20px;font-size:0.8rem;font-weight:500;">{label}</span>'
@@ -694,10 +694,10 @@ def render_recent_orders_table(df_recent):
         html += '<tr style="border-top:1px solid #F1F5F9;">'
         for col in df_recent.columns:
             val = row[col]
-            if col == '\u72b6\u6001':  # 状态
+            if col == '状态':
                 val = style_status(val)
                 html += f'<td style="padding:10px 12px;font-size:0.9rem;">{val}</td>'
-            elif col == '\u91d1\u989d(\u5143)':  # 金额(元)
+            elif col == '金额(元)':
                 html += f'<td style="padding:10px 12px;font-size:0.9rem;font-weight:600;">\u00a5{val:.2f}</td>'
             else:
                 html += f'<td style="padding:10px 12px;font-size:0.9rem;">{val}</td>'
@@ -715,16 +715,16 @@ def main():
     try:
         stats = load_basic_stats()
     except Exception as e:
-        st.error(f"Database connection failed! Please check MYSQL_PASSWORD in .env file.\n\nError: {e}")
-        st.info("Please ensure .env file exists and MYSQL_PASSWORD is correctly configured.")
+        st.error(f"数据库连接失败！请检查 .env 文件中的 MYSQL_PASSWORD 配置。\n\n错误信息: {e}")
+        st.info("请确保 .env 文件存在且 MYSQL_PASSWORD 配置正确。")
         return
 
     # ==================== 头部标题 ====================
     now = datetime.now()
     st.markdown(f"""
     <div class="header-container">
-        <div class="header-title">Campus Delivery Two-Stage Distribution · Real-Time Monitoring Dashboard</div>
-        <div class="header-sub">{now.year}-{now.month:02d}-{now.day:02d} {now:%H:%M:%S} UTC+8 · Data Source: campus_delivery_db</div>
+        <div class="header-title">校园外卖两段式配送 · 实时数据监控大屏</div>
+        <div class="header-sub">{now.year}-{now.month:02d}-{now.day:02d} {now:%H:%M:%S} UTC+8 · 数据来源: campus_delivery_db</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -739,29 +739,29 @@ def main():
 
     with col_left:
         st.markdown('<div class="chart-card">', unsafe_allow_html=True)
-        st.markdown('<div class="chart-title">Merchant Sales Ranking Top 10</div>', unsafe_allow_html=True)
+        st.markdown('<div class="chart-title">商户销售排行 Top 10</div>', unsafe_allow_html=True)
         try:
             df_merchants = load_merchant_sales_rank()
             if df_merchants.empty:
-                st.info("No merchant data available.")
+                st.info("暂无商户数据。")
             else:
                 render_merchant_rank_chart(df_merchants)
         except Exception as e:
-            st.error("Failed to load merchant ranking data")
+            st.error("加载商户排行数据失败")
             st.code(traceback.format_exc())
         st.markdown('</div>', unsafe_allow_html=True)
 
     with col_right:
         st.markdown('<div class="chart-card">', unsafe_allow_html=True)
-        st.markdown('<div class="chart-title">Order Status Distribution</div>', unsafe_allow_html=True)
+        st.markdown('<div class="chart-title">订单状态分布</div>', unsafe_allow_html=True)
         try:
             df_status = load_order_status_distribution()
             if df_status.empty:
-                st.info("No order data available.")
+                st.info("暂无订单数据。")
             else:
                 render_order_status_pie(df_status)
         except Exception as e:
-            st.error("Failed to load order status data")
+            st.error("加载订单状态数据失败")
             st.code(traceback.format_exc())
         st.markdown('</div>', unsafe_allow_html=True)
 
@@ -770,46 +770,46 @@ def main():
 
     with col_left2:
         st.markdown('<div class="chart-card">', unsafe_allow_html=True)
-        st.markdown('<div class="chart-title">Pickup Point Saturation Monitoring</div>', unsafe_allow_html=True)
+        st.markdown('<div class="chart-title">寄存点饱和度监控</div>', unsafe_allow_html=True)
         try:
             df_points = load_pickup_analytics()
             if df_points.empty:
-                st.info("No pickup point data available.")
+                st.info("暂无寄存点数据。")
             else:
                 render_pickup_saturation_chart(df_points)
         except Exception as e:
-            st.error("Failed to load pickup point data")
+            st.error("加载寄存点数据失败")
             st.code(traceback.format_exc())
         st.markdown('</div>', unsafe_allow_html=True)
 
     with col_right2:
         st.markdown('<div class="chart-card">', unsafe_allow_html=True)
-        st.markdown('<div class="chart-title">Recent Order Flow (Latest 10)</div>', unsafe_allow_html=True)
+        st.markdown('<div class="chart-title">近期订单流水（最新10条）</div>', unsafe_allow_html=True)
         try:
             df_recent = load_recent_orders(10)
             if df_recent.empty:
-                st.info("No order data available.")
+                st.info("暂无订单数据。")
             else:
                 render_recent_orders_table(df_recent)
         except Exception as e:
-            st.error("Failed to load recent order data")
+            st.error("加载近期订单数据失败")
             st.code(traceback.format_exc())
         st.markdown('</div>', unsafe_allow_html=True)
 
     # ==================== AI 智能数据助手（全宽） ====================
     st.markdown('<div class="chart-card">', unsafe_allow_html=True)
-    st.markdown('<div class="chart-title">AI-Powered Data Assistant (DeepSeek Text-to-SQL)</div>', unsafe_allow_html=True)
+    st.markdown('<div class="chart-title">AI 智能数据助手 (DeepSeek Text-to-SQL)</div>', unsafe_allow_html=True)
 
     if not DEEPSEEK_API_KEY:
-        st.warning("DeepSeek API Key not configured! Add to .env file:\n\n```\nDEEPSEEK_API_KEY=your_api_key\n```")
-        st.info("Get DeepSeek API Key: https://platform.deepseek.com/")
+        st.warning("DeepSeek API Key 未配置！请添加到 .env 文件中:\n\n```\nDEEPSEEK_API_KEY=your_api_key\n```")
+        st.info("获取 DeepSeek API Key: https://platform.deepseek.com/")
     else:
         st.markdown("""
             <div class="ai-chat-container">
-                <div style="font-size:1rem;font-weight:600;margin-bottom:0.5rem;">AI-Powered Natural Language Query</div>
+                <div style="font-size:1rem;font-weight:600;margin-bottom:0.5rem;">AI 自然语言数据查询</div>
                 <div style="font-size:0.85rem;color:#64748B;margin-bottom:1rem;">
-                    Input Chinese questions, AI automatically converts to SQL and returns result tables.
-                    Examples: "Which merchant has the highest sales?" "How many students are registered?" "Pickup point saturation status"
+                    输入中文问题，AI 自动转换为 SQL 并返回查询结果表格。
+                    例如: "哪个商家销售额最高？" "共有多少学生注册？" "各寄存点饱和度情况"
                 </div>
             </div>
             """, unsafe_allow_html=True)
@@ -819,12 +819,12 @@ def main():
             st.session_state.ai_chat_history = []
 
         # 示例问题快捷按钮
-        st.markdown("##### Quick Question Examples")
+        st.markdown("##### 快捷问题示例")
         example_cols = st.columns(3)
         examples = [
-            "Which merchant has the highest sales?",
-            "How many students are registered?",
-            "What is the saturation level of each pickup point?",
+            "哪个商家销售额最高？",
+            "共有多少学生注册？",
+            "各寄存点饱和度如何？",
         ]
         for i, (col, example) in enumerate(zip(example_cols, examples)):
             with col:
@@ -833,22 +833,22 @@ def main():
 
         # 用户输入
         user_input = st.text_input(
-            "Input your question:",
+            "请输入您的问题:",
             key="ai_input",
-            placeholder="e.g. Which merchant has the highest sales?",
+            placeholder="例如: 哪个商家销售额最高？",
             label_visibility="collapsed",
         )
 
         col_submit, col_clear = st.columns([1, 5])
         with col_submit:
-            submit_clicked = st.button("Send", type="primary", use_container_width=True)
+            submit_clicked = st.button("发送", type="primary", use_container_width=True)
         with col_clear:
-            if st.button("Clear History", use_container_width=True):
+            if st.button("清除记录", use_container_width=True):
                 st.session_state.ai_chat_history = []
                 st.rerun()
 
         if submit_clicked and user_input:
-            with st.spinner("AI is thinking and generating SQL..."):
+            with st.spinner("AI 正在思考并生成 SQL..."):
                 result = ai_text_to_sql(user_input)
 
             # 添加到聊天历史
@@ -860,7 +860,7 @@ def main():
             if result["success"]:
                 st.session_state.ai_chat_history.append({
                     "role": "assistant",
-                    "content": f"Query successful! Found {result['row_count']} records",
+                    "content": f"查询成功！共找到 {result['row_count']} 条记录",
                     "sql": result["sql"],
                     "result": result["result"],
                     "columns": result["columns"],
@@ -878,7 +878,7 @@ def main():
         # 显示聊天历史
         for msg in st.session_state.ai_chat_history:
             if msg["role"] == "user":
-                st.markdown(f'<div class="ai-message user"><strong>You:</strong> {msg["content"]}</div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="ai-message user"><strong>您:</strong> {msg["content"]}</div>', unsafe_allow_html=True)
             else:
                 if msg.get("is_error"):
                     st.markdown(f'<div class="ai-message error"><strong>AI:</strong> {msg["content"]}</div>', unsafe_allow_html=True)
@@ -887,7 +887,7 @@ def main():
 
                 # 显示 SQL
                 if msg.get("sql"):
-                    st.markdown(f'<div class="ai-message sql"><strong>Generated SQL:</strong>\n{msg["sql"]}</div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="ai-message sql"><strong>生成的 SQL:</strong>\n{msg["sql"]}</div>', unsafe_allow_html=True)
 
                 # 显示结果表格
                 if msg.get("result") and len(msg["result"]) > 0:
@@ -899,7 +899,7 @@ def main():
     # ---- 页脚 ----
     st.markdown("""
     <div class="footer">
-        Campus Delivery Two-Stage Distribution Database System · Final Defense Project · Powered by Streamlit & MySQL & DeepSeek AI
+        校园外卖两段式配送数据库系统 · 期末答辩项目 · 基于 Streamlit & MySQL & DeepSeek AI
     </div>
     """, unsafe_allow_html=True)
 
