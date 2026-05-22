@@ -4,7 +4,7 @@
 项目名称：校园外卖两段式配送数据库系统 (campus_delivery_db)
 文件名称：generate_mock_data.py
 功能描述：使用 Faker 库生成海量模拟数据用于答辩大屏展示
-         包含 50用户 / 15商家(各5菜品) / 1000历史订单流水
+          包含 50用户 / 15商家(各5菜品) / 1000历史订单流水
 适用环境：Python 3.8+ / pymysql / faker
 =================================================================
 """
@@ -49,7 +49,7 @@ def get_connection():
 def clean_old_data(conn):
     """清空所有涉及的表，避免外键冲突"""
     print("=" * 60)
-    print("🧹 步骤 0：正在清理旧数据……")
+    print("[步骤 0] 正在清理旧数据……")
     with conn.cursor() as cursor:
         cursor.execute("SET FOREIGN_KEY_CHECKS = 0")
         cursor.execute("TRUNCATE TABLE order_items")
@@ -59,7 +59,7 @@ def clean_old_data(conn):
         cursor.execute("TRUNCATE TABLE users")
         cursor.execute("SET FOREIGN_KEY_CHECKS = 1")
     conn.commit()
-    print("✅ 旧数据已全部清空！")
+    print("[完成] 旧数据已全部清空！")
     print("=" * 60)
 
 
@@ -67,7 +67,7 @@ def clean_old_data(conn):
 # 步骤 1：生成学生数据 (50条)
 # ------------------------------------------------------------------
 def generate_users(conn, num=50):
-    print(f"\n👤 步骤 1：正在生成 {num} 个学生用户……")
+    print(f"\n[步骤 1] 正在生成 {num} 个学生用户……")
     sql = """INSERT INTO users (username, phone, dorm_building, room_number, balance)
              VALUES (%s, %s, %s, %s, %s)"""
     data = []
@@ -85,14 +85,14 @@ def generate_users(conn, num=50):
     with conn.cursor() as cursor:
         cursor.executemany(sql, data)
     conn.commit()
-    print(f"✅ 成功插入 {num} 个学生用户！")
+    print(f"[完成] 成功插入 {num} 个学生用户！")
 
 
 # ------------------------------------------------------------------
 # 步骤 2：生成商家数据 (15条)
 # ------------------------------------------------------------------
 def generate_merchants(conn, num=15):
-    print(f"\n🏪 步骤 2：正在生成 {num} 个商家……")
+    print(f"\n[步骤 2] 正在生成 {num} 个商家……")
     # 有真实感的店名词库
     prefix_list = ["好再来", "天天", "一品", "香满园", "味美滋",
                    "食尚", "舌尖", "小当家", "阿妈", "旺角",
@@ -119,14 +119,14 @@ def generate_merchants(conn, num=15):
     with conn.cursor() as cursor:
         cursor.executemany(sql, data)
     conn.commit()
-    print(f"✅ 成功插入 {num} 个商家！")
+    print(f"[完成] 成功插入 {num} 个商家！")
 
 
 # ------------------------------------------------------------------
 # 步骤 3：生成菜品数据 (每个商家5道菜)
 # ------------------------------------------------------------------
 def generate_dishes(conn, dishes_per_merchant=5):
-    print(f"\n🍽️ 步骤 3：正在为每个商家生成 {dishes_per_merchant} 道菜品……")
+    print(f"\n[步骤 3] 正在为每个商家生成 {dishes_per_merchant} 道菜品……")
     dish_names = [
         "经典麻辣烫", "番茄牛腩面", "宫保鸡丁饭", "鱼香肉丝饭", "糖醋里脊饭",
         "酸菜鱼米线", "香辣鸡腿堡", "珍珠奶茶", "芒果冰沙", "鸡蛋灌饼",
@@ -156,14 +156,14 @@ def generate_dishes(conn, dishes_per_merchant=5):
         cursor.executemany(sql, data)
     conn.commit()
     total = len(data)
-    print(f"✅ 成功插入 {total} 道菜品！")
+    print(f"[完成] 成功插入 {total} 道菜品！")
 
 
 # ------------------------------------------------------------------
 # 步骤 4：生成订单流水 (1000条) + 明细
 # ------------------------------------------------------------------
 def generate_orders(conn, num_orders=1000):
-    print(f"\n📦 步骤 4：正在生成 {num_orders} 条历史订单流水（含明细）……")
+    print(f"\n[步骤 4] 正在生成 {num_orders} 条历史订单流水（含明细）……")
 
     with conn.cursor() as cursor:
         cursor.execute("SELECT user_id FROM users")
@@ -217,7 +217,7 @@ def generate_orders(conn, num_orders=1000):
     OVERLOAD_COUNT = 68
     overload_order_ids = []  # 记录这些订单的 order_id，方便后续追溯
     overload_done = 0
-    print(f"\n   💥 爆仓策略：正在向 '3期智能寄存柜' 注入 {OVERLOAD_COUNT} 个滞留包裹……")
+    print(f"\n   [爆仓] 正在向 '3期智能寄存柜' 注入 {OVERLOAD_COUNT} 个滞留包裹……")
 
     order_insert_sql = """INSERT INTO orders
         (user_id, merchant_id, pickup_point_id, total_amount, order_status,
@@ -296,9 +296,9 @@ def generate_orders(conn, num_orders=1000):
             if (order_index + 1) % 50 == 0 or order_index == num_orders - 1:
                 conn.commit()
                 progress = order_index + 1
-                print(f"   📊 进度: {progress}/{num_orders} 条订单已生成 ({progress*100/num_orders:.0f}%)")
+                print(f"   [进度] {progress}/{num_orders} 条订单已生成 ({progress*100/num_orders:.0f}%)")
 
-    print(f"✅ 成功插入 {num_orders} 条订单及对应明细！")
+    print(f"[完成] 成功插入 {num_orders} 条订单及对应明细！")
     return overload_point_id
 
 
@@ -346,9 +346,9 @@ def sync_pickup_packages(conn, overload_point_id):
 # ------------------------------------------------------------------
 def main():
     start_time = time.time()
-    print("\n" + "★" * 30)
-    print("   🚀 校园外卖模拟数据生成器启动！")
-    print("★" * 30)
+    print("\n" + "=" * 30)
+    print("   校园外卖模拟数据生成器启动！")
+    print("=" * 30)
 
     conn = get_connection()
     try:
@@ -372,11 +372,11 @@ def main():
 
         elapsed = time.time() - start_time
         print("\n" + "=" * 60)
-        print(f"🎉 全部数据生成完毕！耗时: {elapsed:.2f} 秒")
+        print(f"全部数据生成完毕！耗时: {elapsed:.2f} 秒")
         print("=" * 60)
 
     except Exception as e:
-        print(f"\n❌ 发生错误: {e}")
+        print(f"\n[错误] 发生错误: {e}")
         raise
     finally:
         conn.close()
