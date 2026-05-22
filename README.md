@@ -6,7 +6,6 @@
   <img src="https://img.shields.io/badge/Matplotlib-3.5%2B-11557C?style=for-the-badge&logo=plotly&logoColor=white" alt="Matplotlib">
   <img src="https://img.shields.io/badge/Seaborn-0.12%2B-7C6B8E?style=for-the-badge&logo=python&logoColor=white" alt="Seaborn">
   <img src="https://img.shields.io/badge/Status-Defense%20Passed-22C55E?style=for-the-badge&logo=checkmarx&logoColor=white" alt="Status">
-  <img src="https://img.shields.io/github/actions/workflow/status/sou1maker/database/auto-deploy.yml?branch=master&style=for-the-badge&logo=githubactions&logoColor=white" alt="CI Status">
 </p>
 
 <h1 align="center">校园外卖两段式配送数据库系统</h1>
@@ -42,8 +41,6 @@
 
 ```
 campus_delivery_project/
-├── .github/workflows/          # GitHub Actions CI/CD 自动部署
-│   └── auto-deploy.yml         #   代码检查 + 自动部署工作流
 ├── campus_delivery_db.sql      # 完整数据库建库脚本（DDL + 存储过程 + 视图 + 种子数据）
 ├── dashboard_app.py            # Streamlit 数据可视化大屏（含 AI 助手）
 ├── generate_mock_data.py       # 模拟数据生成器（Faker）
@@ -329,20 +326,6 @@ Paid ---> Stage1_Assigned ---> Arrived_At_Point ---> Stage2_Assigned ---> Comple
 | **PyMySQL** | Python MySQL 数据库驱动 |
 | **Faker** | 模拟数据生成 |
 | **python-dotenv** | 环境变量安全管理 |
-
----
-
-## GitHub Actions 自动部署
-
-每次推送 `master` 分支时，GitHub Actions 会自动执行：
-
-| 阶段 | 检查项 | 说明 |
-|------|--------|------|
-| 🔍 **代码检查** | Python 语法编译检测 | 对所有 `.py` 文件执行 `py_compile` 语法检查 |
-| 📦 **依赖安装** | `pip install -r requirements.txt` | 验证所有依赖可正常安装 |
-| 📊 **状态报告** | 生成 CI 部署摘要 | 输出到 GitHub Actions 页面 |
-
-> 工作流配置文件：`.github/workflows/auto-deploy.yml`
 
 ---
 
