@@ -140,13 +140,71 @@ The browser will open automatically. Visit **http://localhost:8501** to view the
 
 ### Entity-Relationship Diagram
 
-> **Note**: Place the E-R diagram file `er_diagram.png` in the `images/` directory. It is recommended to export using MySQL Workbench or dbdiagram.io.
+```mermaid
+erDiagram
+    %% 实体关系定义 (1对N, M对N)
+    USERS ||--o{ ORDERS : "下达"
+    MERCHANTS ||--o{ DISHES : "提供"
+    ORDERS ||--|{ ORDER_ITEMS : "包含明细"
+    DISHES ||--o{ ORDER_ITEMS : "被包含"
+    PICKUP_POINTS ||--o{ ORDERS : "寄存"
+    RIDERS ||--o{ ORDERS : "干线/楼栋配送"
 
-<p align="center">
-  <img src="images/er_diagram.png" alt="E-R Diagram" width="80%" style="border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
-  <br>
-  <em>Placeholder — Please export your E-R diagram as <code>images/er_diagram.png</code> to replace this placeholder</em>
-</p>
+    %% 实体及属性定义
+    USERS {
+        int user_id PK "学号/ID"
+        varchar name "姓名"
+        varchar phone "手机号"
+        varchar dorm_building "宿舍楼栋"
+        decimal balance "校园卡余额"
+    }
+    
+    MERCHANTS {
+        int merchant_id PK "商家ID"
+        varchar shop_name "店铺名称"
+        decimal rating "评分"
+        varchar status "营业状态"
+    }
+    
+    DISHES {
+        int dish_id PK "菜品ID"
+        int merchant_id FK "所属商家ID"
+        varchar dish_name "菜品名称"
+        decimal price "单价"
+        int stock "库存数量(防超卖)"
+    }
+    
+    PICKUP_POINTS {
+        int point_id PK "中转点ID"
+        varchar location_name "位置名称"
+        int max_capacity "最大容量"
+        int current_load "当前饱和度"
+    }
+    
+    RIDERS {
+        int rider_id PK "骑手ID"
+        varchar name "姓名"
+        varchar phone "联系电话"
+        varchar rider_type "干线/楼栋"
+    }
+    
+    ORDERS {
+        int order_id PK "订单ID"
+        int user_id FK "下单学生"
+        int pickup_point_id FK "寄存点"
+        int trunk_rider_id FK "干线骑手"
+        int floor_rider_id FK "楼栋骑手"
+        decimal total_price "总价"
+        varchar status "当前状态"
+    }
+    
+    ORDER_ITEMS {
+        int order_id FK "所属订单"
+        int dish_id FK "对应菜品"
+        int quantity "数量"
+        decimal price "成交单价"
+    }
+```
 
 ### Two-Stage State Machine
 
