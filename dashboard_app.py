@@ -366,7 +366,14 @@ def load_basic_stats():
                 WHERE o.order_status = 'Completed' {date_filter_orders}
             """)
             stats["total_revenue"] = cursor.fetchone()[0]
-            cursor.execute("SELECT COUNT(*) FROM riders WHERE status = 'Delivering'")
+            # 在运骑手：status=Delivering 或已分配订单未完成的骑手
+            cursor.execute("""
+                SELECT COUNT(DISTINCT r.rider_id) 
+                FROM riders r
+                LEFT JOIN orders o ON (r.rider_id = o.stage1_rider_id OR r.rider_id = o.stage2_rider_id)
+                    AND o.order_status NOT IN ('Completed', 'Cancelled')
+                WHERE r.status = 'Delivering' OR o.order_id IS NOT NULL
+            """)
             stats["active_riders"] = cursor.fetchone()[0]
             cursor.execute("""
                 SELECT COUNT(*) FROM orders 
@@ -1008,69 +1015,87 @@ def main():
             st.code(traceback.format_exc())
         st.markdown('</div>', unsafe_allow_html=True)
 
-    # ==================== 商户信息 + 学生信息（两列） ====================
+    # ==================== 多页签：数据图表 / 信息表格 / AI 助手 ====================
     st.markdown("<br>", unsafe_allow_html=True)
-    col_mer, col_stu = st.columns(2)
+    tab_charts, tab_tables, tab_ai = st.tabs(["数据图表", "信息表格", "AI 智能数据助手"])
 
-    with col_mer:
+    with tab_tables:
+        col_mer, col_stu = st.columns(2)
+        with col_mer:
+            st.markdown('<div class="chart-card">', unsafe_allow_html=True)
+            st.markdown('<div class="chart-title">商户信息一览</div>', unsafe_allow_html=True)
+            try:
+                df_mer_info = load_merchant_info()
+                if df_mer_info.empty:
+                    st.info("暂无商户数据。")
+                else:
+                    st.dataframe(df_mer_info, width='stretch', hide_index=True)
+            except Exception as e:
+                st.error("加载商户信息失败")
+                st.code(traceback.format_exc())
+            st.markdown('</div>', unsafe_allow_html=True)
+
+        with col_stu:
+            st.markdown('<div class="chart-card">', unsafe_allow_html=True)
+            st.markdown('<div class="chart-title">学生用户信息一览</div>', unsafe_allow_html=True)
+            try:
+                df_stu = load_student_info()
+                if df_stu.empty:
+                    st.info("暂无学生数据。")
+                else:
+                    st.dataframe(df_stu, width='stretch', hide_index=True)
+            except Exception as e:
+                st.error("加载学生信息失败")
+                st.code(traceback.format_exc())
+            st.markdown('</div>', unsafe_allow_html=True)
+
         st.markdown('<div class="chart-card">', unsafe_allow_html=True)
-        st.markdown('<div class="chart-title">商户信息一览</div>', unsafe_allow_html=True)
+        st.markdown('<div class="chart-title">菜品信息一览</div>', unsafe_allow_html=True)
         try:
-            df_mer_info = load_merchant_info()
-            if df_mer_info.empty:
-                st.info("暂无商户数据。")
+            df_dishes = load_merchant_dishes()
+            if df_dishes.empty:
+                st.info("暂无菜品数据。")
             else:
-                st.dataframe(df_mer_info, width='stretch', hide_index=True)
+                st.dataframe(df_dishes, width='stretch', hide_index=True)
         except Exception as e:
-            st.error("加载商户信息失败")
+            st.error("加载菜品信息失败")
             st.code(traceback.format_exc())
         st.markdown('</div>', unsafe_allow_html=True)
 
-    with col_stu:
+    # ==================== 近期订单流水（放入 tab_charts 底部） ====================
+    with tab_charts:
         st.markdown('<div class="chart-card">', unsafe_allow_html=True)
-        st.markdown('<div class="chart-title">学生用户信息一览</div>', unsafe_allow_html=True)
+        st.markdown('<div class="chart-title">近期订单流水（最新10条）</div>', unsafe_allow_html=True)
         try:
-            df_stu = load_student_info()
-            if df_stu.empty:
-                st.info("暂无学生数据。")
+            df_recent = load_recent_orders(10)
+            if df_recent.empty:
+                st.info("暂无订单数据。")
             else:
-                st.dataframe(df_stu, width='stretch', hide_index=True)
+                render_recent_orders_table(df_recent)
         except Exception as e:
-            st.error("加载学生信息失败")
+            st.error("加载近期订单数据失败")
             st.code(traceback.format_exc())
         st.markdown('</div>', unsafe_allow_html=True)
 
-    # ==================== 菜品信息（全宽） ====================
-    st.markdown('<div class="chart-card">', unsafe_allow_html=True)
-    st.markdown('<div class="chart-title">菜品信息一览</div>', unsafe_allow_html=True)
-    try:
-        df_dishes = load_merchant_dishes()
-        if df_dishes.empty:
-            st.info("暂无菜品数据。")
+    # ==================== AI 智能数据助手 ====================
+    with tab_ai:
+        st.markdown('<div class="chart-card">', unsafe_allow_html=True)
+        st.markdown('<div class="chart-title">AI 智能数据助手 (DeepSeek Text-to-SQL)</div>', unsafe_allow_html=True)
+
+        if not DEEPSEEK_API_KEY:
+            st.warning("DeepSeek API Key 未配置！请添加到 .env 文件中:\n\n```\nDEEPSEEK_API_KEY=your_api_key\n```")
+            st.info("获取 DeepSeek API Key: https://platform.deepseek.com/")
         else:
-            st.dataframe(df_dishes, width='stretch', hide_index=True)
-    except Exception as e:
-        st.error("加载菜品信息失败")
-        st.code(traceback.format_exc())
-    st.markdown('</div>', unsafe_allow_html=True)
-
-    # ==================== AI 智能数据助手（全宽） ====================
-    st.markdown('<div class="chart-card">', unsafe_allow_html=True)
-    st.markdown('<div class="chart-title">AI 智能数据助手 (DeepSeek Text-to-SQL)</div>', unsafe_allow_html=True)
-
-    if not DEEPSEEK_API_KEY:
-        st.warning("DeepSeek API Key 未配置！请添加到 .env 文件中:\n\n```\nDEEPSEEK_API_KEY=your_api_key\n```")
-        st.info("获取 DeepSeek API Key: https://platform.deepseek.com/")
-    else:
-        st.markdown("""
-            <div class="ai-chat-container">
-                <div style="font-size:1rem;font-weight:600;margin-bottom:0.5rem;">AI 自然语言数据查询</div>
-                <div style="font-size:0.85rem;color:#64748B;margin-bottom:1rem;">
-                    输入中文问题，AI 自动转换为 SQL 并返回查询结果表格。
-                    例如: "哪个商家销售额最高？" "共有多少学生注册？" "各寄存点饱和度情况"
+            st.markdown("""
+                <div class="ai-chat-container">
+                    <div style="font-size:1rem;font-weight:600;margin-bottom:0.5rem;">AI 自然语言数据查询</div>
+                    <div style="font-size:0.85rem;color:#64748B;margin-bottom:1rem;">
+                        输入中文问题，AI 自动转换为 SQL 并返回查询结果表格。
+                        例如: "哪个商家销售额最高？" "共有多少学生注册？" "各寄存点饱和度情况"
+                    </div>
                 </div>
-            </div>
-            """, unsafe_allow_html=True)
+                """, unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
 
         # 初始化聊天历史
         if "ai_chat_history" not in st.session_state:
@@ -1184,8 +1209,6 @@ def main():
                         mime="text/csv",
                         use_container_width=True,
                     )
-
-    st.markdown('</div>', unsafe_allow_html=True)
 
     # ---- 页脚 ----
     st.markdown("""

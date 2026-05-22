@@ -298,6 +298,28 @@ def generate_orders(conn, num_orders=1000):
                 progress = order_index + 1
                 print(f"   [进度] {progress}/{num_orders} 条订单已生成 ({progress*100/num_orders:.0f}%)")
 
+    # ---- 更新骑手状态：有未完成订单的骑手设为 Delivering ----
+    print(f"\n   [骑手] 正在更新骑手配送状态……")
+    with conn.cursor() as cursor:
+        cursor.execute("""
+            UPDATE riders r
+            SET r.status = 'Delivering'
+            WHERE r.rider_id IN (
+                SELECT rider_id FROM (
+                    SELECT o.stage1_rider_id AS rider_id
+                    FROM orders o
+                    WHERE o.order_status NOT IN ('Completed', 'Cancelled') AND o.stage1_rider_id IS NOT NULL
+                    UNION
+                    SELECT o.stage2_rider_id AS rider_id
+                    FROM orders o
+                    WHERE o.order_status NOT IN ('Completed', 'Cancelled') AND o.stage2_rider_id IS NOT NULL
+                ) AS active
+            )
+        """)
+        affected = cursor.rowcount
+        conn.commit()
+    print(f"   [骑手] {affected} 名骑手状态已设为配送中")
+
     print(f"[完成] 成功插入 {num_orders} 条订单及对应明细！")
     return overload_point_id
 
