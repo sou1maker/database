@@ -41,18 +41,18 @@
 
 ```
 campus_delivery_project/
-├── campus_delivery_db.sql      # 完整数据库建库脚本（DDL + 存储过程 + 视图 + 种子数据）
+├── campus_delivery_db.sql      # 完整数据库建库脚本（DDL + 存储过程 + 触发器 + 视图 + 种子数据）
 ├── dashboard_app.py            # Streamlit 数据可视化大屏（含 AI 助手）
-├── generate_mock_data.py       # 模拟数据生成器（Faker）
-├── check_data.py               # 数据检查脚本
-├── add_extra_data.py           # 追加寄存点/骑手脚本
+├── generate_mock_data.py       # 模拟数据生成器（Faker, 100学生/20商家/5000订单）
+├── check_data.py               # 数据检查脚本（快速验证各表数据量）
 ├── reinit_db.py                # Python 版数据库重建脚本
+├── create_views.sql            # 大屏视图定义（寄存点饱和度 + 商户销售排行）
 ├── requirements.txt            # Python 依赖列表
 ├── .env.example                # 环境变量配置模板
-├── .env                        # 本地环境变量（已加入 .gitignore，永不提交）
-├── .gitignore                  # Git 忽略规则
+├── .gitignore                  # Git 忽略规则（.env 已加入忽略，永不提交）
 ├── .gitattributes              # Git 属性配置（跨平台 LF 换行符）
 └── README.md                   # 项目说明文档（当前文件）
+
 ```
 
 ---
