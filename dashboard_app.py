@@ -18,8 +18,13 @@ import io
 
 # ---- 解决 Windows 终端中文乱码 ----
 if sys.platform == "win32":
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
-    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8")
+    try:
+        if sys.stdout.buffer and not sys.stdout.buffer.closed:
+            sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
+        if sys.stderr.buffer and not sys.stderr.buffer.closed:
+            sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8")
+    except Exception:
+        pass
 
 import seaborn as sns
 from datetime import datetime, timedelta
@@ -657,12 +662,13 @@ DB_SCHEMA_DESCRIPTION = """
 
 
 def init_deepseek_client():
-    """初始化 DeepSeek 客户端"""
+    """初始化 DeepSeek 客户端（超时 10 秒防止卡死）"""
     if not DEEPSEEK_API_KEY:
         return None
     return OpenAI(
         api_key=DEEPSEEK_API_KEY,
         base_url=DEEPSEEK_BASE_URL,
+        timeout=10,
     )
 
 
@@ -702,6 +708,7 @@ def ai_text_to_sql(user_question: str) -> dict:
             ],
             temperature=0.1,
             max_tokens=1000,
+            timeout=10,
         )
         sql = response.choices[0].message.content.strip()
         sql = sql.replace("```sql", "").replace("```", "").strip()
@@ -897,9 +904,10 @@ def render_time_period_chart(df_period):
                 fontsize=11, fontweight='bold', color='#1E293B',
                 fontproperties=FONT_PROP)
     ax.set_xticks(range(len(df_period)))
-    ax.set_xticklabels(df_period['time_period'], fontproperties=FONT_PROP, rotation=15)
+    ax.set_xticklabels(df_period['time_period'], fontproperties=FONT_PROP, rotation=45, ha='right')
     style_axis(ax)
     ax.set_ylabel('订单量', fontsize=10, color='#64748B', fontproperties=FONT_PROP)
+    plt.tight_layout()
     st.pyplot(fig, width='stretch')
     plt.close()
 
@@ -1020,34 +1028,10 @@ def main():
 
     # ==================== KPI 指标行 ====================
     render_kpi_row(stats)
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    # ==================== 时段订单分布（全宽） ====================
-    st.markdown('<div class="chart-card">', unsafe_allow_html=True)
-    st.markdown('<div class="chart-title">时段订单分布（高峰分析）</div>', unsafe_allow_html=True)
-    try:
-        df_period = load_time_period_distribution(date_option)
-        if df_period.empty:
-            st.info("暂无订单数据。")
-        else:
-            render_time_period_chart(df_period)
-            peak_mask = df_period['time_period'].str.contains('高峰|夜宵')
-            peak_orders = int(df_period[peak_mask]['order_count'].sum())
-            total_orders = int(df_period['order_count'].sum())
-            peak_pct = round(peak_orders / total_orders * 100, 1) if total_orders > 0 else 0
-            st.markdown(
-                f'<div style="text-align:center;color:#64748B;font-size:0.85rem;padding:0.5rem;">'
-                f'高峰+夜宵时段订单占比: <strong style="color:#EF4444;font-size:1rem;">{peak_pct}%</strong> '
-                f'（{peak_orders} / {total_orders} 单）'
-                f'</div>',
-                unsafe_allow_html=True
-            )
-    except Exception as e:
-        st.error("加载时段分布数据失败")
-        st.code(traceback.format_exc())
-    st.markdown('</div>', unsafe_allow_html=True)
+    st.divider()
 
     # ==================== 宽屏网格布局 ====================
+
     # 第一行：左（商户排行）+ 右（订单状态饼图）
     col_left, col_right = st.columns([1.2, 1])
 
@@ -1079,39 +1063,70 @@ def main():
             st.code(traceback.format_exc())
         st.markdown('</div>', unsafe_allow_html=True)
 
-    # 第二行：左（寄存点饱和度）+ 右（近期订单流水）
-    col_left2, col_right2 = st.columns([1.2, 1])
+    # 第二行：左（近期订单流水）
+    st.markdown('<div class="chart-card">', unsafe_allow_html=True)
+    st.markdown('<div class="chart-title">近期订单流水（最新10条）</div>', unsafe_allow_html=True)
+    try:
+        df_recent = load_recent_orders(10, date_option)
+        if df_recent.empty:
+            st.info("暂无订单数据。")
+        else:
+            render_recent_orders_table(df_recent)
+    except Exception as e:
+        st.error("加载近期订单数据失败")
+        st.code(traceback.format_exc())
+    st.markdown('</div>', unsafe_allow_html=True)
 
-    with col_left2:
-        st.markdown('<div class="chart-card">', unsafe_allow_html=True)
-        st.markdown('<div class="chart-title">寄存点饱和度监控</div>', unsafe_allow_html=True)
-        try:
-            df_points = load_pickup_analytics()
-            if df_points.empty:
-                st.info("暂无寄存点数据。")
-            else:
-                render_pickup_saturation_chart(df_points)
-        except Exception as e:
-            st.error("加载寄存点数据失败")
-            st.code(traceback.format_exc())
-        st.markdown('</div>', unsafe_allow_html=True)
+    # ==================== 寄存点饱和度监控（全宽 · 独占一行） ====================
+    st.markdown('<div class="chart-card">', unsafe_allow_html=True)
+    st.markdown('<div class="chart-title">寄存点饱和度监控</div>', unsafe_allow_html=True)
+    try:
+        df_points = load_pickup_analytics()
+        if df_points.empty:
+            st.info("暂无寄存点数据。")
+        else:
+            # 数据清洗：缩短寄存点名称，只保留核心期数标识（如 "1期智能寄存柜" → "1期"）
+            df_points['point_name'] = df_points['point_name'].str.replace('智能寄存柜', '', regex=False).str.strip()
+            render_pickup_saturation_chart(df_points)
 
-    with col_right2:
-        st.markdown('<div class="chart-card">', unsafe_allow_html=True)
-        st.markdown('<div class="chart-title">近期订单流水（最新10条）</div>', unsafe_allow_html=True)
-        try:
-            df_recent = load_recent_orders(10, date_option)
-            if df_recent.empty:
-                st.info("暂无订单数据。")
-            else:
-                render_recent_orders_table(df_recent)
-        except Exception as e:
-            st.error("加载近期订单数据失败")
-            st.code(traceback.format_exc())
-        st.markdown('</div>', unsafe_allow_html=True)
+    except Exception as e:
+        st.error("加载寄存点数据失败")
+        st.code(traceback.format_exc())
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    st.divider()
+
+
+    # ==================== 时段订单分布（全宽 · 移至页面底部） ====================
+    st.markdown('<div class="chart-card">', unsafe_allow_html=True)
+    st.markdown('<div class="chart-title">时段订单分布（高峰分析）</div>', unsafe_allow_html=True)
+    try:
+        df_period = load_time_period_distribution(date_option)
+        if df_period.empty:
+            st.info("暂无订单数据。")
+        else:
+            render_time_period_chart(df_period)
+            peak_mask = df_period['time_period'].str.contains('高峰|夜宵')
+            peak_orders = int(df_period[peak_mask]['order_count'].sum())
+            total_orders = int(df_period['order_count'].sum())
+            peak_pct = round(peak_orders / total_orders * 100, 1) if total_orders > 0 else 0
+            st.markdown(
+                f'<div style="text-align:center;color:#64748B;font-size:0.85rem;padding:0.5rem;">'
+                f'高峰+夜宵时段订单占比: <strong style="color:#EF4444;font-size:1rem;">{peak_pct}%</strong> '
+                f'（{peak_orders} / {total_orders} 单）'
+                f'</div>',
+                unsafe_allow_html=True
+            )
+    except Exception as e:
+        st.error("加载时段分布数据失败")
+        st.code(traceback.format_exc())
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    st.divider()
 
     # ==================== AI 智能数据助手 ====================
     st.markdown("<br>", unsafe_allow_html=True)
+
     st.markdown('<div class="chart-card">', unsafe_allow_html=True)
     st.markdown('<div class="chart-title">AI 智能数据助手 (DeepSeek Text-to-SQL)</div>', unsafe_allow_html=True)
 
