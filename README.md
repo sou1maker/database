@@ -154,12 +154,14 @@ erDiagram
 
 | 文件 | 说明 |
 |------|------|
-| `app.py` | Flask 主程序，含全部 REST API 与内嵌 HTML 监控大屏 |
-| `dashboard_app.py` | 启动器（等价于 `python app.py`） |
+| `app.py` | Flask 主程序，含全部 REST API |
+| `templates/index.html` | 监控大屏前端页面（ECharts + 原生 JS） |
 | `db.py` | MySQL 连接池模块（PyMySQL + DBUtils） |
 | `campus_delivery_db.sql` | 完整建库脚本（DDL + 存储过程 + 触发器 + 视图） |
 | `reinit_db.py` | Python 版数据库重建脚本 |
 | `generate_mock_data.py` | 模拟数据生成器（5000 条订单，含爆仓场景） |
+| `check_data.py` | 数据库数据完整性快速检查脚本 |
+| `test_app.py` | 自动化测试（API 接口 + 数据库连接） |
 | `requirements.txt` | Python 依赖清单 |
 | `images/er_diagram.png` | E-R 实体关系图 |
 
