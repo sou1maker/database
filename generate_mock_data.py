@@ -345,7 +345,8 @@ def generate_orders(conn, num_orders=5000):
                 stage1_rider, stage2_rider,
                 created_at, stage1_completed_at, stage2_completed_at,
             ))
-            order_id = cursor.lastrowid
+            cursor.execute("SELECT LAST_INSERT_ID()")
+            order_id = cursor.fetchone()[0]
 
             cursor.execute(item_insert_sql, (order_id, selected_dish["dish_id"], quantity, price_at_order))
 
@@ -389,7 +390,7 @@ def sync_pickup_packages(conn, overload_point_id):
         cursor.execute("""
             SELECT pp.point_id, pp.capacity, COUNT(o.pickup_point_id) AS cnt
             FROM pickup_points pp
-            LEFT JOIN orders o ON pp.point_id = o.pickup_point_id AND o.order_status = 'Arrived_At_Point'
+            LEFT JOIN orders o ON pp.point_id = o.pickup_point_id AND o.order_status IN ('Arrived_At_Point', 'Stage2_Assigned')
             GROUP BY pp.point_id, pp.capacity
         """)
         stats = cursor.fetchall()
