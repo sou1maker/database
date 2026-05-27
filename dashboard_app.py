@@ -5,14 +5,13 @@
 文件名称：dashboard_app.py
 功能描述：Streamlit 宽屏网格数据大屏（期末答辩展示）
           + AI 智能数据助手（DeepSeek Text-to-SQL）
-设计风格：宽屏网格布局 · 卡片化 · 渐变色 · 爆仓预警
+设计风格：现代企业级数据大屏 · 玻璃态卡片 · 动态渐变 · 爆仓预警
 适用环境：Python 3.8+ / streamlit / pymysql / pandas / matplotlib / openai
 ==================================================================
 """
 
 import streamlit as st
 import pandas as pd
-import pymysql
 import sys
 import io
 
@@ -35,12 +34,17 @@ from dotenv import load_dotenv
 from openai import OpenAI
 
 # ================================================================
-# 加载 .env 文件中的环境变量（绝不硬编码密码）
+# 加载 .env 文件
 # ================================================================
 load_dotenv(os.path.join(os.path.dirname(__file__), '.env'))
 
+# ================================================================
+# 导入数据库连接池模块
+# ================================================================
+from db import get_connection, check_connection
+
 # ---------------------------------------------------------------
-# Matplotlib 中文字体配置（强力修复版）
+# Matplotlib 中文字体配置
 # ---------------------------------------------------------------
 import matplotlib
 matplotlib.use("Agg")
@@ -49,44 +53,22 @@ import matplotlib.font_manager as fm
 
 plt.rcParams['axes.unicode_minus'] = False
 
+
 def _setup_chinese_font():
-    """配置 Matplotlib 中文字体，返回可用的 FontProperties 对象"""
-    # 1. 清除 matplotlib 字体缓存，确保重新扫描
-    try:
-        fm._load_fontmanager(try_read_cache=False)
-    except Exception:
-        pass
-
-    # 2. 手动添加所有可能的系统字体路径
-    _font_dirs = [
-        r"C:\Windows\Fonts",
-        r"C:\Windows\Fonts\msyh.ttc",
-        r"C:\Windows\Fonts\msyhbd.ttc",
-        r"C:\Windows\Fonts\simhei.ttf",
-        r"C:\Windows\Fonts\msyh.ttf",
-        r"C:\Windows\Fonts\SIMHEI.TTF",
-        r"C:\Windows\Fonts\simsun.ttc",
-        r"C:\Windows\Fonts\SIMYOU.TTF",
-    ]
-    for _d in _font_dirs:
-        if os.path.isdir(_d):
-            for _f in fm.findSystemFonts(fontpaths=[_d]):
-                try:
-                    fm.fontManager.addfont(_f)
-                except Exception:
-                    pass
-        elif os.path.isfile(_d):
-            try:
-                fm.fontManager.addfont(_d)
-            except Exception:
-                pass
-
-    # 3. 按优先级探测可用中文字体
+    """配置 Matplotlib 中文字体"""
     _candidate_families = [
         "Microsoft YaHei", "SimHei", "Noto Sans SC",
-        "Noto Sans CJK SC", "WenQuanYi Micro Hei", "SimSun",
-        "KaiTi", "FangSong", "Arial Unicode MS",
+        "Noto Sans CJK SC", "SimSun", "KaiTi", "FangSong",
     ]
+
+    # 扫描 C:\Windows\Fonts 目录添加所有字体
+    _font_dir = r"C:\Windows\Fonts"
+    if os.path.isdir(_font_dir):
+        for _f in fm.findSystemFonts(fontpaths=[_font_dir]):
+            try:
+                fm.fontManager.addfont(_f)
+            except Exception:
+                pass
 
     _found_family = None
     for _fam in _candidate_families:
@@ -99,48 +81,20 @@ def _setup_chinese_font():
         except Exception:
             continue
 
-    # 4. 如果上述都没找到，暴力搜索系统里所有含中文的字体
-    if _found_family is None:
-        for _f in fm.fontManager.ttflist:
-            if _f.name in _candidate_families:
-                _found_family = _f.name
-                break
-
-    # 5. 应用字体设置
     if _found_family:
         plt.rcParams['font.sans-serif'] = [_found_family, 'DejaVu Sans', 'Arial']
         plt.rcParams['font.family'] = 'sans-serif'
         return fm.FontProperties(family=_found_family)
     else:
-        # 终极兜底：不依赖 family 名称，直接指定字体文件路径
-        for _p in _font_dirs:
-            if os.path.isfile(_p):
-                try:
-                    _fp = fm.FontProperties(fname=_p)
-                    _name = _fp.get_name()
-                    plt.rcParams['font.sans-serif'] = [_name, 'DejaVu Sans']
-                    plt.rcParams['font.family'] = 'sans-serif'
-                    return _fp
-                except Exception:
-                    continue
-        # 彻底放弃，返回默认
+        for _f in fm.fontManager.ttflist:
+            if _f.name in _candidate_families:
+                plt.rcParams['font.sans-serif'] = [_f.name, 'DejaVu Sans']
+                plt.rcParams['font.family'] = 'sans-serif'
+                return fm.FontProperties(family=_f.name)
         return fm.FontProperties()
 
+
 FONT_PROP = _setup_chinese_font()
-
-# ================================================================
-# 数据库连接配置 — 完全从 .env 读取，绝不硬编码
-# ================================================================
-DB_CONFIG = {
-    "host": os.getenv("MYSQL_HOST", "localhost"),
-    "user": os.getenv("MYSQL_USER", "root"),
-    "password": os.getenv("MYSQL_PASSWORD"),
-    "database": os.getenv("MYSQL_DATABASE", "campus_delivery_db"),
-    "charset": os.getenv("MYSQL_CHARSET", "utf8mb4"),  # 从 .env 读取编码，默认 utf8mb4（不再硬编码锁死）
-
-    "use_unicode": True,
-    "init_command": "SET NAMES utf8mb4",
-}
 
 # ================================================================
 # DeepSeek AI 配置 — 从 .env 读取
@@ -149,141 +103,212 @@ DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
 DEEPSEEK_BASE_URL = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
 DEEPSEEK_MODEL = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
 
-# ---- 页面路径 ----
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-# ---- 全局配色方案 ----
-COLOR_PRIMARY = "#4F46E5"
-COLOR_SECONDARY = "#06B6D4"
-COLOR_SUCCESS = "#22C55E"
+# ---- 全局配色方案（现代企业级配色） ----
+COLOR_PRIMARY = "#6366F1"
+COLOR_ACCENT = "#06B6D4"
+COLOR_SUCCESS = "#10B981"
 COLOR_WARNING = "#F59E0B"
 COLOR_DANGER = "#EF4444"
-COLOR_BG = "#F8FAFC"
+COLOR_BG = "#F1F5F9"
 COLOR_CARD = "#FFFFFF"
 COLOR_TEXT = "#1E293B"
+COLOR_TEXT_SEC = "#64748B"
 
 # ---- Streamlit 页面配置 ----
 st.set_page_config(
     page_title="校园外卖两段式配送 · 实时数据监控大屏",
-    page_icon="📊",
+    page_icon="",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
 
-# ---- 自定义全局 CSS ----
+# ---- 自定义全局 CSS（现代企业级大屏风格） ----
 st.markdown(f"""
 <style>
+    /* ========== 全局底色与字体 ========== */
     .stApp {{
-        background: {COLOR_BG};
-        font-family: "Microsoft YaHei", "SimHei", "Arial Unicode MS", "Noto Sans CJK SC", sans-serif;
+        background: linear-gradient(180deg, #F1F5F9 0%, #E8ECF1 100%);
+        font-family: "Microsoft YaHei", "Segoe UI", "Noto Sans SC", sans-serif;
     }}
-    body, .stApp, .css-1v0mbdj, .css-18ni7ap {{
-        font-family: "Microsoft YaHei", "SimHei", "Arial Unicode MS", "Noto Sans CJK SC", sans-serif;
-    }}
+
+    /* ========== 顶部标题栏 — 深色玻璃态 ========== */
     .header-container {{
-        background: linear-gradient(135deg, #4F46E5 0%, #06B6D4 100%);
-        padding: 2rem 2rem 1.5rem;
-        border-radius: 0 0 30px 30px;
-        margin-bottom: 1.5rem;
-        box-shadow: 0 4px 20px rgba(79,70,229,0.3);
+        background: linear-gradient(135deg, #1E293B 0%, #334155 40%, #1E3A5F 100%);
+        padding: 2.5rem 2rem 2rem;
+        border-radius: 24px;
+        margin-bottom: 1.8rem;
+        box-shadow: 0 8px 32px rgba(30,41,59,0.35), 0 2px 8px rgba(0,0,0,0.15);
+        position: relative;
+        overflow: hidden;
+    }}
+    .header-container::before {{
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -10%;
+        width: 300px;
+        height: 300px;
+        background: radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%);
+        border-radius: 50%;
+    }}
+    .header-container::after {{
+        content: '';
+        position: absolute;
+        bottom: -30%;
+        left: 5%;
+        width: 200px;
+        height: 200px;
+        background: radial-gradient(circle, rgba(6,182,212,0.12) 0%, transparent 70%);
+        border-radius: 50%;
     }}
     .header-title {{
-        color: white;
+        color: #F1F5F9;
         font-size: 2rem;
         font-weight: 700;
         text-align: center;
         margin: 0;
-        letter-spacing: 1px;
+        letter-spacing: 2px;
+        position: relative;
+        z-index: 1;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.2);
     }}
     .header-sub {{
-        color: rgba(255,255,255,0.85);
+        color: #94A3B8;
         text-align: center;
         font-size: 0.9rem;
-        margin-top: 0.5rem;
+        margin-top: 0.6rem;
+        position: relative;
+        z-index: 1;
     }}
+
+    /* ========== KPI 指标卡片 — 玻璃态悬浮 ========== */
     .kpi-card {{
         background: {COLOR_CARD};
-        padding: 1.2rem 1rem;
-        border-radius: 16px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        padding: 1.4rem 1.2rem;
+        border-radius: 20px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.04), 0 1px 4px rgba(0,0,0,0.06);
         text-align: center;
-        border-left: 4px solid {COLOR_PRIMARY};
-        transition: transform 0.2s;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+    }}
+    .kpi-card::after {{
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 3px;
+        border-radius: 20px 20px 0 0;
     }}
     .kpi-card:hover {{
-        transform: translateY(-2px);
-        box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+        transform: translateY(-4px);
+        box-shadow: 0 12px 28px rgba(0,0,0,0.1), 0 2px 8px rgba(0,0,0,0.06);
     }}
     .kpi-value {{
-        font-size: 1.8rem;
-        font-weight: 700;
-        color: {COLOR_PRIMARY};
+        font-size: 2rem;
+        font-weight: 800;
+        letter-spacing: -0.5px;
+        line-height: 1.2;
     }}
     .kpi-label {{
         font-size: 0.85rem;
-        color: #64748B;
-        margin-top: 0.2rem;
+        color: {COLOR_TEXT_SEC};
+        margin-top: 0.3rem;
+        font-weight: 500;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
     }}
+
+    /* ========== 图表卡片 — 清爽白底 ========== */
     .chart-card {{
         background: {COLOR_CARD};
-        border-radius: 16px;
-        padding: 1.2rem;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-        margin-bottom: 1rem;
+        border-radius: 20px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.04), 0 1px 4px rgba(0,0,0,0.06);
+        margin-bottom: 1.2rem;
+        transition: box-shadow 0.2s;
+    }}
+    .chart-card:hover {{
+        box-shadow: 0 8px 24px rgba(0,0,0,0.08);
     }}
     .chart-title {{
         font-size: 1.1rem;
-        font-weight: 600;
+        font-weight: 700;
         color: {COLOR_TEXT};
-        margin-bottom: 0.8rem;
-        padding-left: 0.6rem;
+        margin-bottom: 1rem;
+        padding-left: 0.8rem;
         border-left: 4px solid {COLOR_PRIMARY};
+        letter-spacing: 0.5px;
     }}
+
+    /* ========== AI 对话区域 ========== */
     .ai-chat-container {{
         background: white;
-        border-radius: 16px;
+        border-radius: 20px;
         padding: 1.5rem;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        box-shadow: 0 4px 16px rgba(0,0,0,0.04);
         margin-bottom: 1rem;
     }}
     .ai-message {{
         padding: 0.8rem 1rem;
-        border-radius: 12px;
+        border-radius: 14px;
         margin-bottom: 0.8rem;
         font-size: 0.9rem;
-        line-height: 1.5;
+        line-height: 1.6;
     }}
     .ai-message.user {{
-        background: #EEF2FF;
-        border-left: 4px solid #4F46E5;
+        background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%);
+        border-left: 4px solid {COLOR_PRIMARY};
         color: #1E293B;
     }}
     .ai-message.assistant {{
-        background: #F0FDF4;
-        border-left: 4px solid #22C55E;
+        background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%);
+        border-left: 4px solid {COLOR_SUCCESS};
         color: #1E293B;
     }}
     .ai-message.sql {{
         background: #F8FAFC;
-        border-left: 4px solid #F59E0B;
-        font-family: 'Consolas', 'Courier New', monospace;
-        font-size: 0.8rem;
-        color: #1E293B;
+        border-left: 4px solid {COLOR_WARNING};
+        font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+        font-size: 0.82rem;
+        color: #334155;
         white-space: pre-wrap;
         overflow-x: auto;
     }}
     .ai-message.error {{
-        background: #FEF2F2;
-        border-left: 4px solid #EF4444;
+        background: linear-gradient(135deg, #FEF2F2 0%, #FEE2E2 100%);
+        border-left: 4px solid {COLOR_DANGER};
         color: #991B1B;
     }}
+
+    /* ========== 页脚 ========== */
     .footer {{
         text-align: center;
         color: #94A3B8;
-        font-size: 0.8rem;
+        font-size: 0.82rem;
         padding: 2rem 0 1rem;
         border-top: 1px solid #E2E8F0;
-        margin-top: 2rem;
+        margin-top: 2.5rem;
+    }}
+
+    /* ========== Streamlit 原生组件微调 ========== */
+    .stButton > button {{
+        border-radius: 12px !important;
+        font-weight: 600 !important;
+        transition: all 0.2s !important;
+    }}
+    .stButton > button:hover {{
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }}
+    .stSelectbox [data-baseweb="select"] {{
+        border-radius: 12px !important;
+    }}
+    .stTextInput > div > div > input {{
+        border-radius: 12px !important;
+    }}
+    div[data-testid="stExpander"] {{
+        border-radius: 14px !important;
+        border: 1px solid #E2E8F0 !important;
     }}
 </style>
 """, unsafe_allow_html=True)
@@ -292,9 +317,6 @@ st.markdown(f"""
 # 数据库连接与缓存查询
 # ================================================================
 
-def get_connection():
-    """获取数据库连接（统一 charset='utf8mb4' 编码锁死）"""
-    return pymysql.connect(**DB_CONFIG)
 
 
 def _get_date_option():
@@ -610,8 +632,8 @@ def load_rider_info():
         df = pd.DataFrame(rows, columns=columns)
         if not df.empty:
             # 将英文状态映射为中文
-            type_map = {'Stage1_Trunk': '🚚 干线骑手', 'Stage2_Floor': '🏠 楼栋骑手'}
-            status_map = {'Idle': '🟢 空闲', 'Delivering': '🔴 配送中', 'Offline': '⚫ 离线'}
+            type_map = {'Stage1_Trunk': '干线骑手', 'Stage2_Floor': '楼栋骑手'}
+            status_map = {'Idle': '空闲', 'Delivering': '配送中', 'Offline': '离线'}
             df['分工'] = df['分工'].map(type_map).fillna(df['分工'])
             df['状态'] = df['状态'].map(status_map).fillna(df['状态'])
         return df
@@ -862,16 +884,17 @@ def style_axis(ax):
 def render_kpi_row(stats):
     """渲染顶部 KPI 指标行"""
     kpi_items = [
-        ("总订单量", f"{int(stats['total_orders'])} 单", COLOR_PRIMARY),
-        ("活跃商家", f"{int(stats['total_merchants'])} 家", COLOR_SECONDARY),
+        ("总订单量", f"{int(stats['total_orders']):,}", COLOR_PRIMARY),
+        ("活跃商家", f"{int(stats['total_merchants'])} 家", COLOR_ACCENT),
         ("在途骑手", f"{int(stats['active_riders'])} 人", COLOR_WARNING),
-        ("总营业额", f"¥{float(stats['total_revenue']):,.2f}", COLOR_SUCCESS),
+        ("总营业额", f"¥{float(stats['total_revenue']):,.0f}", COLOR_SUCCESS),
     ]
     cols = st.columns(4)
     for col, (label, value, color) in zip(cols, kpi_items):
         with col:
             st.markdown(f"""
-            <div class="kpi-card" style="border-left-color: {color};">
+            <div class="kpi-card" style="border-top: 3px solid {color};">
+                <div style="width:10px;height:10px;border-radius:50%;background:{color};display:inline-block;margin-bottom:0.4rem;"></div>
                 <div class="kpi-value" style="color: {color};">{value}</div>
                 <div class="kpi-label">{label}</div>
             </div>
@@ -880,125 +903,146 @@ def render_kpi_row(stats):
 
 def render_pickup_saturation_chart(df_points):
     """渲染寄存点饱和度柱状图 + 爆仓预警"""
-    fig, ax = plt.subplots(figsize=(8, 4))
-    fig.patch.set_facecolor('none')
-    ax.set_facecolor('none')
+    fig, ax = plt.subplots(figsize=(11, 5))
+    fig.patch.set_facecolor('#FFFFFF')
+    ax.set_facecolor('#FFFFFF')
     names = df_points['point_name'].tolist()
     values = df_points['saturation_pct'].tolist()
-    colors_bar = ['#22C55E' if v < 60 else '#F59E0B' if v < 80 else '#EF4444' for v in values]
-    bars = ax.bar(names, values, color=colors_bar, width=0.5,
-                  edgecolor='white', linewidth=2, zorder=3)
-    ax.axhline(y=80, color='#EF4444', linestyle='--', linewidth=1.5,
-               alpha=0.7, label='爆仓阈值 80%', zorder=2)
-    ax.axhline(y=60, color='#F59E0B', linestyle='--', linewidth=1,
-               alpha=0.5, label='预警阈值 60%', zorder=2)
+    colors_bar = ['#10B981' if v < 60 else '#F59E0B' if v < 80 else '#EF4444' for v in values]
+    bars = ax.bar(names, values, color=colors_bar, width=0.6,
+                  edgecolor='white', linewidth=1.5, zorder=3)
+    ax.axhline(y=80, color='#EF4444', linestyle='--', linewidth=2,
+               alpha=0.5, label='Overload Threshold 80%', zorder=2)
+    ax.axhline(y=60, color='#F59E0B', linestyle='--', linewidth=1.5,
+               alpha=0.35, label='Warning Threshold 60%', zorder=2)
     for bar, v in zip(bars, values):
-        ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 2,
+        color = '#EF4444' if v > 80 else '#475569'
+        ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 2.5,
                 f'{v:.1f}%', ha='center', va='bottom',
-                fontsize=11, fontweight='bold', color='#1E293B',
+                fontsize=10, fontweight='bold', color=color,
                 fontproperties=FONT_PROP)
     ax.set_xticks(range(len(names)))
-    ax.set_xticklabels(names, fontproperties=FONT_PROP)
-    ax.set_ylim(0, 105)
+    ax.set_xticklabels(names, fontproperties=FONT_PROP, fontsize=9)
+    ax.set_ylim(0, 110)
     style_axis(ax)
-    ax.legend(fontsize=9, loc='upper right', framealpha=0.8, prop=FONT_PROP)
-    ax.set_ylabel('饱和度 (%)', fontsize=10, color='#64748B', fontproperties=FONT_PROP)
+    ax.grid(axis='y', alpha=0.25, linestyle='-', linewidth=0.5, zorder=0, color='#CBD5E1')
+    ax.legend(fontsize=8, loc='upper right', framealpha=0.95, prop=FONT_PROP,
+              edgecolor='#E2E8F0', labelspacing=0.5)
+    ax.set_ylabel('Saturation (%)', fontsize=10, color=COLOR_TEXT_SEC, fontproperties=FONT_PROP)
+    plt.tight_layout(pad=1.5)
     st.pyplot(fig, width='stretch')
     plt.close()
 
-    # 爆仓预警：饱和度超过 80% 的寄存点
     overflow_points = df_points[df_points['saturation_pct'] > 80]
     if not overflow_points.empty:
         for _, row in overflow_points.iterrows():
-            st.warning(
-                f"⚠️ 爆仓预警: {row['point_name']} 饱和度 {row['saturation_pct']:.1f}% "
-                f"(已用 {int(row['current_packages'])} / 最大 {int(row['max_capacity'])} 格, "
-                f"滞留 {int(row['backlog_count'])} 件)"
+            st.error(
+                f"OVERLOAD: **{row['point_name']}** saturation {row['saturation_pct']:.1f}%, "
+                f"used {int(row['current_packages'])}/{int(row['max_capacity'])}, "
+                f"backlog {int(row['backlog_count'])}"
             )
 
 
 def render_merchant_rank_chart(df_merchants):
     """渲染商户销售排行水平柱状图"""
-    top10 = df_merchants.head(10).iloc[::-1]
-    fig, ax = plt.subplots(figsize=(8, 5))
-    fig.patch.set_facecolor('none')
-    ax.set_facecolor('none')
-    palette = sns.color_palette("viridis", len(top10))[::-1]
+    top10 = df_merchants.head(10).iloc[::-1].copy()
+    top10['total_sales'] = top10['total_sales'].astype(float)
+    top10['total_orders'] = top10['total_orders'].astype(int)
+    fig, ax = plt.subplots(figsize=(10, 5.5))
+    fig.patch.set_facecolor('#FFFFFF')
+    ax.set_facecolor('#FFFFFF')
+    import numpy as np
+    n = len(top10)
+    # 专业蓝色系渐变
+    colors = [plt.cm.Blues(0.3 + 0.7 * i / n) for i in range(n)][::-1]
     bars = ax.barh(top10['merchant_name'], top10['total_sales'],
-                   color=palette, edgecolor='white', linewidth=1.5, height=0.6, zorder=3)
+                   color=colors, edgecolor='white', linewidth=1.5, height=0.65, zorder=3)
+    max_sales = top10['total_sales'].max()
     for bar, (_, row) in zip(bars, top10.iterrows()):
         w = bar.get_width()
-        ax.text(w + 10, bar.get_y() + bar.get_height()/2,
-                f'¥{w:,.0f}  ({int(row["total_orders"])} 单)',
-                ha='left', va='center', fontsize=9, fontweight='bold',
-                color='#1E293B', fontproperties=FONT_PROP)
+        ax.text(w + max_sales * 0.015, bar.get_y() + bar.get_height()/2,
+                f'¥{w:,.0f}  ({int(row["total_orders"])}单)',
+                ha='left', va='center', fontsize=9, fontweight='600',
+                color='#475569', fontproperties=FONT_PROP)
     ax.set_yticks(range(len(top10)))
-    ax.set_yticklabels(top10['merchant_name'], fontproperties=FONT_PROP)
+    ax.set_yticklabels(top10['merchant_name'], fontproperties=FONT_PROP, fontsize=10)
+    ax.set_xlim(0, max_sales * 1.3)
     style_axis(ax)
-    ax.set_xlabel('总销售额 (¥)', fontsize=10, color='#64748B', fontproperties=FONT_PROP)
-    ax.margins(x=0.25)
+    ax.grid(axis='x', alpha=0.25, linestyle='-', linewidth=0.5, zorder=0, color='#CBD5E1')
+    ax.set_xlabel('总销售额 (CNY)', fontsize=10, color=COLOR_TEXT_SEC, fontproperties=FONT_PROP)
+    plt.tight_layout(pad=1.5)
     st.pyplot(fig, width='stretch')
     plt.close()
 
 
 def render_order_status_pie(df_status):
     """渲染订单状态分布环形饼图"""
-    status_map = {
-        "Paid": ("已支付", "#F59E0B"),
-        "Stage1_Assigned": ("干线配送中", "#3B82F6"),
-        "Arrived_At_Point": ("已到寄存点", "#8B5CF6"),
-        "Stage2_Assigned": ("楼栋配送中", "#06B6D4"),
-        "Completed": ("已完成", "#22C55E"),
-        "Cancelled": ("已取消", "#EF4444"),
+    # 专业配色：蓝绿暖色系
+    status_colors = {
+        "Paid": "#94A3B8",
+        "Stage1_Assigned": "#3B82F6",
+        "Arrived_At_Point": "#8B5CF6",
+        "Stage2_Assigned": "#06B6D4",
+        "Completed": "#10B981",
+        "Cancelled": "#EF4444",
     }
-    df_status['display_name'] = df_status['order_status'].map(
-        lambda x: status_map.get(x, (x, "#94A3B8"))[0])
-    df_status['color'] = df_status['order_status'].map(
-        lambda x: status_map.get(x, (x, "#94A3B8"))[1])
+    status_labels = {
+        "Paid": "已支付", "Stage1_Assigned": "干线配送",
+        "Arrived_At_Point": "寄存待取", "Stage2_Assigned": "楼栋配送",
+        "Completed": "已完成", "Cancelled": "已取消",
+    }
+    df_status['display_name'] = df_status['order_status'].map(status_labels)
+    df_status['color'] = df_status['order_status'].map(status_colors)
 
-    fig, ax = plt.subplots(figsize=(6, 5))
-    fig.patch.set_facecolor('none')
+    fig, ax = plt.subplots(figsize=(7, 5.5))
+    fig.patch.set_facecolor('#FFFFFF')
     colors_pie = df_status['color'].tolist()
     wedges, texts, autotexts = ax.pie(
         df_status['order_count'],
         labels=df_status['display_name'],
         autopct='%1.1f%%',
         colors=colors_pie,
-        startangle=90,
-        wedgeprops={'edgecolor': 'white', 'linewidth': 2},
-        textprops={'fontsize': 9, 'color': '#1E293B', 'fontproperties': FONT_PROP},
+        startangle=140,
+        pctdistance=0.78,
+        wedgeprops={'edgecolor': 'white', 'linewidth': 3},
+        textprops={'fontsize': 9, 'color': '#475569', 'fontproperties': FONT_PROP},
     )
     for at in autotexts:
         at.set_fontweight('bold')
         at.set_fontsize(10)
-    centre_circle = plt.Circle((0, 0), 0.50, fc='white', alpha=0.8)
+        at.set_color('#1E293B')
+    centre_circle = plt.Circle((0, 0), 0.48, fc='white', alpha=0.9)
     ax.add_artist(centre_circle)
-    ax.text(0, 0, f'{df_status["order_count"].sum()}\n总计',
-            ha='center', va='center', fontsize=12, fontweight='bold', color='#1E293B',
-            fontproperties=FONT_PROP)
+    ax.text(0, 0, f'{df_status["order_count"].sum()}\nTotal',
+            ha='center', va='center', fontsize=13, fontweight='bold',
+            color='#1E293B', fontproperties=FONT_PROP)
+    plt.tight_layout()
     st.pyplot(fig, width='stretch')
     plt.close()
 
 
 def render_time_period_chart(df_period):
     """渲染时段订单分布柱状图"""
-    fig, ax = plt.subplots(figsize=(8, 4))
-    fig.patch.set_facecolor('none')
-    ax.set_facecolor('none')
-    colors_period = ['#F59E0B', '#3B82F6', '#EF4444', '#8B5CF6', '#EF4444', '#06B6D4', '#94A3B8']
+    fig, ax = plt.subplots(figsize=(10, 5))
+    fig.patch.set_facecolor('#FFFFFF')
+    ax.set_facecolor('#FFFFFF')
+    import numpy as np
+    n = len(df_period)
+    gradient = plt.cm.Blues(np.linspace(0.35, 0.9, n))
     bars = ax.bar(df_period['time_period'], df_period['order_count'],
-                  color=colors_period[:len(df_period)], width=0.55,
+                  color=gradient, width=0.55,
                   edgecolor='white', linewidth=2, zorder=3)
     for bar, (_, row) in zip(bars, df_period.iterrows()):
-        ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 1,
+        ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + max(df_period['order_count']) * 0.02,
                 f'{int(row["order_count"])}', ha='center', va='bottom',
-                fontsize=11, fontweight='bold', color='#1E293B',
+                fontsize=10, fontweight='600', color='#475569',
                 fontproperties=FONT_PROP)
     ax.set_xticks(range(len(df_period)))
-    ax.set_xticklabels(df_period['time_period'], fontproperties=FONT_PROP, rotation=45, ha='right')
+    ax.set_xticklabels(df_period['time_period'], fontproperties=FONT_PROP, fontsize=9, rotation=25, ha='right')
     style_axis(ax)
-    ax.set_ylabel('订单量', fontsize=10, color='#64748B', fontproperties=FONT_PROP)
-    plt.tight_layout()
+    ax.grid(axis='y', alpha=0.25, linestyle='-', linewidth=0.5, zorder=0, color='#CBD5E1')
+    ax.set_ylabel('订单量', fontsize=10, color=COLOR_TEXT_SEC, fontproperties=FONT_PROP)
+    plt.tight_layout(pad=1.5)
     st.pyplot(fig, width='stretch')
     plt.close()
 
@@ -1049,14 +1093,24 @@ def render_recent_orders_table(df_recent):
 # ================================================================
 
 def main():
-    # ==================== 侧边栏：明细数据（信息表格） ====================
+    # ==================== 数据库连接预检 ====================
+    ok, msg = check_connection()
+    if not ok:
+        st.error(f"数据库连接失败，大屏无法启动")
+        st.info("请检查：\n1. MySQL 服务是否已启动（`net start MySQL80`）\n2. `.env` 文件中的密码是否正确")
+        st.code(f"错误详情: {msg}")
+        return
+
+    # ==================== 侧边栏：明细数据 ====================
     with st.sidebar:
-        st.markdown("## 明细数据")
+        st.markdown("### 系统导航")
+        st.caption("数据明细 · 信息一览")
+
         with st.expander("商户信息一览", expanded=False):
             try:
                 df_mer_info = load_merchant_info()
                 if df_mer_info.empty:
-                    st.info("暂无商户数据。")
+                    st.info("暂无商户数据。请先运行 `python generate_mock_data.py`")
                 else:
                     st.dataframe(df_mer_info, width='stretch', hide_index=True)
             except Exception as e:
@@ -1085,8 +1139,8 @@ def main():
                 st.error("加载菜品信息失败")
                 st.code(traceback.format_exc())
 
-        st.markdown("---")
-        st.markdown("### 🚴 骑手信息")
+        st.divider()
+
         with st.expander("骑手信息一览", expanded=False):
             try:
                 df_riders = load_rider_info()
@@ -1109,52 +1163,58 @@ def main():
                 st.error("加载站点信息失败")
                 st.code(traceback.format_exc())
 
-        st.markdown("---")
+        st.divider()
+        st.caption(f"数据更新: {datetime.now().strftime('%m-%d %H:%M:%S')}")
         st.caption("校园外卖两段式配送数据库系统")
-        st.caption(f"数据更新时间: {datetime.now().strftime('%m-%d %H:%M')}")
-
+        st.caption("期末答辩项目 v2.0")
 
     # ==================== 顶部标题 ====================
     now = datetime.now()
     st.markdown(f"""
     <div class="header-container">
         <div class="header-title">校园外卖两段式配送 · 实时数据监控大屏</div>
-        <div class="header-sub">{now.year}-{now.month:02d}-{now.day:02d} {now:%H:%M:%S} UTC+8 · 数据来源: campus_delivery_db</div>
+        <div class="header-sub">
+            {now.year}年{now.month:02d}月{now.day:02d}日 {now:%H:%M:%S} &nbsp;|&nbsp;
+            数据源: campus_delivery_db &nbsp;|&nbsp;
+            校园两段式配送系统
+        </div>
     </div>
     """, unsafe_allow_html=True)
 
-    # ==================== 全局时间范围筛选器（顶部中央，紧挨主标题下方） ====================
-    col_filter_label, col_filter_select = st.columns([1, 4])
-    with col_filter_label:
-        st.markdown('<div style="padding-top:6px;font-weight:600;color:#4F46E5;">⏱ 时间范围筛选:</div>', unsafe_allow_html=True)
-    with col_filter_select:
+    # ==================== 时间范围筛选 ====================
+    col_fl, col_fs = st.columns([1.5, 6])
+    with col_fl:
+        st.markdown('<div style="padding-top:6px;font-weight:700;color:#6366F1;font-size:0.95rem;">时间范围</div>', unsafe_allow_html=True)
+    with col_fs:
         date_options = ["今天", "最近 7 天", "最近 30 天", "本月", "全部数据"]
         current_opt = _get_date_option()
         selected_date = st.selectbox(
-            "时间范围",
-            date_options,
+            "时间范围", date_options,
             index=date_options.index(current_opt) if current_opt in date_options else 4,
             key="date_filter_opt",
             label_visibility="collapsed",
         )
-    # 获取最新选中的值（从 session_state 读取，因上面已设 key 触发 rerun 后自动更新）
     date_option = _get_date_option()
 
-    # ---- 数据库连接检测 ----
+    # ==================== 数据加载与空值检测 ====================
     try:
         stats = load_basic_stats(date_option)
     except Exception as e:
-        st.error(f"数据库连接失败！请检查 .env 文件中的 MYSQL_PASSWORD 配置。\n\n错误信息: {e}")
-        st.info("请确保 .env 文件存在且 MYSQL_PASSWORD 配置正确。")
+        st.error(f"数据加载失败！请确认已运行 `python generate_mock_data.py` 生成模拟数据。")
+        st.code(f"错误信息: {e}")
+        return
+
+    if stats.get("total_orders", 0) == 0:
+        st.warning("数据库中没有订单数据！请先运行：\n\n```bash\npython reinit_db.py\npython generate_mock_data.py\n```")
+        st.info("reinit_db.py — 创建数据库表结构 + 种子数据\ngenerate_mock_data.py — 生成 5000 条模拟订单流水")
         return
 
     # ==================== KPI 指标行 ====================
     render_kpi_row(stats)
-    st.divider()
+
+    st.markdown('<div style="height: 0.5rem;"></div>', unsafe_allow_html=True)
 
     # ==================== 宽屏网格布局 ====================
-
-    # 第一行：左（商户排行）+ 右（订单状态饼图）
     col_left, col_right = st.columns([1.2, 1])
 
     with col_left:
@@ -1163,7 +1223,7 @@ def main():
         try:
             df_merchants = load_merchant_sales_rank()
             if df_merchants.empty:
-                st.info("暂无商户数据。")
+                st.info("暂无商户数据。请运行 generate_mock_data.py")
             else:
                 render_merchant_rank_chart(df_merchants)
         except Exception as e:
@@ -1185,9 +1245,9 @@ def main():
             st.code(traceback.format_exc())
         st.markdown('</div>', unsafe_allow_html=True)
 
-    # 第二行：左（近期订单流水）
+    # ==================== 近期订单流水（全宽） ====================
     st.markdown('<div class="chart-card">', unsafe_allow_html=True)
-    st.markdown('<div class="chart-title">近期订单流水（最新10条）</div>', unsafe_allow_html=True)
+    st.markdown('<div class="chart-title">近期订单流水（最新 10 条）</div>', unsafe_allow_html=True)
     try:
         df_recent = load_recent_orders(10, date_option)
         if df_recent.empty:
@@ -1199,29 +1259,24 @@ def main():
         st.code(traceback.format_exc())
     st.markdown('</div>', unsafe_allow_html=True)
 
-    # ==================== 寄存点饱和度监控（全宽 · 独占一行） ====================
+    # ==================== 寄存点饱和度监控（全宽） ====================
     st.markdown('<div class="chart-card">', unsafe_allow_html=True)
-    st.markdown('<div class="chart-title">寄存点饱和度监控</div>', unsafe_allow_html=True)
+    st.markdown('<div class="chart-title">寄存点饱和度实时监控</div>', unsafe_allow_html=True)
     try:
         df_points = load_pickup_analytics()
         if df_points.empty:
             st.info("暂无寄存点数据。")
         else:
-            # 数据清洗：缩短寄存点名称，只保留核心期数标识（如 "1期智能寄存柜" → "1期"）
             df_points['point_name'] = df_points['point_name'].str.replace('智能寄存柜', '', regex=False).str.strip()
             render_pickup_saturation_chart(df_points)
-
     except Exception as e:
         st.error("加载寄存点数据失败")
         st.code(traceback.format_exc())
     st.markdown('</div>', unsafe_allow_html=True)
 
-    st.divider()
-
-
-    # ==================== 时段订单分布（全宽 · 移至页面底部） ====================
+    # ==================== 时段订单分布（全宽） ====================
     st.markdown('<div class="chart-card">', unsafe_allow_html=True)
-    st.markdown('<div class="chart-title">时段订单分布（高峰分析）</div>', unsafe_allow_html=True)
+    st.markdown('<div class="chart-title">时段订单分布 · 高峰分析</div>', unsafe_allow_html=True)
     try:
         df_period = load_time_period_distribution(date_option)
         if df_period.empty:
@@ -1233,9 +1288,9 @@ def main():
             total_orders = int(df_period['order_count'].sum())
             peak_pct = round(peak_orders / total_orders * 100, 1) if total_orders > 0 else 0
             st.markdown(
-                f'<div style="text-align:center;color:#64748B;font-size:0.85rem;padding:0.5rem;">'
-                f'高峰+夜宵时段订单占比: <strong style="color:#EF4444;font-size:1rem;">{peak_pct}%</strong> '
-                f'（{peak_orders} / {total_orders} 单）'
+                f'<div style="text-align:center;color:{COLOR_TEXT_SEC};font-size:0.88rem;padding:0.5rem;">'
+                f'高峰+夜宵时段订单占比: <strong style="color:{COLOR_DANGER};font-size:1.1rem;">{peak_pct}%</strong> '
+                f'（{peak_orders:,} / {total_orders:,} 单）'
                 f'</div>',
                 unsafe_allow_html=True
             )
@@ -1244,25 +1299,17 @@ def main():
         st.code(traceback.format_exc())
     st.markdown('</div>', unsafe_allow_html=True)
 
-    st.divider()
-
     # ==================== AI 智能数据助手 ====================
-    st.markdown("<br>", unsafe_allow_html=True)
-
     st.markdown('<div class="chart-card">', unsafe_allow_html=True)
-    st.markdown('<div class="chart-title">AI 智能数据助手 (DeepSeek Text-to-SQL)</div>', unsafe_allow_html=True)
+    st.markdown('<div class="chart-title">AI 智能数据助手 <span style="font-weight:400;font-size:0.8rem;color:#64748B;">DeepSeek Text-to-SQL</span></div>', unsafe_allow_html=True)
 
     if not DEEPSEEK_API_KEY:
-        st.warning("DeepSeek API Key 未配置！请添加到 .env 文件中:\n\n```\nDEEPSEEK_API_KEY=your_api_key\n```")
-        st.info("获取 DeepSeek API Key: https://platform.deepseek.com/")
+        st.warning("DeepSeek API Key 未配置！请在 `.env` 文件中添加 `DEEPSEEK_API_KEY=your_key`")
     else:
         st.markdown("""
-            <div class="ai-chat-container">
-                <div style="font-size:1rem;font-weight:600;margin-bottom:0.5rem;">AI 自然语言数据查询</div>
-                <div style="font-size:0.85rem;color:#64748B;margin-bottom:1rem;">
-                    输入中文问题，AI 自动转换为 SQL 并返回查询结果表格。
-                    例如: "哪个商家销售额最高？" "共有多少学生注册？" "各寄存点饱和度情况"
-                </div>
+            <div style="font-size:0.9rem;color:#64748B;margin-bottom:1rem;">
+            输入中文自然语言问题，AI 自动转换为 SQL 查询并返回结果。
+            例如: "哪个商家销售额最高？" "各寄存点饱和度情况"
             </div>
             """, unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
@@ -1271,8 +1318,7 @@ def main():
     if "ai_chat_history" not in st.session_state:
         st.session_state.ai_chat_history = []
 
-    # 示例问题快捷按钮
-    st.markdown("##### 快捷问题示例")
+    st.markdown("##### 快捷问题")
     example_cols = st.columns(3)
     examples = [
         "哪个商家销售额最高？",
@@ -1284,28 +1330,28 @@ def main():
             if st.button(example, key=f"ai_example_{i}", width='stretch'):
                 st.session_state.ai_input = example
 
-    user_input = st.text_input(
-        "请输入您的问题:",
-        key="ai_input",
-        placeholder="例如: 哪个商家销售额最高？",
-        label_visibility="collapsed",
-    )
-
-    col_submit, col_clear = st.columns([1, 5])
-    with col_submit:
-        submit_clicked = st.button("发送", type="primary", width='stretch')
-    with col_clear:
-        if st.button("清除记录", width='stretch'):
-            st.session_state.ai_chat_history = []
-            st.rerun()
+    col_input, col_btns = st.columns([5, 1.5])
+    with col_input:
+        user_input = st.text_input(
+            "请输入您的问题:", key="ai_input",
+            placeholder="例如: 哪个商家销售额最高？",
+            label_visibility="collapsed",
+        )
+    with col_btns:
+        col_send, col_clear = st.columns(2)
+        with col_send:
+            submit_clicked = st.button("发送", type="primary", width='stretch')
+        with col_clear:
+            if st.button("清除", width='stretch'):
+                st.session_state.ai_chat_history = []
+                st.rerun()
 
     if submit_clicked and user_input:
-        with st.spinner("AI 正在思考并生成 SQL..."):
+        with st.spinner("🤔 AI 正在思考并生成 SQL..."):
             result = ai_text_to_sql(user_input)
 
         st.session_state.ai_chat_history.append({
-            "role": "user",
-            "content": user_input,
+            "role": "user", "content": user_input,
         })
 
         if result["success"]:
@@ -1328,10 +1374,10 @@ def main():
 
     for msg in st.session_state.ai_chat_history:
         if msg["role"] == "user":
-            st.markdown(f'<div class="ai-message user"><strong>您:</strong> {msg["content"]}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="ai-message user"><strong>You:</strong> {msg["content"]}</div>', unsafe_allow_html=True)
         else:
             if msg.get("is_error"):
-                st.markdown(f'<div class="ai-message error"><strong>AI:</strong> {msg["content"]}</div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="ai-message error"><strong>Error:</strong> {msg["content"]}</div>', unsafe_allow_html=True)
             else:
                 st.markdown(f'<div class="ai-message assistant"><strong>AI:</strong> {msg["content"]}</div>', unsafe_allow_html=True)
             if msg.get("sql"):
@@ -1342,17 +1388,17 @@ def main():
                 num_cols = df_result.select_dtypes(include=['float64', 'int64']).columns.tolist()
                 if len(num_cols) >= 1 and len(df_result) > 1:
                     with st.expander("查看图表"):
-                        chart_tab1, chart_tab2 = st.columns(2)
-                        with chart_tab1:
-                            st.caption("柱状图（第一列数值）")
+                        ct1, ct2 = st.columns(2)
+                        with ct1:
+                            st.caption("柱状图")
                             try:
                                 first_text_col = df_result.select_dtypes(exclude=['float64', 'int64']).columns[0]
                                 st.bar_chart(df_result.set_index(first_text_col)[num_cols[0]], width='stretch')
                             except Exception:
                                 pass
-                        with chart_tab2:
+                        with ct2:
                             if len(num_cols) > 1:
-                                st.caption("折线图（前 3 列数值）")
+                                st.caption("折线图")
                                 try:
                                     first_text_col = df_result.select_dtypes(exclude=['float64', 'int64']).columns[0]
                                     st.line_chart(df_result.set_index(first_text_col)[num_cols[:3]], width='stretch')
@@ -1362,7 +1408,7 @@ def main():
                 st.download_button(
                     label="下载 CSV",
                     data=csv_data,
-                    file_name=f"ai_query_result_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                    file_name=f"ai_query_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
                     mime="text/csv",
                     use_container_width=True,
                 )
@@ -1370,7 +1416,8 @@ def main():
     # ---- 页脚 ----
     st.markdown("""
     <div class="footer">
-        校园外卖两段式配送数据库系统 · 期末答辩项目 · 基于 Streamlit & MySQL & DeepSeek AI
+        校园外卖两段式配送数据库系统 &nbsp;·&nbsp; 期末答辩项目 &nbsp;·&nbsp;
+        Streamlit + MySQL + DeepSeek AI &nbsp;·&nbsp; v2.0
     </div>
     """, unsafe_allow_html=True)
 

@@ -293,7 +293,7 @@ FROM pickup_points p
 LEFT JOIN (
     SELECT pickup_point_id, COUNT(*) AS backlog_count
     FROM orders
-    WHERE order_status = 'Arrived_At_Point'
+    WHERE order_status IN ('Arrived_At_Point', 'Stage2_Assigned')
     GROUP BY pickup_point_id
 ) sub ON p.point_id = sub.pickup_point_id
 """)
