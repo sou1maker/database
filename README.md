@@ -24,7 +24,7 @@
 
 ## 项目简介
 
-传统外卖平台在校园场景下存在**"最后500米"**配送难题：校外骑手无法进入宿舍区，学生需下楼自取，体验差、效率低。本项目参考安徽财经大学等高校的"接力式"配送实践[^1]，设计了一套完整的**两段式配送数据库系统**，将配送链路拆分为**干线运输（商家→寄存点）**和**楼栋配送（寄存点→宿舍）**两个独立阶段，通过 MySQL 行级锁、触发器与存储过程保障高并发下的数据一致性与库存安全。
+传统外卖平台在校园场景下存在**"最后500米"**配送难题：校外骑手无法进入宿舍区，学生需下楼自取，体验差、效率低。本项目设计了一套完整的**两段式配送数据库系统**，将配送链路拆分为**干线运输（商家→寄存点）**和**楼栋配送（寄存点→宿舍）**两个独立阶段，通过 MySQL 行级锁、触发器与存储过程保障高并发下的数据一致性与库存安全。
 
 系统同时集成 Flask + ECharts 实时监控大屏与 DeepSeek Text-to-SQL 智能查询助手，覆盖从数据库设计、模拟数据生成到可视化运维的全链路。
 
@@ -204,20 +204,6 @@ python app.py
 | 连接池 | PyMySQL + DBUtils |
 | AI | DeepSeek Chat API（Text-to-SQL） |
 | 数据 | Pandas · Faker |
-
----
-
-## 参考文献
-
-[^1]: 安徽财经大学校园外卖配送模式创新实践. https://www.aiit.edu.cn/info/139670
-
-[^2]: FoodGet: College Campus Food Delivery System. ResearchGate, 2025. https://www.researchgate.net/publication/390089958
-
-[^3]: Database Design for a Food Delivery App. Medium. https://medium.com/@aftab4092/database-design-for-a-food-delivery-app-f66
-
-[^4]: How to Design a Database for Online Restaurant Reservation and Food Delivery. GeeksforGeeks. https://www.geeksforgeeks.org/dbms/how-to-design-a-database-for-online-restaurant-reservation-and-food-delivery/
-
----
 
 <p align="center">
   校园外卖两段式配送数据库系统 · 期末答辩项目<br>
