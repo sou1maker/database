@@ -5,6 +5,8 @@
 -- 适用环境：MySQL 8.0+ (支持 WINDOW FUNCTION 与高级 SIGNAL 语法)
 -- =================================================================
 
+SET NAMES utf8mb4;
+
 CREATE DATABASE IF NOT EXISTS campus_delivery_db DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 USE campus_delivery_db;
 
