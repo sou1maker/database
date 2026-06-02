@@ -20,6 +20,13 @@ DROP PROCEDURE IF EXISTS sp_create_order;
 DROP PROCEDURE IF EXISTS sp_arrive_at_pickup_point;
 DROP PROCEDURE IF EXISTS sp_stage2_deliver;
 DROP PROCEDURE IF EXISTS sp_cancel_order;
+DROP TRIGGER IF EXISTS trg_check_dish_stock_before_order;
+DROP TRIGGER IF EXISTS trg_reduce_dish_stock_after_order;
+DROP TRIGGER IF EXISTS trg_check_rider_type_before_insert;
+DROP TRIGGER IF EXISTS trg_check_rider_type_before_update;
+DROP TRIGGER IF EXISTS trg_rider_delivering_insert;
+DROP TRIGGER IF EXISTS trg_rider_delivering_update;
+DROP TRIGGER IF EXISTS trg_check_pickup_point_capacity;
 DROP TABLE IF EXISTS order_items;
 DROP TABLE IF EXISTS orders;
 DROP TABLE IF EXISTS riders;
@@ -144,10 +151,11 @@ CREATE TABLE order_items (
 CREATE INDEX idx_orders_status ON orders(order_status) COMMENT '加速大屏幕对待派单、派送中订单的筛选速度';
 CREATE INDEX idx_orders_created ON orders(created_at) COMMENT '加速历史订单多维度时间趋势分析';
 CREATE INDEX idx_dishes_merchant ON dishes(merchant_id, status) COMMENT '复合索引：优化前端点餐大屏加载对应商家菜品的速度';
+CREATE INDEX idx_orders_point_status ON orders(pickup_point_id, order_status) COMMENT '复合索引：加速寄存点容量检查与视图关联查询';
 
 
 -- -----------------------------------------------------------------
--- 4. 核心防护盾：高并发防超卖与自动化库存管理 (Triggers)
+-- 4. 七重防护盾：高并发防超卖、类型约束、状态自动管理与容量预警 (Triggers)
 -- -----------------------------------------------------------------
 
 DELIMITER $$
@@ -264,6 +272,24 @@ BEGIN
     END IF;
 END$$
 
+-- 触发器 7：下单前检查寄存点容量，满了直接拒绝（防止骑手白跑一趟）
+CREATE TRIGGER trg_check_pickup_point_capacity
+BEFORE INSERT ON orders
+FOR EACH ROW
+BEGIN
+    DECLARE v_pt_current INT;
+    DECLARE v_pt_capacity INT;
+
+    -- FOR UPDATE 行级锁：防止两个用户同时看到"还剩1个格子"同时下单
+    SELECT current_packages, capacity INTO v_pt_current, v_pt_capacity
+    FROM pickup_points WHERE point_id = NEW.pickup_point_id FOR UPDATE;
+
+    IF v_pt_current >= v_pt_capacity THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = '下单失败：该寄存点已满，请选择邻近寄存点下单！';
+    END IF;
+END$$
+
 DELIMITER ;
 
 
@@ -306,10 +332,22 @@ BEGIN
     IF v_user_balance < v_total_amount THEN
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = '核心校园卡账户余额不足，扣款失败！';
     END IF;
-    
+
+    -- 寄存点容量预检：FOR UPDATE 行级锁防止并发下单时容量被击穿
+    BEGIN
+        DECLARE v_pt_current INT;
+        DECLARE v_pt_capacity INT;
+        SELECT current_packages, capacity INTO v_pt_current, v_pt_capacity
+        FROM pickup_points WHERE point_id = p_point_id FOR UPDATE;
+        IF v_pt_current >= v_pt_capacity THEN
+            SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = '下单失败：该寄存点已满，请选择邻近寄存点下单！';
+        END IF;
+    END;
+
     -- 1. 扣减学生钱包资金
     UPDATE users SET balance = balance - v_total_amount WHERE user_id = p_user_id;
-    
+
     -- 2. 插入主订单表 (初始化为 Paid 状态)
     INSERT INTO orders (user_id, merchant_id, pickup_point_id, total_amount, order_status)
     VALUES (p_user_id, p_merchant_id, p_point_id, v_total_amount, 'Paid');

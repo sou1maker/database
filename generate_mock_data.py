@@ -214,11 +214,13 @@ def generate_orders(conn):
     now = datetime.now()
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
 
-    # 爆仓计数器（追踪每个寄存点有多少 Arrived_At_Point 订单）
-    overload_counters = {pid: 0 for pid, _, _ in overload_targets}
-    overload_needed = {}
-    for pid, cap, name in overload_targets:
-        overload_needed[pid] = int(cap * 0.88)  # 88% 饱和度
+    # Track backlog per point (Arrived_At_Point + Stage2_Assigned)
+    # Enforce: no point exceeds its capacity
+    point_backlog = {p["point_id"]: 0 for p in points_data}
+
+    # Target overload: 3期 and 6期 fill to ~85% for dashboard demo
+    overload_target_ids = [pid for pid, _, _ in overload_targets]
+    overload_target_fill = {pid: int(cap * 0.85) for pid, cap, _ in overload_targets}
 
     with conn.cursor() as cursor:
         for i in range(TOTAL):
@@ -254,14 +256,26 @@ def generate_orders(conn):
                     minute = random.randint(0, 59)
                 created_at = today_start.replace(hour=hour, minute=minute, second=random.randint(0, 59))
 
-                # 爆仓策略：前N条Arrived_At_Point订单定向到爆仓寄存点
+                # 寄存点容量约束：Arrived_At_Point / Stage2_Assigned 算入当前包裹数
+                # 模拟真实 sp_arrive_at_pickup_point 的 chk_capacity CHECK 约束
                 point_id = random.choice(points_data)["point_id"]
-                if order_status == "Arrived_At_Point":
-                    for pid, cap, name in overload_targets:
-                        if overload_counters[pid] < overload_needed[pid]:
+                if order_status in ("Arrived_At_Point", "Stage2_Assigned"):
+                    # 优先把爆仓目标点填充到 ~85%（展示大屏预警效果）
+                    for pid in overload_target_ids:
+                        if point_backlog[pid] < overload_target_fill[pid]:
                             point_id = pid
-                            overload_counters[pid] += 1
                             break
+                    # 如果选中点已满，找还有空位的点
+                    point_cap = next(p["capacity"] for p in points_data if p["point_id"] == point_id)
+                    if point_backlog[point_id] >= point_cap:
+                        available_points = [p for p in points_data if point_backlog[p["point_id"]] < p["capacity"]]
+                        if available_points:
+                            point_id = random.choice(available_points)["point_id"]
+                        else:
+                            # 所有点都满了 → 此状态无法入仓，降级为 Completed
+                            order_status = "Completed"
+                    if order_status in ("Arrived_At_Point", "Stage2_Assigned"):
+                        point_backlog[point_id] += 1
 
                 # Rider assignment — follow real flow:
                 # Paid: no rider
@@ -336,7 +350,7 @@ def generate_orders(conn):
         print(f"   [Riders] {cursor.fetchone()['cnt']} riders delivering")
 
 
-    # 同步寄存点包裹计数
+    # 同步寄存点包裹计数（backlog <= capacity 由生成阶段保证）
     print("\n   [寄存点] 同步包裹计数……")
     with conn.cursor() as cursor:
         cursor.execute("""
@@ -346,12 +360,16 @@ def generate_orders(conn):
                 AND o.order_status IN ('Arrived_At_Point', 'Stage2_Assigned')
             GROUP BY pp.point_id, pp.point_name, pp.capacity
         """)
+        overflow_count = 0
         for row in cursor.fetchall():
-            cnt = min(row["cnt"], row["capacity"])
+            cnt = row["cnt"]
+            # assert: cnt <= capacity (enforced during generation)
             cursor.execute("UPDATE pickup_points SET current_packages = %s WHERE point_id = %s",
                            (cnt, row["point_id"]))
-            pct = cnt / row["capacity"] * 100
+            pct = cnt / row["capacity"] * 100 if row["capacity"] > 0 else 0
             flag = "  << 爆仓!" if pct > 80 else ""
+            if pct > 80:
+                overflow_count += 1
             print(f"   {row['point_name']}: {cnt}/{row['capacity']} = {pct:.1f}%{flag}")
         conn.commit()
 
