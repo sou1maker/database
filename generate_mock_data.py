@@ -184,13 +184,13 @@ def generate_orders(conn):
     for d in dishes_data:
         dishes_by_merchant.setdefault(d["merchant_id"], []).append(d)
 
-    # 找爆仓目标寄存点：Zone 3（容量80）和Zone 6（容量50）
+    # 找爆仓目标寄存点：3期（容量80）和6期（容量50）
     overload_targets = []
     for p in points_data:
-        if "Zone 3" in p["point_name"]:
-            overload_targets.append((p["point_id"], p["capacity"], "Zone 3"))
-        if "Zone 6" in p["point_name"]:
-            overload_targets.append((p["point_id"], p["capacity"], "Zone 6"))
+        if "3期" in p["point_name"]:
+            overload_targets.append((p["point_id"], p["capacity"], "3期"))
+        if "6期" in p["point_name"]:
+            overload_targets.append((p["point_id"], p["capacity"], "6期"))
 
     # 今日订单状态权重（模拟实时配送流）
     today_statuses = (

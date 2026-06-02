@@ -365,54 +365,54 @@ GROUP BY m.merchant_id
 """)
 
 # Seed data: 3 users
-for u in [('Zhang San','13800138001','Zone1 Bldg5','A302',250.00),('Li Si','13800138002','Zone1 Bldg5','B511',15.00),('Wang Wu','13800138003','Zone2 Bldg12','404',500.00)]:
+for u in [('张三','13800138001','1期5栋','A302',250.00),('李四','13800138002','1期5栋','B511',15.00),('王五','13800138003','2期12栋','404',500.00)]:
     cur.execute("INSERT INTO users (username,phone,dorm_building,room_number,balance) VALUES (%s,%s,%s,%s,%s)", u)
 
 # Seed data: 3 merchants
-for m in [('No.1 Braised Chicken','17711112222','Lilac Canteen 1F Booth 3',4.8),('Sichuan-Hunan Rice','17711113333','Rose Canteen 2F Core',4.6),('Mixue Ice Cream','17711114444','Sunken Plaza Bridge',4.9)]:
+for m in [('一号黄焖鸡米饭','17711112222','丁香餐厅一楼3号档口',4.8),('川湘木桶饭','17711113333','玫瑰餐厅二楼核心区',4.6),('蜜雪冰城校园店','17711114444','下沉广场天桥旁',4.9)]:
     cur.execute("INSERT INTO merchants (merchant_name,phone,address,rating) VALUES (%s,%s,%s,%s)", m)
 
 # Seed data: 4 dishes
-cur.execute("INSERT INTO dishes (merchant_id,dish_name,price,stock,status) VALUES (1,'Classic Braised Chicken w/ Rice',18.00,50,1)")
-cur.execute("INSERT INTO dishes (merchant_id,dish_name,price,stock,status) VALUES (1,'Spicy Enoki Beef Rice',22.00,0,1)")
-cur.execute("INSERT INTO dishes (merchant_id,dish_name,price,stock,status) VALUES (2,'Pepper Pork Rice Bucket',15.00,100,1)")
-cur.execute("INSERT INTO dishes (merchant_id,dish_name,price,stock,status) VALUES (3,'Iced Lemonade (Jumbo)',4.00,200,1)")
+cur.execute("INSERT INTO dishes (merchant_id,dish_name,price,stock,status) VALUES (1,'经典大份黄焖鸡(配饭)',18.00,50,1)")
+cur.execute("INSERT INTO dishes (merchant_id,dish_name,price,stock,status) VALUES (1,'香辣金针菇肥牛饭',22.00,0,1)")
+cur.execute("INSERT INTO dishes (merchant_id,dish_name,price,stock,status) VALUES (2,'辣椒炒肉木桶饭',15.00,100,1)")
+cur.execute("INSERT INTO dishes (merchant_id,dish_name,price,stock,status) VALUES (3,'冰鲜柠檬水(超大杯)',4.00,200,1)")
 
 # 12 pickup points
 points = [
-    ('Zone 1 Smart Locker','Between Bldg 5 & 6',80),
-    ('Zone 2 Smart Locker','Opposite Bldg 12 Dorm Office',80),
-    ('Zone 3 Smart Locker','Bldg 8 Ground Floor',80),
-    ('Zone 4 Smart Locker','Bldg 2 Elevated Floor',80),
-    ('Zone 5 Smart Locker','Life Plaza East',100),
-    ('Zone 6 Smart Locker','Next to Canteen',50),
-    ('Zone 7 Smart Locker','Bldg 3 Stairwell',60),
-    ('Zone 8 Smart Locker','North Gate Express Station',120),
-    ('Zone A Smart Locker','Service Hall',100),
-    ('Zone B Smart Locker','Library B1',90),
-    ('Zone C Smart Locker','Gym Entrance',70),
-    ('Zone D Smart Locker','Grad Dorm Lobby',80),
+    ('1期智能寄存柜','1期5栋与6栋之间车棚旁',80),
+    ('2期智能寄存柜','2期12栋宿管值班室对面',80),
+    ('3期智能寄存柜','3期8栋楼下大厅',80),
+    ('4期智能寄存柜','4期2栋架空层',80),
+    ('5期智能寄存柜','5期生活广场东侧',100),
+    ('6期智能寄存柜','6期食堂旁',50),
+    ('7期智能寄存柜','7期3栋一楼楼梯间',60),
+    ('8期智能寄存柜','8期北门快递站旁',120),
+    ('A区智能寄存柜','A区综合服务大厅',100),
+    ('B区智能寄存柜','B区图书馆负一层',90),
+    ('C区智能寄存柜','C区体育馆入口处',70),
+    ('D区智能寄存柜','D区研究生公寓大堂',80),
 ]
 for n,l,c in points:
     cur.execute("INSERT INTO pickup_points (point_name,location,capacity,current_packages) VALUES (%s,%s,%s,0)", (n,l,c))
 
 # 15 riders (8 trunk + 7 floor)
 riders = [
-    ('Zhao Tiezhu','15599991111','Stage1_Trunk'),
-    ('Wang Dachui','15599992222','Stage1_Trunk'),
-    ('Li Dali','15599994444','Stage1_Trunk'),
-    ('Zhou Xiaofei','15599995555','Stage1_Trunk'),
-    ('Liu Qiangdong','15599996666','Stage1_Trunk'),
-    ('Wu Yongjun','15599997777','Stage1_Trunk'),
-    ('Zheng Mingda','15599998888','Stage1_Trunk'),
-    ('Huang Qihang','15599999999','Stage1_Trunk'),
-    ('Niu Jin','15599993333','Stage2_Floor'),
-    ('Ma Xiaotiao','15611111111','Stage2_Floor'),
-    ('Lin Zhiyuan','15611112222','Stage2_Floor'),
-    ('Zhang Xiaofan','15611113333','Stage2_Floor'),
-    ('Chen Yixun','15611114444','Stage2_Floor'),
-    ('Li Xiaoyao','15611115555','Stage2_Floor'),
-    ('Zhao Linger','15611116666','Stage2_Floor'),
+    ('赵铁柱','15599991111','Stage1_Trunk'),
+    ('王大锤','15599992222','Stage1_Trunk'),
+    ('李大力','15599994444','Stage1_Trunk'),
+    ('周小飞','15599995555','Stage1_Trunk'),
+    ('刘强东','15599996666','Stage1_Trunk'),
+    ('吴勇军','15599997777','Stage1_Trunk'),
+    ('郑明达','15599998888','Stage1_Trunk'),
+    ('黄启航','15599999999','Stage1_Trunk'),
+    ('牛干劲','15599993333','Stage2_Floor'),
+    ('马小跳','15611111111','Stage2_Floor'),
+    ('林志远','15611112222','Stage2_Floor'),
+    ('张小凡','15611113333','Stage2_Floor'),
+    ('陈奕迅','15611114444','Stage2_Floor'),
+    ('李逍遥','15611115555','Stage2_Floor'),
+    ('赵灵儿','15611116666','Stage2_Floor'),
 ]
 for n,p,t in riders:
     cur.execute("INSERT INTO riders (rider_name,phone,rider_type,status) VALUES (%s,%s,%s,'Idle')", (n,p,t))
@@ -420,13 +420,13 @@ for n,p,t in riders:
 conn.commit()
 cur.close()
 conn.close()
-print("[OK] Database rebuilt successfully!")
-print("  - 7 core tables")
-print("  - 12 pickup points")
-print("  - 15 riders (8 trunk + 7 floor)")
-print("  - 6 triggers (stock check, stock reduce, rider type check x2, rider status x2)")
-print("  - 4 stored procedures (create order, arrive point, deliver, cancel)")
-print("  - 2 views (pickup saturation + merchant ranking)")
-print("  Next: python generate_mock_data.py")
+print("[OK] 数据库重建成功！")
+print("  - 7 张核心业务表")
+print("  - 12 个寄存点")
+print("  - 15 名骑手（8名干线 + 7名楼栋）")
+print("  - 6 个触发器（库存检查 + 库存扣减 + 骑手类型校验x2 + 骑手状态管理x2）")
+print("  - 4 个存储过程（下单/入库/送达/取消）")
+print("  - 2 个大屏视图（饱和度分析 + 商户排行）")
+print("  现在请运行: python generate_mock_data.py")
 
 

@@ -7,11 +7,11 @@
   <img src="https://img.shields.io/badge/Status-Defense%20Ready-22C55E?style=for-the-badge&logo=checkmarx&logoColor=white" alt="Status">
 </p>
 
-<h1 align="center">Campus Delivery Two-Stage Distribution System</h1>
+<h1 align="center">校园外卖两段式配送数据库系统</h1>
 
 <p align="center">
-  <strong>校园外卖两段式配送数据库系统</strong><br>
-  Final Defense Project · Flask + ECharts + MySQL + DeepSeek AI
+  <strong>数据库系统课程项目 - 答辩汇报</strong><br>
+  Flask + ECharts + MySQL + DeepSeek AI
 </p>
 
 <p align="center">
@@ -22,197 +22,197 @@
 
 ---
 
-## Overview
+## 项目概述
 
-Traditional food delivery platforms face the **"last 500 meters"** problem on campus: external riders cannot enter dormitory areas, forcing students to pick up orders downstairs — poor experience, low efficiency. This project designs a complete **two-stage distribution database system**, splitting delivery into trunk transport (merchant → pickup point) and floor delivery (pickup point → dorm room), ensuring data consistency and inventory safety under high concurrency via MySQL row-level locks, triggers, and stored procedures.
+传统外卖平台在校园场景面临"最后一百米"困境：校外骑手被宿舍门禁阻挡，学生需下楼取餐——体验差、效率低。本项目设计了一套完整的**两段式配送数据库系统**，将配送拆分为干线运输（商家到寄存点）+ 楼栋配送（寄存点到寝室），通过 MySQL 行级锁、触发器和存储过程保证高并发场景下的数据一致性与库存安全。
 
-The system also integrates a Flask + ECharts real-time monitoring dashboard and a DeepSeek Text-to-SQL intelligent query assistant, covering the full pipeline from database design and mock data generation to visual operations.
-
----
-
-## Core Features
-
-**Two-Stage Delivery Model** — Trunk riders handle bulk transport from merchants to pickup lockers; floor riders handle last-mile delivery from lockers to dorm rooms. Pickup points act as buffer layers decoupling the two stages, enabling trunk riders to carry multiple orders per trip and floor riders to leverage dorm layout familiarity.
-
-**High-Concurrency Anti-Oversell** — `SELECT ... FOR UPDATE` row-level locks protect inventory rows within transactions, combined with pre-order stock validation triggers and post-order auto-deduction triggers. Stored procedures wrap complete transaction rollback, ensuring absolute inventory safety under concurrent scenarios.
-
-**Full Lifecycle State Machine** — 6 order states covering the complete chain: `Paid` → `Stage1_Assigned` (trunk delivery) → `Arrived_At_Point` (awaiting pickup) → `Stage2_Assigned` (floor delivery) → `Completed`, with `Cancelled` triggerable from any prior stage.
-
-**Rider Type Enforcement** — Database-level triggers validate that `Stage1_Trunk` riders can only be assigned to stage 1, and `Stage2_Floor` riders only to stage 2. Attempting to assign a floor rider to trunk delivery (or vice versa) is blocked with a clear error before the write reaches the table.
-
-**Automatic Rider Status** — Rider status (`Idle` / `Delivering`) is fully managed by database triggers: setting `stage1_rider_id` or `stage2_rider_id` automatically flips the rider to `Delivering`; when their segment completes (`Arrived_At_Point` → releases trunk rider, `Completed` → releases floor rider, `Cancelled` → releases both), the rider automatically returns to `Idle`. The active riders KPI on the dashboard reads `SELECT COUNT(*) FROM riders WHERE status = 'Delivering'` — always accurate.
-
-**Real-Time + Historical Dual-Mode Dashboard** — Select "Today" for real-time mode with 30s auto-refresh showing live delivery states; select historical ranges for trend statistics (all orders shown as Completed for delivery timeliness). 5 KPI indicator cards, pickup point saturation monitoring, overflow alerts, merchant ranking, hourly peak analysis, all linked to time range selection.
+系统同时集成了 Flask + ECharts 实时数据监控大屏和 DeepSeek Text-to-SQL 智能查询助手，覆盖从数据库设计、模拟数据生成到可视化运维的完整流程。
 
 ---
 
-## Entity-Relationship Diagram
+## 核心功能
+
+**两段式配送模型**——干线骑手负责商家至寄存柜的批量运输，楼栋骑手负责寄存柜至寝室的末端交付。寄存点作为缓冲层解耦两段，干线骑手可一次携带多单，楼栋骑手发挥宿舍布局熟悉的优势。
+
+**高并发防超卖**——`SELECT ... FOR UPDATE` 行级排他锁在事务内保护库存行，配合下单前库存校验触发器和下单后自动扣减触发器，存储过程封装完整事务回滚，确保并发场景下库存安全。
+
+**全生命周期六态状态机**——6 个订单状态覆盖完整链路：`Paid`（已支付） → `Stage1_Assigned`（干线配送中） → `Arrived_At_Point`（已到达寄存点） → `Stage2_Assigned`（楼栋配送中） → `Completed`（已完成），`Cancelled`（已取消）可从任意前序状态触发。
+
+**骑手类型强制约束**——数据库触发器在引擎层强制校验：`stage1_rider_id` 只能指向 `Stage1_Trunk`（干线）骑手，`stage2_rider_id` 只能指向 `Stage2_Floor`（楼栋）骑手。尝试跨类型误派将被 SIGNAL 异常直接阻断。
+
+**骑手状态全自动管理**——骑手状态（`Idle` / `Delivering`）由数据库触发器全自动维护：指派骑手时自动设为 Delivering；对应段完成后自动释放为 Idle（`Arrived_At_Point` → 释放干线骑手，`Completed` → 释放楼栋骑手，`Cancelled` → 释放全部关联骑手）。大屏活跃骑手 KPI 直接 `SELECT COUNT(*) FROM riders WHERE status = 'Delivering'`，精准实时。
+
+**实时 + 历史双模大屏**——选择"本日"进入实时模式，30 秒自动刷新显示即时配送状态；选择历史范围查看趋势统计（历史订单统一展示为已完成）。5 个 KPI 指标卡、寄存点饱和度监控、爆仓预警、商家排行、小时峰值分析，全部联动时间范围选择。
+
+---
+
+## E-R 图
 
 ```mermaid
 erDiagram
-    USERS ||--o{ ORDERS : "places"
-    MERCHANTS ||--o{ DISHES : "offers"
-    MERCHANTS ||--o{ ORDERS : "receives"
-    DISHES ||--o{ ORDER_ITEMS : "ordered in"
-    ORDERS ||--|{ ORDER_ITEMS : "contains"
-    PICKUP_POINTS ||--o{ ORDERS : "buffers"
-    RIDERS ||--o{ ORDERS : "delivers (2-stage)"
+    USERS ||--o{ ORDERS : "下单"
+    MERCHANTS ||--o{ DISHES : "提供"
+    MERCHANTS ||--o{ ORDERS : "接收"
+    DISHES ||--o{ ORDER_ITEMS : "被点"
+    ORDERS ||--|{ ORDER_ITEMS : "包含"
+    PICKUP_POINTS ||--o{ ORDERS : "暂存"
+    RIDERS ||--o{ ORDERS : "配送(两段)"
 
     USERS {
-        int user_id PK "student ID"
-        varchar username "name"
-        varchar phone "phone"
-        varchar dorm_building "dorm building"
-        decimal balance "wallet balance"
+        int user_id PK "学生ID"
+        varchar username "姓名"
+        varchar phone "手机号"
+        varchar dorm_building "宿舍楼栋"
+        decimal balance "钱包余额"
     }
 
     MERCHANTS {
-        int merchant_id PK "merchant ID"
-        varchar merchant_name "shop name"
-        decimal rating "rating"
-        varchar address "stall address"
+        int merchant_id PK "商家ID"
+        varchar merchant_name "店铺名称"
+        decimal rating "评分"
+        varchar address "档口地址"
     }
 
     DISHES {
-        int dish_id PK "dish ID"
-        int merchant_id FK "merchant"
-        varchar dish_name "dish name"
-        decimal price "unit price"
-        int stock "real-time stock"
+        int dish_id PK "菜品ID"
+        int merchant_id FK "所属商家"
+        varchar dish_name "菜品名称"
+        decimal price "单价"
+        int stock "实时库存"
     }
 
     PICKUP_POINTS {
-        int point_id PK "point ID"
-        varchar point_name "station name"
-        int capacity "max capacity"
-        int current_packages "current load"
+        int point_id PK "寄存点ID"
+        varchar point_name "站点名称"
+        int capacity "最大容量"
+        int current_packages "当前滞留"
     }
 
     RIDERS {
-        int rider_id PK "rider ID"
-        varchar rider_name "name"
-        enum rider_type "trunk / floor"
-        enum status "idle / delivering / offline"
+        int rider_id PK "骑手ID"
+        varchar rider_name "姓名"
+        enum rider_type "干线 / 楼栋"
+        enum status "空闲 / 配送中 / 离线"
     }
 
     ORDERS {
-        int order_id PK "order ID"
-        int user_id FK "student"
-        int merchant_id FK "merchant"
-        int pickup_point_id FK "pickup point"
-        int stage1_rider_id FK "trunk rider"
-        int stage2_rider_id FK "floor rider"
-        decimal total_amount "amount"
-        varchar order_status "status"
+        int order_id PK "订单ID"
+        int user_id FK "下单学生"
+        int merchant_id FK "商家"
+        int pickup_point_id FK "寄存点"
+        int stage1_rider_id FK "干线骑手"
+        int stage2_rider_id FK "楼栋骑手"
+        decimal total_amount "金额"
+        varchar order_status "状态"
     }
 
     ORDER_ITEMS {
-        int item_id PK "item ID"
-        int order_id FK "order"
-        int dish_id FK "dish"
-        int quantity "qty"
-        decimal price_at_order "snapshot price"
+        int item_id PK "明细ID"
+        int order_id FK "订单"
+        int dish_id FK "菜品"
+        int quantity "数量"
+        decimal price_at_order "下单时单价"
     }
 ```
 
 <p align="center">
-  <img src="images/er_diagram.png" alt="E-R Diagram" width="85%">
+  <img src="images/er_diagram.png" alt="E-R 图" width="85%">
   <br>
-  <em>Campus Delivery Two-Stage Distribution E-R Diagram</em>
+  <em>校园外卖两段式配送系统 E-R 图</em>
 </p>
 
 ---
 
-## Database Design
+## 数据库设计
 
-| Table | Records | Description | Key Design |
-|-------|---------|-------------|------------|
-| `users` | 100 | Students | `balance` wallet, `dorm_building` links to pickup point |
-| `merchants` | 20 | Campus merchants | `rating` constraint 1.0~5.0 |
-| `dishes` | 160 | Menu items | `stock` real-time inventory, trigger auto-deduction |
-| `pickup_points` | 12 | Pickup lockers | `capacity` limit, CHECK constraint prevents overflow |
-| `riders` | 15 | Two-stage riders | `rider_type` ENUM (Stage1_Trunk / Stage2_Floor) |
-| `orders` | 5,000 | Order master | `order_status` 6-state flow, dual rider tracking |
-| `order_items` | ~10,000 | Order details | `price_at_order` snapshot at order time |
+| 表 | 记录数 | 说明 | 关键设计 |
+|---|---|---|---|
+| `users` | 100 | 学生用户 | `balance` 钱包余额，`dorm_building` 关联寄存点 |
+| `merchants` | 20 | 校内商家 | `rating` 约束 1.0~5.0 |
+| `dishes` | 160 | 菜品 | `stock` 实时库存，触发器自动扣减 |
+| `pickup_points` | 12 | 寄存柜 | `capacity` 容量上限，CHECK 约束防爆仓 |
+| `riders` | 15 | 两段式骑手 | `rider_type` ENUM（Stage1_Trunk / Stage2_Floor） |
+| `orders` | 5,000 | 订单主表 | `order_status` 六态流转，双骑手追踪 |
+| `order_items` | ~10,000 | 订单明细 | `price_at_order` 下单瞬间快照价 |
 
-**Database objects**: 2 views (`vw_pickup_point_analytics`, `vw_merchant_sales_rank`), 4 stored procedures (create order / arrive at point / floor delivery / cancel), 6 triggers (stock validation, stock deduction, rider type check ×2, rider status auto-manage ×2).
-
----
-
-## Dashboard Features
-
-| Module | Description |
-|--------|-------------|
-| KPI Cards | Today's orders, revenue, active riders, active merchants, overflow alerts (red breathing glow) |
-| Order Status | Real-time distribution status donut chart with total count |
-| Recent Orders | Latest 15 orders with colored status tags |
-| Pickup Saturation | 12-point horizontal bar chart, green/yellow/red 3-level alert + overflow line |
-| Merchant Ranking | Top 10 merchant sales bar chart, blue gradient |
-| Hourly Distribution | Orders bar chart + avg order value line overlay |
-| Data Tables | 6 tabs: merchants / students / dishes / riders / pickup points |
-| AI Query | Chinese NL question → DeepSeek Text-to-SQL → result table |
+**数据库对象**：2 个视图（`vw_pickup_point_analytics`、`vw_merchant_sales_rank`）、4 个存储过程（下单 / 到达寄存点 / 楼栋送达 / 取消订单）、6 个触发器（库存校验 + 库存扣减 + 骑手类型校验 x2 + 骑手状态自动管理 x2）。
 
 ---
 
-## Project Structure
+## 大屏功能
 
-| File | Description |
-|------|-------------|
-| `app.py` | Flask main program, all REST APIs |
-| `templates/index.html` | Dashboard frontend (ECharts + vanilla JS) |
-| `db.py` | MySQL connection pool (PyMySQL + DBUtils) |
-| `campus_delivery_db.sql` | Complete database build script (DDL + triggers + SPs + views) |
-| `reinit_db.py` | Python-based database rebuild script |
-| `generate_mock_data.py` | Mock data generator (5,000 orders with overflow scenarios) |
-| `check_data.py` | Quick data integrity check script |
-| `test_app.py` | Automated tests (10 test cases) |
-| `requirements.txt` | Python dependency list |
-| `.env.example` | Environment variable template |
-| `images/er_diagram.png` | E-R entity relationship diagram |
+| 模块 | 说明 |
+|---|---|
+| KPI 指标卡 | 今日订单数、营收、活跃骑手、活跃商家、爆仓预警（红色呼吸灯） |
+| 订单状态 | 实时配送状态分布环形图，含总量统计 |
+| 最近订单 | 最近 15 条订单，彩色状态标签 |
+| 寄存点饱和度 | 12 个寄存点横向柱状图，绿/黄/红三级告警 + 爆仓线 |
+| 商家排行 | Top 10 商家销售额柱状图，蓝色渐变 |
+| 小时分布 | 订单量柱状图 + 均价折线图叠加 |
+| 数据总览 | 6 个标签页：商家 / 学生 / 菜品 / 骑手 / 寄存点 |
+| AI 查询 | 中文自然语言提问 → DeepSeek Text-to-SQL → 结果表格 |
 
 ---
 
-## Quick Start
+## 项目文件
 
-**Requirements**: Python 3.8+ · MySQL 8.0+ · DeepSeek API Key (optional)
+| 文件 | 说明 |
+|---|---|
+| `app.py` | Flask 主程序，全部 REST API |
+| `templates/index.html` | 大屏前端（ECharts + 原生 JS） |
+| `db.py` | MySQL 连接池（PyMySQL + DBUtils） |
+| `campus_delivery_db.sql` | 完整数据库建库脚本（DDL + 触发器 + 存储过程 + 视图） |
+| `reinit_db.py` | Python 版数据库重建脚本 |
+| `generate_mock_data.py` | 模拟数据生成器（5,000 条订单 + 爆仓场景） |
+| `check_data.py` | 数据完整性快速检查 |
+| `test_app.py` | 自动化测试（11 个用例） |
+| `requirements.txt` | Python 依赖清单 |
+| `.env.example` | 环境变量模板 |
+| `images/er_diagram.png` | E-R 实体关系图 |
+
+---
+
+## 快速启动
+
+**环境要求**：Python 3.8+ · MySQL 8.0+ · DeepSeek API Key（可选）
 
 ```bash
-# 1. Clone
+# 1. 克隆项目
 git clone https://github.com/sou1maker/database.git
 cd campus_delivery_project
 
-# 2. Virtual environment
+# 2. 创建虚拟环境
 python -m venv venv
 venv\Scripts\activate          # Windows
 # source venv/bin/activate     # macOS / Linux
 
-# 3. Install dependencies
+# 3. 安装依赖
 pip install -r requirements.txt
 
-# 4. Edit .env with DB credentials and DeepSeek API Key
+# 4. 编辑 .env 填入数据库密码和 DeepSeek API Key
 
-# 5. Initialize database and generate mock data
+# 5. 初始化数据库并生成模拟数据
 python reinit_db.py
 python generate_mock_data.py
 
-# 6. Start dashboard at http://localhost:5000
+# 6. 启动大屏 http://localhost:5000
 python app.py
 ```
 
 ---
 
-## Tech Stack
+## 技术栈
 
-| Layer | Technology |
-|-------|------------|
-| Backend | Python 3.8+ · Flask 3.0+ |
-| Frontend | ECharts 5.5 (CDN) · Vanilla HTML/CSS |
-| Database | MySQL 8.0+ · Row-level locks · Triggers · Stored Procedures |
-| Connection Pool | PyMySQL + DBUtils |
+| 层级 | 技术 |
+|---|---|
+| 后端 | Python 3.8+ · Flask 3.0+ |
+| 前端 | ECharts 5.5 (CDN) · 原生 HTML/CSS |
+| 数据库 | MySQL 8.0+ · 行级锁 · 触发器 · 存储过程 |
+| 连接池 | PyMySQL + DBUtils |
 | AI | DeepSeek Chat API (Text-to-SQL) |
-| Data | Pandas · Faker |
+| 数据 | Pandas · Faker |
 
 <p align="center">
-  Campus Delivery Two-Stage Distribution System · Final Defense Project<br>
+  校园外卖两段式配送数据库系统 · 数据库课程项目<br>
   Flask + ECharts + MySQL + DeepSeek AI · v4.0
 </p>
