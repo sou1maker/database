@@ -182,9 +182,86 @@ CREATE TRIGGER trg_reduce_dish_stock_after_order
 AFTER INSERT ON order_items
 FOR EACH ROW
 BEGIN
-    UPDATE dishes 
-    SET stock = stock - NEW.quantity 
+    UPDATE dishes
+    SET stock = stock - NEW.quantity
     WHERE dish_id = NEW.dish_id;
+END$$
+
+-- 触发器 3 & 4：骑手类型校验 — 干线/楼栋不可混用 (答辩约束亮点)
+CREATE TRIGGER trg_check_rider_type_before_insert
+BEFORE INSERT ON orders
+FOR EACH ROW
+BEGIN
+    IF NEW.stage1_rider_id IS NOT NULL THEN
+        IF NOT EXISTS (SELECT 1 FROM riders WHERE rider_id = NEW.stage1_rider_id AND rider_type = 'Stage1_Trunk') THEN
+            SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = '指派失败：干线骑手(Stage1)必须是 Stage1_Trunk 类型！';
+        END IF;
+    END IF;
+    IF NEW.stage2_rider_id IS NOT NULL THEN
+        IF NOT EXISTS (SELECT 1 FROM riders WHERE rider_id = NEW.stage2_rider_id AND rider_type = 'Stage2_Floor') THEN
+            SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = '指派失败：楼栋骑手(Stage2)必须是 Stage2_Floor 类型！';
+        END IF;
+    END IF;
+END$$
+
+CREATE TRIGGER trg_check_rider_type_before_update
+BEFORE UPDATE ON orders
+FOR EACH ROW
+BEGIN
+    IF NEW.stage1_rider_id IS NOT NULL AND (NEW.stage1_rider_id != OLD.stage1_rider_id OR OLD.stage1_rider_id IS NULL) THEN
+        IF NOT EXISTS (SELECT 1 FROM riders WHERE rider_id = NEW.stage1_rider_id AND rider_type = 'Stage1_Trunk') THEN
+            SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = '指派失败：干线骑手(Stage1)必须是 Stage1_Trunk 类型！';
+        END IF;
+    END IF;
+    IF NEW.stage2_rider_id IS NOT NULL AND (NEW.stage2_rider_id != OLD.stage2_rider_id OR OLD.stage2_rider_id IS NULL) THEN
+        IF NOT EXISTS (SELECT 1 FROM riders WHERE rider_id = NEW.stage2_rider_id AND rider_type = 'Stage2_Floor') THEN
+            SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = '指派失败：楼栋骑手(Stage2)必须是 Stage2_Floor 类型！';
+        END IF;
+    END IF;
+END$$
+
+-- Trigger 5 & 6: auto rider status (assign=Delivering, done=Idle)
+CREATE TRIGGER trg_rider_delivering_insert
+AFTER INSERT ON orders
+FOR EACH ROW
+BEGIN
+    IF NEW.stage1_rider_id IS NOT NULL AND NEW.order_status IN ('Paid', 'Stage1_Assigned') THEN
+        UPDATE riders SET status = 'Delivering' WHERE rider_id = NEW.stage1_rider_id;
+    END IF;
+    IF NEW.stage2_rider_id IS NOT NULL AND NEW.order_status IN ('Arrived_At_Point', 'Stage2_Assigned') THEN
+        UPDATE riders SET status = 'Delivering' WHERE rider_id = NEW.stage2_rider_id;
+    END IF;
+END$$
+
+CREATE TRIGGER trg_rider_delivering_update
+AFTER UPDATE ON orders
+FOR EACH ROW
+BEGIN
+    -- 新指派干线骑手 → Delivering
+    IF NEW.stage1_rider_id IS NOT NULL AND (NEW.stage1_rider_id != OLD.stage1_rider_id OR OLD.stage1_rider_id IS NULL) THEN
+        UPDATE riders SET status = 'Delivering' WHERE rider_id = NEW.stage1_rider_id;
+    END IF;
+    -- 新指派楼栋骑手 → Delivering
+    IF NEW.stage2_rider_id IS NOT NULL AND (NEW.stage2_rider_id != OLD.stage2_rider_id OR OLD.stage2_rider_id IS NULL) THEN
+        UPDATE riders SET status = 'Delivering' WHERE rider_id = NEW.stage2_rider_id;
+    END IF;
+    -- Stage1 完成（Paid/Stage1_Assigned → Arrived_At_Point）→ 释放干线骑手
+    IF NEW.order_status = 'Arrived_At_Point' AND OLD.order_status IN ('Paid', 'Stage1_Assigned') AND OLD.stage1_rider_id IS NOT NULL THEN
+        UPDATE riders SET status = 'Idle' WHERE rider_id = OLD.stage1_rider_id;
+    END IF;
+    -- Stage2 完成 → 释放楼栋骑手
+    IF NEW.order_status = 'Completed' AND OLD.order_status != 'Completed' AND OLD.stage2_rider_id IS NOT NULL THEN
+        UPDATE riders SET status = 'Idle' WHERE rider_id = OLD.stage2_rider_id;
+    END IF;
+    -- 取消 → 释放所有骑手
+    IF NEW.order_status = 'Cancelled' AND OLD.order_status != 'Cancelled' THEN
+        IF OLD.stage1_rider_id IS NOT NULL THEN
+            UPDATE riders SET status = 'Idle' WHERE rider_id = OLD.stage1_rider_id;
+        END IF;
+        IF OLD.stage2_rider_id IS NOT NULL THEN
+            UPDATE riders SET status = 'Idle' WHERE rider_id = OLD.stage2_rider_id;
+        END IF;
+    END IF;
 END$$
 
 DELIMITER ;
@@ -269,16 +346,11 @@ BEGIN
     FROM orders WHERE order_id = p_order_id;
     
     -- 1. 推进订单状态机：变更为"已送达中转寄存点"，并打上第一段完成的时间戳
-    UPDATE orders 
+    UPDATE orders
     SET order_status = 'Arrived_At_Point', stage1_completed_at = CURRENT_TIMESTAMP
     WHERE order_id = p_order_id;
-    
-    -- 2. 释放干线骑手状态，恢复为空闲
-    IF v_rider_id IS NOT NULL THEN
-        UPDATE riders SET status = 'Idle' WHERE rider_id = v_rider_id;
-    END IF;
-    
-    -- 3. 中转柜包裹数加1 (此处会自动触发物理容积瓶颈检查)
+
+    -- 2. 中转柜包裹数加1 (此处会自动触发物理容积瓶颈检查)
     UPDATE pickup_points SET current_packages = current_packages + 1 WHERE point_id = v_point_id;
     
     COMMIT;
@@ -305,16 +377,11 @@ BEGIN
     FROM orders WHERE order_id = p_order_id;
     
     -- 1. 标记订单完成
-    UPDATE orders 
+    UPDATE orders
     SET order_status = 'Completed', stage2_completed_at = CURRENT_TIMESTAMP
     WHERE order_id = p_order_id;
-    
-    -- 2. 释放二段骑手
-    IF v_rider_id IS NOT NULL THEN
-        UPDATE riders SET status = 'Idle' WHERE rider_id = v_rider_id;
-    END IF;
-    
-    -- 3. 中转柜包裹数减1
+
+    -- 2. 中转柜包裹数减1
     UPDATE pickup_points SET current_packages = current_packages - 1 
     WHERE point_id = v_point_id AND current_packages > 0;
     
@@ -374,19 +441,11 @@ BEGIN
     
     -- 3. 如果已入库寄存点，扣减包裹数
     IF v_status = 'Arrived_At_Point' OR v_status = 'Stage2_Assigned' THEN
-        UPDATE pickup_points SET current_packages = current_packages - 1 
+        UPDATE pickup_points SET current_packages = current_packages - 1
         WHERE point_id = v_point_id AND current_packages > 0;
     END IF;
-    
-    -- 4. 释放骑手
-    IF v_rider1 IS NOT NULL THEN
-        UPDATE riders SET status = 'Idle' WHERE rider_id = v_rider1;
-    END IF;
-    IF v_rider2 IS NOT NULL THEN
-        UPDATE riders SET status = 'Idle' WHERE rider_id = v_rider2;
-    END IF;
-    
-    -- 5. 标记取消
+
+    -- 4. 标记取消（触发器自动释放所有关联骑手）
     UPDATE orders SET order_status = 'Cancelled' WHERE order_id = p_order_id;
     
     COMMIT;

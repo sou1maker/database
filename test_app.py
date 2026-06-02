@@ -111,7 +111,4 @@ class TestAPIEndpoints(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    print("=" * 50)
-    print("  校园外卖配送系统 · 自动化测试")
-    print("=" * 50)
     unittest.main(verbosity=2)

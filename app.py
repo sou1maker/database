@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-校园外卖两段式配送 · 实时数据监控大屏 v4.0
-Flask + 原生 HTML/ECharts 前端
+Campus Delivery Two-Stage Distribution · Real-time Dashboard v4.0
+Flask + ECharts + MySQL + DeepSeek Text-to-SQL
 """
 import os
 import sys
@@ -28,11 +28,11 @@ CORS(app)
 
 
 # ================================================================
-# 数据查询 API
+# REST APIs
 # ================================================================
 
 def _range_filter(r):
-    """根据range参数生成SQL日期条件"""
+    """Generate SQL date filter by range param"""
     if r == "today":
         return "DATE(o.created_at) = CURDATE()"
     elif r == "7d":
@@ -58,15 +58,7 @@ def today_stats():
                 WHERE DATE(created_at) = CURDATE() AND order_status = 'Completed'
             """)
             stats["today_revenue"] = float(cur.fetchone()[0])
-            cur.execute("""
-                SELECT COUNT(DISTINCT rider_id) FROM (
-                    SELECT stage1_rider_id AS rider_id FROM orders
-                    WHERE order_status NOT IN ('Completed','Cancelled') AND stage1_rider_id IS NOT NULL
-                    UNION
-                    SELECT stage2_rider_id AS rider_id FROM orders
-                    WHERE order_status NOT IN ('Completed','Cancelled') AND stage2_rider_id IS NOT NULL
-                ) AS active
-            """)
+            cur.execute("SELECT COUNT(*) FROM riders WHERE status = 'Delivering'")
             stats["active_riders"] = cur.fetchone()[0]
             cur.execute("SELECT COUNT(DISTINCT merchant_id) FROM orders WHERE DATE(created_at) = CURDATE()")
             stats["active_merchants"] = cur.fetchone()[0]
@@ -107,7 +99,7 @@ def pickup_points():
             cur.execute(sql)
             rows = cur.fetchall()
         return jsonify([{
-            "name": row[0].replace("智能寄存柜", "").strip(),
+            "name": row[0].replace("Smart Locker", "").strip(),
             "capacity": row[1], "packages": row[2],
             "saturation": round(float(row[3]), 1), "backlog": row[4],
         } for row in rows])
@@ -211,16 +203,16 @@ def side_tables():
 # AI Text-to-SQL (DeepSeek)
 # ================================================================
 
-DB_SCHEMA = """数据库：campus_delivery_db（校园外卖两段式配送）
-表：users(user_id,username,phone,dorm_building,room_number,balance)
+DB_SCHEMA = """Database: campus_delivery_db (Campus Two-Stage Delivery)
+Tables: users(user_id,username,phone,dorm_building,room_number,balance)
 merchants(merchant_id,merchant_name,phone,address,rating)
 dishes(dish_id,merchant_id,dish_name,price,stock,status)
 pickup_points(point_id,point_name,location,capacity,current_packages)
 riders(rider_id,rider_name,phone,rider_type,status)
 orders(order_id,user_id,merchant_id,pickup_point_id,total_amount,order_status,stage1_rider_id,stage2_rider_id,created_at,stage1_completed_at,stage2_completed_at)
 order_items(item_id,order_id,dish_id,quantity,price_at_order)
-视图：vw_pickup_point_analytics, vw_merchant_sales_rank
-只允许SELECT。金额单位元。金额统计只看Completed。字段用中文别名。只返回SQL不加markdown。"""
+Views: vw_pickup_point_analytics, vw_merchant_sales_rank
+SELECT only. Amount in CNY. Only count Completed orders. Use Chinese aliases. Return raw SQL without markdown."""
 
 
 @app.route("/api/ai_query", methods=["POST"])
@@ -228,17 +220,17 @@ def ai_query():
     data = request.get_json()
     question = data.get("question", "").strip()
     if not question:
-        return jsonify({"success": False, "error": "问题不能为空"})
+        return jsonify({"success": False, "error": "Question cannot be empty"})
 
     if not DEEPSEEK_API_KEY:
-        return jsonify({"success": False, "error": "DeepSeek API Key 未配置"})
+        return jsonify({"success": False, "error": "DeepSeek API Key not configured"})
 
     client = OpenAI(api_key=DEEPSEEK_API_KEY, base_url=DEEPSEEK_BASE_URL, timeout=10)
     try:
         response = client.chat.completions.create(
             model=DEEPSEEK_MODEL,
             messages=[
-                {"role": "system", "content": f"你是Text-to-SQL助手。Schema:\n{DB_SCHEMA}"},
+                {"role": "system", "content": f"You are a Text-to-SQL assistant. Schema:\n{DB_SCHEMA}"},
                 {"role": "user", "content": question}
             ],
             temperature=0.1, max_tokens=1000, timeout=10,
@@ -247,12 +239,12 @@ def ai_query():
         sql = sql.replace("```sql", "").replace("```", "").strip()
 
         if not sql.upper().startswith("SELECT"):
-            return jsonify({"success": False, "sql": sql, "error": "非查询语句已拦截"})
+            return jsonify({"success": False, "sql": sql, "error": "Non-SELECT statement blocked"})
 
         dangerous = ["INSERT ","UPDATE ","DELETE ","DROP ","ALTER ","TRUNCATE ","CREATE ","EXEC "]
         for kw in dangerous:
             if kw in sql.upper():
-                return jsonify({"success": False, "sql": sql, "error": f"危险关键字 {kw.strip()}"})
+                return jsonify({"success": False, "sql": sql, "error": f"Dangerous keyword: {kw.strip()}"})
 
         conn = get_connection()
         try:
@@ -268,7 +260,7 @@ def ai_query():
 
 
 # ================================================================
-# 主页面
+# Main page
 # ================================================================
 
 @app.route("/")
@@ -277,7 +269,7 @@ def index():
 
 
 if __name__ == "__main__":
-    print("\n  校园外卖配送 · 实时监控大屏 v4.0")
-    print("  Flask + 原生 ECharts 前端")
+    print("\n  Campus Delivery · Real-time Dashboard v4.0")
+    print("  Flask + ECharts + MySQL + DeepSeek AI")
     print("  http://localhost:5000\n")
     app.run(host="0.0.0.0", port=5000, debug=False)

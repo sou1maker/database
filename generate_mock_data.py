@@ -184,13 +184,13 @@ def generate_orders(conn):
     for d in dishes_data:
         dishes_by_merchant.setdefault(d["merchant_id"], []).append(d)
 
-    # 找爆仓目标寄存点：3期（容量80）和6期（容量50）
+    # 找爆仓目标寄存点：Zone 3（容量80）和Zone 6（容量50）
     overload_targets = []
     for p in points_data:
-        if "3期" in p["point_name"]:
-            overload_targets.append((p["point_id"], p["capacity"], "3期"))
-        if "6期" in p["point_name"]:
-            overload_targets.append((p["point_id"], p["capacity"], "6期"))
+        if "Zone 3" in p["point_name"]:
+            overload_targets.append((p["point_id"], p["capacity"], "Zone 3"))
+        if "Zone 6" in p["point_name"]:
+            overload_targets.append((p["point_id"], p["capacity"], "Zone 6"))
 
     # 今日订单状态权重（模拟实时配送流）
     today_statuses = (
@@ -263,12 +263,24 @@ def generate_orders(conn):
                             overload_counters[pid] += 1
                             break
 
-                # 骑手指派
+                # Rider assignment — follow real flow:
+                # Paid: no rider
+                # Stage1_Assigned: trunk rider assigned
+                # Arrived_At_Point: trunk rider stays (trigger releases him when status changes)
+                # Stage2_Assigned: floor rider assigned
+                # Completed/Cancelled: no riders active
                 stage1_rider = None
                 stage2_rider = None
                 if order_status == "Stage1_Assigned":
                     stage1_rider = random.choice(trunk_riders) if trunk_riders else None
+                elif order_status == "Arrived_At_Point":
+                    # Inherit trunk rider from Stage1 so trigger can release him
+                    stage1_rider = random.choice(trunk_riders) if trunk_riders else None
                 elif order_status == "Stage2_Assigned":
+                    stage2_rider = random.choice(floor_riders) if floor_riders else None
+                elif order_status == "Completed":
+                    # Completed orders passed through both stages, keep rider IDs for history
+                    stage1_rider = random.choice(trunk_riders) if trunk_riders else None
                     stage2_rider = random.choice(floor_riders) if floor_riders else None
 
                 # 时间戳
@@ -302,23 +314,27 @@ def generate_orders(conn):
                 conn.commit()
                 print(f"   [进度] {i+1}/{TOTAL} ({ (i+1)*100//TOTAL }%)")
 
-    # 更新骑手状态
-    print("\n   [骑手] 更新配送状态……")
+    # Sync rider status: triggers auto-manage Delivering on assignment.
+    # Bulk INSERT fires AFTER INSERT trigger which skips Completed/Cancelled/Arrived_At_Point.
+    # But we also need to handle riders on stage1 who should be Delivering.
+    # Simple approach: set ALL riders Idle, then explicitly set Delivering for active ones.
+    print("\n   [Riders] Syncing rider status...")
     with conn.cursor() as cursor:
+        cursor.execute("UPDATE riders SET status = 'Idle'")
         cursor.execute("""
             UPDATE riders r SET r.status = 'Delivering'
             WHERE r.rider_id IN (
-                SELECT rider_id FROM (
-                    SELECT o.stage1_rider_id AS rider_id FROM orders o
-                    WHERE o.order_status NOT IN ('Completed','Cancelled') AND o.stage1_rider_id IS NOT NULL
-                    UNION
-                    SELECT o.stage2_rider_id AS rider_id FROM orders o
-                    WHERE o.order_status NOT IN ('Completed','Cancelled') AND o.stage2_rider_id IS NOT NULL
-                ) AS active
+                SELECT o.stage1_rider_id FROM orders o
+                WHERE o.order_status IN ('Paid','Stage1_Assigned') AND o.stage1_rider_id IS NOT NULL
+                UNION
+                SELECT o.stage2_rider_id FROM orders o
+                WHERE o.order_status IN ('Arrived_At_Point','Stage2_Assigned') AND o.stage2_rider_id IS NOT NULL
             )
         """)
         conn.commit()
-        print(f"   [骑手] {cursor.rowcount} 名骑手设为配送中")
+        cursor.execute("SELECT COUNT(*) AS cnt FROM riders WHERE status = 'Delivering'")
+        print(f"   [Riders] {cursor.fetchone()['cnt']} riders delivering")
+
 
     # 同步寄存点包裹计数
     print("\n   [寄存点] 同步包裹计数……")

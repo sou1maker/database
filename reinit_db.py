@@ -109,8 +109,8 @@ cur.execute("CREATE INDEX idx_orders_status ON orders(order_status)")
 cur.execute("CREATE INDEX idx_orders_created ON orders(created_at)")
 cur.execute("CREATE INDEX idx_dishes_merchant ON dishes(merchant_id, status)")
 
-# ==================== 创建防超卖触发器（核心亮点） ====================
-# 触发器 1：插入订单明细前检查库存和下架状态
+# ==================== Triggers (6 total) ====================
+# 1: stock check before order item insert
 cur.execute("""
 CREATE TRIGGER trg_check_dish_stock_before_order
 BEFORE INSERT ON order_items
@@ -121,15 +121,15 @@ BEGIN
     SELECT stock, status INTO v_stock, v_status
     FROM dishes WHERE dish_id = NEW.dish_id FOR UPDATE;
     IF v_status = 0 THEN
-        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = '下单失败：您选购的商品已下架！';
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Item offline';
     END IF;
     IF v_stock < NEW.quantity THEN
-        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = '下单失败：手慢了！部分商品库存不足！';
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Insufficient stock';
     END IF;
 END
 """)
 
-# 触发器 2：下单成功后自动扣减库存
+# 2: auto reduce stock after order item insert
 cur.execute("""
 CREATE TRIGGER trg_reduce_dish_stock_after_order
 AFTER INSERT ON order_items
@@ -139,33 +139,110 @@ BEGIN
 END
 """)
 
-# ==================== 创建存储过程（业务流引擎） ====================
+# 3 & 4: rider type validation
+cur.execute("""
+CREATE TRIGGER trg_check_rider_type_before_insert
+BEFORE INSERT ON orders
+FOR EACH ROW
+BEGIN
+    IF NEW.stage1_rider_id IS NOT NULL THEN
+        IF NOT EXISTS (SELECT 1 FROM riders WHERE rider_id = NEW.stage1_rider_id AND rider_type = 'Stage1_Trunk') THEN
+            SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Stage1 must be Trunk rider';
+        END IF;
+    END IF;
+    IF NEW.stage2_rider_id IS NOT NULL THEN
+        IF NOT EXISTS (SELECT 1 FROM riders WHERE rider_id = NEW.stage2_rider_id AND rider_type = 'Stage2_Floor') THEN
+            SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Stage2 must be Floor rider';
+        END IF;
+    END IF;
+END
+""")
 
-# 存储过程 1：高并发原子性下单（含完整事务回滚）
+cur.execute("""
+CREATE TRIGGER trg_check_rider_type_before_update
+BEFORE UPDATE ON orders
+FOR EACH ROW
+BEGIN
+    IF NEW.stage1_rider_id IS NOT NULL AND (NEW.stage1_rider_id != OLD.stage1_rider_id OR OLD.stage1_rider_id IS NULL) THEN
+        IF NOT EXISTS (SELECT 1 FROM riders WHERE rider_id = NEW.stage1_rider_id AND rider_type = 'Stage1_Trunk') THEN
+            SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Stage1 must be Trunk rider';
+        END IF;
+    END IF;
+    IF NEW.stage2_rider_id IS NOT NULL AND (NEW.stage2_rider_id != OLD.stage2_rider_id OR OLD.stage2_rider_id IS NULL) THEN
+        IF NOT EXISTS (SELECT 1 FROM riders WHERE rider_id = NEW.stage2_rider_id AND rider_type = 'Stage2_Floor') THEN
+            SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Stage2 must be Floor rider';
+        END IF;
+    END IF;
+END
+""")
+
+# 5 & 6: auto rider status management (insert + update)
+cur.execute("""
+CREATE TRIGGER trg_rider_status_insert
+AFTER INSERT ON orders
+FOR EACH ROW
+BEGIN
+    IF NEW.stage1_rider_id IS NOT NULL THEN
+        UPDATE riders SET status = 'Delivering' WHERE rider_id = NEW.stage1_rider_id;
+    END IF;
+    IF NEW.stage2_rider_id IS NOT NULL THEN
+        UPDATE riders SET status = 'Delivering' WHERE rider_id = NEW.stage2_rider_id;
+    END IF;
+END
+""")
+
+cur.execute("""
+CREATE TRIGGER trg_rider_status_update
+AFTER UPDATE ON orders
+FOR EACH ROW
+BEGIN
+    -- Assign stage1 -> Delivering
+    IF NEW.stage1_rider_id IS NOT NULL AND (NEW.stage1_rider_id != OLD.stage1_rider_id OR OLD.stage1_rider_id IS NULL) THEN
+        UPDATE riders SET status = 'Delivering' WHERE rider_id = NEW.stage1_rider_id;
+    END IF;
+    -- Assign stage2 -> Delivering
+    IF NEW.stage2_rider_id IS NOT NULL AND (NEW.stage2_rider_id != OLD.stage2_rider_id OR OLD.stage2_rider_id IS NULL) THEN
+        UPDATE riders SET status = 'Delivering' WHERE rider_id = NEW.stage2_rider_id;
+    END IF;
+    -- Stage1 done -> release trunk rider
+    IF NEW.order_status = 'Arrived_At_Point' AND OLD.order_status IN ('Paid', 'Stage1_Assigned') AND OLD.stage1_rider_id IS NOT NULL THEN
+        UPDATE riders SET status = 'Idle' WHERE rider_id = OLD.stage1_rider_id;
+    END IF;
+    -- Stage2 done -> release floor rider
+    IF NEW.order_status = 'Completed' AND OLD.order_status != 'Completed' AND OLD.stage2_rider_id IS NOT NULL THEN
+        UPDATE riders SET status = 'Idle' WHERE rider_id = OLD.stage2_rider_id;
+    END IF;
+    -- Cancel -> release all
+    IF NEW.order_status = 'Cancelled' AND OLD.order_status != 'Cancelled' THEN
+        IF OLD.stage1_rider_id IS NOT NULL THEN
+            UPDATE riders SET status = 'Idle' WHERE rider_id = OLD.stage1_rider_id;
+        END IF;
+        IF OLD.stage2_rider_id IS NOT NULL THEN
+            UPDATE riders SET status = 'Idle' WHERE rider_id = OLD.stage2_rider_id;
+        END IF;
+    END IF;
+END
+""")
+
+# ==================== Stored Procedures (4 total) ====================
+
+# SP 1: atomic order creation
 cur.execute("""
 CREATE PROCEDURE sp_create_order(
-    IN p_user_id INT,
-    IN p_merchant_id INT,
-    IN p_point_id INT,
-    IN p_dish_id INT,
-    IN p_quantity INT,
-    OUT o_order_id INT
+    IN p_user_id INT, IN p_merchant_id INT, IN p_point_id INT,
+    IN p_dish_id INT, IN p_quantity INT, OUT o_order_id INT
 )
 BEGIN
     DECLARE v_dish_price DECIMAL(8,2);
     DECLARE v_total_amount DECIMAL(10,2);
     DECLARE v_user_balance DECIMAL(10,2);
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-    BEGIN
-        ROLLBACK;
-        RESIGNAL;
-    END;
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION BEGIN ROLLBACK; RESIGNAL; END;
     START TRANSACTION;
     SELECT price INTO v_dish_price FROM dishes WHERE dish_id = p_dish_id;
     SET v_total_amount = v_dish_price * p_quantity;
     SELECT balance INTO v_user_balance FROM users WHERE user_id = p_user_id;
     IF v_user_balance < v_total_amount THEN
-        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = '校园卡余额不足，扣款失败！';
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Insufficient balance';
     END IF;
     UPDATE users SET balance = balance - v_total_amount WHERE user_id = p_user_id;
     INSERT INTO orders (user_id, merchant_id, pickup_point_id, total_amount, order_status)
@@ -177,56 +254,42 @@ BEGIN
 END
 """)
 
-# 存储过程 2：第一段配送完成 → 到达寄存点
+# SP 2: stage1 complete -> arrive at pickup point
 cur.execute("""
 CREATE PROCEDURE sp_arrive_at_pickup_point(IN p_order_id INT)
 BEGIN
     DECLARE v_point_id INT;
     DECLARE v_rider_id INT;
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-    BEGIN
-        ROLLBACK;
-        RESIGNAL;
-    END;
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION BEGIN ROLLBACK; RESIGNAL; END;
     START TRANSACTION;
-    SELECT pickup_point_id, stage1_rider_id INTO v_point_id, v_rider_id 
+    SELECT pickup_point_id, stage1_rider_id INTO v_point_id, v_rider_id
     FROM orders WHERE order_id = p_order_id;
     UPDATE orders SET order_status = 'Arrived_At_Point', stage1_completed_at = CURRENT_TIMESTAMP
     WHERE order_id = p_order_id;
-    IF v_rider_id IS NOT NULL THEN
-        UPDATE riders SET status = 'Idle' WHERE rider_id = v_rider_id;
-    END IF;
     UPDATE pickup_points SET current_packages = current_packages + 1 WHERE point_id = v_point_id;
     COMMIT;
 END
 """)
 
-# 存储过程 3：第二段配送完成 → 送达学生
+# SP 3: stage2 complete -> deliver to student
 cur.execute("""
 CREATE PROCEDURE sp_stage2_deliver(IN p_order_id INT)
 BEGIN
     DECLARE v_point_id INT;
     DECLARE v_rider_id INT;
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-    BEGIN
-        ROLLBACK;
-        RESIGNAL;
-    END;
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION BEGIN ROLLBACK; RESIGNAL; END;
     START TRANSACTION;
-    SELECT pickup_point_id, stage2_rider_id INTO v_point_id, v_rider_id 
+    SELECT pickup_point_id, stage2_rider_id INTO v_point_id, v_rider_id
     FROM orders WHERE order_id = p_order_id;
     UPDATE orders SET order_status = 'Completed', stage2_completed_at = CURRENT_TIMESTAMP
     WHERE order_id = p_order_id;
-    IF v_rider_id IS NOT NULL THEN
-        UPDATE riders SET status = 'Idle' WHERE rider_id = v_rider_id;
-    END IF;
-    UPDATE pickup_points SET current_packages = current_packages - 1 
+    UPDATE pickup_points SET current_packages = current_packages - 1
     WHERE point_id = v_point_id AND current_packages > 0;
     COMMIT;
 END
 """)
 
-# 存储过程 4：取消订单（退款+恢复库存+释放骑手）
+# SP 4: cancel order (refund + restore stock, triggers auto-release riders)
 cur.execute("""
 CREATE PROCEDURE sp_cancel_order(IN p_order_id INT)
 BEGIN
@@ -239,20 +302,15 @@ BEGIN
     DECLARE done INT DEFAULT 0;
     DECLARE v_dish_id INT;
     DECLARE v_qty INT;
-    DECLARE cur CURSOR FOR 
-        SELECT dish_id, quantity FROM order_items WHERE order_id = p_order_id;
+    DECLARE cur CURSOR FOR SELECT dish_id, quantity FROM order_items WHERE order_id = p_order_id;
     DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = 1;
-    DECLARE EXIT HANDLER FOR SQLEXCEPTION
-    BEGIN
-        ROLLBACK;
-        RESIGNAL;
-    END;
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION BEGIN ROLLBACK; RESIGNAL; END;
     START TRANSACTION;
     SELECT user_id, total_amount, order_status, stage1_rider_id, stage2_rider_id, pickup_point_id
     INTO v_user_id, v_total, v_status, v_rider1, v_rider2, v_point_id
     FROM orders WHERE order_id = p_order_id;
     IF v_status IN ('Completed', 'Cancelled') THEN
-        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = '该订单无法取消';
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Order cannot be cancelled';
     END IF;
     UPDATE users SET balance = balance + v_total WHERE user_id = v_user_id;
     OPEN cur;
@@ -263,26 +321,20 @@ BEGIN
     END LOOP;
     CLOSE cur;
     IF v_status = 'Arrived_At_Point' OR v_status = 'Stage2_Assigned' THEN
-        UPDATE pickup_points SET current_packages = current_packages - 1 
+        UPDATE pickup_points SET current_packages = current_packages - 1
         WHERE point_id = v_point_id AND current_packages > 0;
-    END IF;
-    IF v_rider1 IS NOT NULL THEN
-        UPDATE riders SET status = 'Idle' WHERE rider_id = v_rider1;
-    END IF;
-    IF v_rider2 IS NOT NULL THEN
-        UPDATE riders SET status = 'Idle' WHERE rider_id = v_rider2;
     END IF;
     UPDATE orders SET order_status = 'Cancelled' WHERE order_id = p_order_id;
     COMMIT;
 END
 """)
 
-# ==================== 创建大屏视图 ====================
+# ==================== Views (2 total) ====================
 
-# 视图 1：寄存点饱和度分析
+# View 1: pickup point saturation analytics
 cur.execute("""
 CREATE VIEW vw_pickup_point_analytics AS
-SELECT 
+SELECT
     p.point_id,
     p.point_name,
     p.capacity AS max_capacity,
@@ -298,10 +350,10 @@ LEFT JOIN (
 ) sub ON p.point_id = sub.pickup_point_id
 """)
 
-# 视图 2：商户销售排行
+# View 2: merchant sales ranking
 cur.execute("""
 CREATE VIEW vw_merchant_sales_rank AS
-SELECT 
+SELECT
     m.merchant_id,
     m.merchant_name,
     COUNT(DISTINCT o.order_id) AS total_orders,
@@ -312,56 +364,55 @@ LEFT JOIN orders o ON m.merchant_id = o.merchant_id AND o.order_status = 'Comple
 GROUP BY m.merchant_id
 """)
 
-# 种子数据：3个学生
-
-for u in [('张三','13800138001','1期5栋','A302',250.00),('李四','13800138002','1期5栋','B511',15.00),('王五','13800138003','2期12栋','404',500.00)]:
+# Seed data: 3 users
+for u in [('Zhang San','13800138001','Zone1 Bldg5','A302',250.00),('Li Si','13800138002','Zone1 Bldg5','B511',15.00),('Wang Wu','13800138003','Zone2 Bldg12','404',500.00)]:
     cur.execute("INSERT INTO users (username,phone,dorm_building,room_number,balance) VALUES (%s,%s,%s,%s,%s)", u)
 
-# 种子数据：3个商家
-for m in [('一号黄焖鸡米饭','17711112222','丁香餐厅一楼3号档口',4.8),('川湘木桶饭','17711113333','玫瑰餐厅二楼核心区',4.6),('蜜雪冰城校园店','17711114444','下沉广场天桥旁',4.9)]:
+# Seed data: 3 merchants
+for m in [('No.1 Braised Chicken','17711112222','Lilac Canteen 1F Booth 3',4.8),('Sichuan-Hunan Rice','17711113333','Rose Canteen 2F Core',4.6),('Mixue Ice Cream','17711114444','Sunken Plaza Bridge',4.9)]:
     cur.execute("INSERT INTO merchants (merchant_name,phone,address,rating) VALUES (%s,%s,%s,%s)", m)
 
-# 种子数据：4个菜品
-cur.execute("INSERT INTO dishes (merchant_id,dish_name,price,stock,status) VALUES (1,'经典大份黄焖鸡(配饭)',18.00,50,1)")
-cur.execute("INSERT INTO dishes (merchant_id,dish_name,price,stock,status) VALUES (1,'香辣金针菇肥牛饭',22.00,0,1)")
-cur.execute("INSERT INTO dishes (merchant_id,dish_name,price,stock,status) VALUES (2,'辣椒炒肉木桶饭',15.00,100,1)")
-cur.execute("INSERT INTO dishes (merchant_id,dish_name,price,stock,status) VALUES (3,'冰鲜柠檬水(超大杯)',4.00,200,1)")
+# Seed data: 4 dishes
+cur.execute("INSERT INTO dishes (merchant_id,dish_name,price,stock,status) VALUES (1,'Classic Braised Chicken w/ Rice',18.00,50,1)")
+cur.execute("INSERT INTO dishes (merchant_id,dish_name,price,stock,status) VALUES (1,'Spicy Enoki Beef Rice',22.00,0,1)")
+cur.execute("INSERT INTO dishes (merchant_id,dish_name,price,stock,status) VALUES (2,'Pepper Pork Rice Bucket',15.00,100,1)")
+cur.execute("INSERT INTO dishes (merchant_id,dish_name,price,stock,status) VALUES (3,'Iced Lemonade (Jumbo)',4.00,200,1)")
 
-# 12个寄存点
+# 12 pickup points
 points = [
-    ('1期智能寄存柜','1期5栋与6栋之间车棚旁',80),
-    ('2期智能寄存柜','2期12栋宿管值班室对面',80),
-    ('3期智能寄存柜','3期8栋楼下大厅',80),
-    ('4期智能寄存柜','4期2栋架空层',80),
-    ('5期智能寄存柜','5期生活广场东侧',100),
-    ('6期智能寄存柜','6期食堂旁',50),
-    ('7期智能寄存柜','7期3栋一楼楼梯间',60),
-    ('8期智能寄存柜','8期北门快递站旁',120),
-    ('A区智能寄存柜','A区综合服务大厅',100),
-    ('B区智能寄存柜','B区图书馆负一层',90),
-    ('C区智能寄存柜','C区体育馆入口处',70),
-    ('D区智能寄存柜','D区研究生公寓大堂',80),
+    ('Zone 1 Smart Locker','Between Bldg 5 & 6',80),
+    ('Zone 2 Smart Locker','Opposite Bldg 12 Dorm Office',80),
+    ('Zone 3 Smart Locker','Bldg 8 Ground Floor',80),
+    ('Zone 4 Smart Locker','Bldg 2 Elevated Floor',80),
+    ('Zone 5 Smart Locker','Life Plaza East',100),
+    ('Zone 6 Smart Locker','Next to Canteen',50),
+    ('Zone 7 Smart Locker','Bldg 3 Stairwell',60),
+    ('Zone 8 Smart Locker','North Gate Express Station',120),
+    ('Zone A Smart Locker','Service Hall',100),
+    ('Zone B Smart Locker','Library B1',90),
+    ('Zone C Smart Locker','Gym Entrance',70),
+    ('Zone D Smart Locker','Grad Dorm Lobby',80),
 ]
 for n,l,c in points:
     cur.execute("INSERT INTO pickup_points (point_name,location,capacity,current_packages) VALUES (%s,%s,%s,0)", (n,l,c))
 
-# 15名骑手
+# 15 riders (8 trunk + 7 floor)
 riders = [
-    ('赵铁柱','15599991111','Stage1_Trunk'),
-    ('王大锤','15599992222','Stage1_Trunk'),
-    ('李大力','15599994444','Stage1_Trunk'),
-    ('周小飞','15599995555','Stage1_Trunk'),
-    ('刘强东','15599996666','Stage1_Trunk'),
-    ('吴勇军','15599997777','Stage1_Trunk'),
-    ('郑明达','15599998888','Stage1_Trunk'),
-    ('黄启航','15599999999','Stage1_Trunk'),
-    ('牛干劲','15599993333','Stage2_Floor'),
-    ('马小跳','15611111111','Stage2_Floor'),
-    ('林志远','15611112222','Stage2_Floor'),
-    ('张小凡','15611113333','Stage2_Floor'),
-    ('陈奕迅','15611114444','Stage2_Floor'),
-    ('李逍遥','15611115555','Stage2_Floor'),
-    ('赵灵儿','15611116666','Stage2_Floor'),
+    ('Zhao Tiezhu','15599991111','Stage1_Trunk'),
+    ('Wang Dachui','15599992222','Stage1_Trunk'),
+    ('Li Dali','15599994444','Stage1_Trunk'),
+    ('Zhou Xiaofei','15599995555','Stage1_Trunk'),
+    ('Liu Qiangdong','15599996666','Stage1_Trunk'),
+    ('Wu Yongjun','15599997777','Stage1_Trunk'),
+    ('Zheng Mingda','15599998888','Stage1_Trunk'),
+    ('Huang Qihang','15599999999','Stage1_Trunk'),
+    ('Niu Jin','15599993333','Stage2_Floor'),
+    ('Ma Xiaotiao','15611111111','Stage2_Floor'),
+    ('Lin Zhiyuan','15611112222','Stage2_Floor'),
+    ('Zhang Xiaofan','15611113333','Stage2_Floor'),
+    ('Chen Yixun','15611114444','Stage2_Floor'),
+    ('Li Xiaoyao','15611115555','Stage2_Floor'),
+    ('Zhao Linger','15611116666','Stage2_Floor'),
 ]
 for n,p,t in riders:
     cur.execute("INSERT INTO riders (rider_name,phone,rider_type,status) VALUES (%s,%s,%s,'Idle')", (n,p,t))
@@ -369,13 +420,13 @@ for n,p,t in riders:
 conn.commit()
 cur.close()
 conn.close()
-print("[OK] 数据库重建成功！")
-print("  - 7 张核心业务表")
-print("  - 12 个寄存点")
-print("  - 15 名骑手（8名干线 + 7名楼栋）")
-print("  - 2 个防超卖触发器（行级锁安全防护）")
-print("  - 4 个存储过程（下单/入库/送达/取消）")
-print("  - 2 个大屏视图（饱和度分析 + 商户排行）")
-print("  现在请运行: python generate_mock_data.py")
+print("[OK] Database rebuilt successfully!")
+print("  - 7 core tables")
+print("  - 12 pickup points")
+print("  - 15 riders (8 trunk + 7 floor)")
+print("  - 6 triggers (stock check, stock reduce, rider type check x2, rider status x2)")
+print("  - 4 stored procedures (create order, arrive point, deliver, cancel)")
+print("  - 2 views (pickup saturation + merchant ranking)")
+print("  Next: python generate_mock_data.py")
 
 
