@@ -3,3084 +3,662 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>校园外卖两段式配送数据库系统 · 答辩汇报</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700;800;900&family=JetBrains+Mono:wght@300;400;500;600&family=Noto+Sans+SC:wght@200;300;400;500;700;900&display=swap" rel="stylesheet">
+<title>校园外卖两段式配送数据库系统</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  :root{
-    /* ============ 主题色(默认: 🔵 克莱因蓝 IKB) ============
-       切换主题: 从 references/themes-swiss.md 复制对应的 :root 块
-       整体替换标有"主题色"注释的所有变量,其他散落的 var() 引用无需逐处改 */
-    --paper:#fafaf8;          /* 主底色: 高级灰白 */
-    --paper-rgb:250,250,248;
-    --ink:#0a0a0a;            /* 文字主色: 近黑 */
-    --ink-rgb:10,10,10;
-    --grey-1:#f0f0ee;         /* 浅灰底 */
-    --grey-2:#d4d4d2;         /* 中灰(分割线) */
-    --grey-3:#737373;         /* 暗灰(辅助文字) */
-    --accent:#002FA7;         /* 高亮色: 克莱因蓝 IKB */
-    --accent-rgb:0,47,167;
-    --accent-on:#ffffff;      /* accent 上的反色文字 */
-    --accent-bright:#5B7BFF;  /* 暗底高亮: IKB 提亮版 */
-
-    /* ============ Carbon 文本角色 token (role-based,代替 opacity) ============
-       亮底:  primary 主文 / secondary 次文 / helper 辅助 / placeholder 占位
-       暗底:  inverse 自动反向 */
-    --text-primary:#0a0a0a;        /* = ink, 100% */
-    --text-secondary:#525252;      /* gray 70 */
-    --text-helper:#737373;         /* gray 60 */
-    --text-placeholder:#a3a3a3;    /* gray 40 */
-    --text-on-color:#ffffff;       /* accent/dark 反色 */
-    --border-subtle:#e0e0e0;       /* gray 20, 极细分隔 */
-    --border-strong:#a3a3a3;       /* gray 40, 强分隔 */
-
-    /* ============ 字体(跨主题固定) ============ */
-    --sans:"Inter","Helvetica Neue","Helvetica","Arial","Segoe UI Variable","Segoe UI",system-ui,-apple-system,sans-serif;
-    --sans-zh:"PingFang SC","Hiragino Sans GB","Source Han Sans SC","Noto Sans SC","Microsoft YaHei UI","Microsoft YaHei","微软雅黑",sans-serif;
-    --mono:"JetBrains Mono","IBM Plex Mono","SF Mono","Cascadia Code","Consolas","Courier New",ui-monospace,monospace;
-
-    /* ============ Carbon 2x Grid 间距模数 (基础 8px) ============
-       参考: https://carbondesignsystem.com/elements/2x-grid/overview/
-       任何 padding/gap/margin 优先用这套 token,确保 8px 基线对齐 */
-    --sp-3:8px;     /* 02 token */
-    --sp-4:12px;    /* 03 */
-    --sp-5:16px;    /* 04 */
-    --sp-6:24px;    /* 05 */
-    --sp-7:32px;    /* 06 */
-    --sp-8:40px;    /* 07 */
-    --sp-9:48px;    /* 08 */
-    --sp-10:64px;   /* 09 */
-    --sp-11:80px;   /* 10 */
-    --sp-12:96px;   /* 11 */
-    --sp-13:160px;  /* 12 */
-
-    /* ============ Carbon Motion tokens ============
-       https://carbondesignsystem.com/guidelines/motion/overview/
-       两套体系:productive (功能) 短 + 锐 / expressive (叙事) 长 + 软 */
-    --ease-prod:cubic-bezier(.2,0,.38,.9);          /* productive standard */
-    --ease-exp:cubic-bezier(.4,.14,.3,1);            /* expressive standard */
-    --ease-entry-prod:cubic-bezier(0,0,.38,.9);     /* productive entrance */
-    --ease-entry-exp:cubic-bezier(0,0,.3,1);         /* expressive entrance */
-    --dur-fast-1:.07s;   /* 70ms */
-    --dur-fast-2:.11s;   /* 110ms */
-    --dur-mod-1:.15s;    /* 150ms */
-    --dur-mod-2:.24s;    /* 240ms */
-    --dur-slow-1:.4s;    /* 400ms */
-    --dur-slow-2:.7s;    /* 700ms */
-
-    /* 底部分页组件安全区: 主内容最低处不要进入这条区域 */
-    --nav-safe-bottom:8vh;
-  }
-  *{box-sizing:border-box;margin:0;padding:0}
-  html,body{
-    width:100%;height:100%;overflow:hidden;
-    background:var(--paper);color:var(--ink);
-    font-family:var(--sans),var(--sans-zh);
-    font-feature-settings:"ss01","cv11";
-    -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility
-  }
-
-  /* ============ WebGL 网格背景 ============ */
-  canvas.bg{position:fixed;inset:0;width:100vw;height:100vh;z-index:0;display:block;opacity:.55;mix-blend-mode:multiply;pointer-events:none}
-  body.dark-bg canvas.bg{mix-blend-mode:screen;opacity:.42}
-  body.low-power canvas.bg,
-  body.low-power canvas.ascii-bg{display:none!important}
-
-  /* ============ Deck 容器 + 翻页 ============ */
-  #deck{position:fixed;inset:0;width:10000vw;height:100vh;display:flex;flex-wrap:nowrap;transition:transform .9s cubic-bezier(.77,0,.175,1);z-index:10;will-change:transform}
-  .slide{
-    width:100vw;height:100vh;flex:0 0 100vw;
-    position:relative;
-    padding:5.5vh 5vw 7vh 5vw;
-    display:flex;flex-direction:column;
-    overflow:hidden;
-    background:var(--paper);color:var(--ink);
-  }
-  .slide.grey{background:var(--grey-1)}
-  .slide.dark{background:var(--ink);color:var(--paper)}
-  .slide.dark .grey-only{display:none}
-  .slide.accent{background:var(--accent);color:var(--accent-on)}
-  .slide.accent .accent-block{background:var(--accent-on);color:var(--accent)}
-
-  /* Hero 页透出网格背景多一点 */
-  .slide.hero{background:transparent}
-  .slide.hero.grey{background:rgba(var(--paper-rgb),.86);backdrop-filter:blur(1px)}
-  .slide.hero.dark{background:rgba(var(--ink-rgb),.92);color:var(--paper)}
-
-  /* ============ 装饰: 极细分隔线 + 点阵矩阵 ============ */
-  .rule{width:100%;height:1px;background:currentColor;opacity:.18;margin:0}
-  .rule.thick{height:2px;opacity:.85}
-  .rule.accent{background:var(--accent);opacity:1;height:2px}
-  .rule.v{width:1px;height:100%;margin:0}
-
-  /* 点阵矩阵 (dot matrix) - 用 radial-gradient */
-  .dots{
-    background-image:radial-gradient(currentColor 1px, transparent 1px);
-    background-size:12px 12px;
-    background-position:0 0;
-    opacity:.18;
-  }
-  .dots-fine{
-    background-image:radial-gradient(currentColor 0.8px, transparent 0.8px);
-    background-size:8px 8px;
-    opacity:.14;
-  }
-  .dots-bold{
-    background-image:radial-gradient(currentColor 1.4px, transparent 1.4px);
-    background-size:18px 18px;
-    opacity:.22;
-  }
-
-  /* ============ Chrome (顶部 meta) + Foot (底部) ============ */
-  .chrome{
-    display:flex;justify-content:space-between;align-items:flex-start;
-    font-family:var(--mono);
-    font-size:14px;letter-spacing:.16em;text-transform:uppercase;
-    opacity:.7;margin-bottom:auto
-  }
-  .chrome .l,.chrome .r{display:flex;gap:1.6em;align-items:center}
-  .chrome .sep{width:24px;height:1px;background:currentColor;opacity:.5}
-
-  .foot{
-    margin-top:auto;
-    display:flex;justify-content:space-between;align-items:flex-end;
-    font-family:var(--mono);
-    font-size:14px;letter-spacing:.14em;text-transform:uppercase;
-    opacity:.55;
-    padding-top:2vh;
-    border-top:1px solid currentColor;
-    border-color:rgba(127,127,127,.25)
-  }
-  .foot .nb{font-family:var(--sans);font-weight:600;letter-spacing:.04em}
-
-  /* ============ Tag / Kicker / Meta 标签 ============ */
-  .kicker{
-    font-family:var(--mono);
-    font-size:14px;letter-spacing:.24em;text-transform:uppercase;
-    opacity:.65;margin-bottom:2.4vh;
-    display:inline-flex;align-items:center;gap:.8em
-  }
-  .kicker::before{
-    content:"";width:24px;height:1px;background:currentColor;opacity:.6
-  }
-  .kicker.no-line::before{display:none}
-  .kicker.accent{color:var(--accent);opacity:1;font-weight:600}
-
-  .tag{
-    display:inline-block;
-    font-family:var(--mono);
-    font-size:14px;letter-spacing:.18em;text-transform:uppercase;
-    padding:5px 10px;border:1px solid currentColor;opacity:.85
-  }
-  .tag.solid{background:currentColor;color:var(--paper);border-color:transparent}
-  .tag.accent{background:var(--accent);color:var(--accent-on);border-color:transparent;opacity:1}
-
-  /* ============ 标题层级 (无衬线 · 极轻字重 · 极致字号对比) ============ */
-  .h-hero{
-    font-family:var(--sans),var(--sans-zh);
-    font-weight:200;
-    font-size:11vw;
-    line-height:.92;
-    letter-spacing:-.04em;
-  }
-  .h-hero-zh{
-    font-family:var(--sans),var(--sans-zh);
-    font-weight:200;
-    font-size:8.4vw;
-    line-height:.96;
-    letter-spacing:-.025em;
-  }
-  .h-xl{
-    font-family:var(--sans),var(--sans-zh);
-    font-weight:200;
-    font-size:6vw;
-    line-height:1;
-    letter-spacing:-.03em;
-  }
-  .h-xl-zh{
-    font-family:var(--sans),var(--sans-zh);
-    font-weight:200;
-    font-size:5vw;
-    line-height:1.05;
-    letter-spacing:-.025em;
-  }
-  .h-md{
-    font-family:var(--sans),var(--sans-zh);
-    font-weight:300;
-    font-size:2.6vw;
-    line-height:1.18;
-    letter-spacing:-.015em;
-  }
-  .h-sub{
-    font-family:var(--sans),var(--sans-zh);
-    font-weight:400;
-    font-size:2.2vw;
-    line-height:1.3;
-    letter-spacing:-.01em;
-    opacity:.7;
-  }
-
-  /* ============ 正文 / 引语 / 元数据 ============ */
-  .lead{
-    font-family:var(--sans),var(--sans-zh);
-    font-weight:400;
-    font-size:1.55vw;
-    line-height:1.4;
-    letter-spacing:-.005em;
-    opacity:.86;
-  }
-  .body{
-    font-family:var(--sans),var(--sans-zh);
-    font-weight:400;
-    font-size:max(18px,1.08vw);
-    line-height:1.6;
-    letter-spacing:0;
-    opacity:.78;
-  }
-  .body-sm{
-    font-family:var(--sans),var(--sans-zh);
-    font-weight:400;
-    font-size:max(16px,.92vw);
-    line-height:1.55;
-    opacity:.7;
-  }
-  .meta{
-    font-family:var(--mono);
-    font-size:max(14px,.82vw);
-    letter-spacing:.18em;text-transform:uppercase;
-    opacity:.6;
-  }
-  .meta-row{
-    display:flex;gap:1.4em;align-items:baseline;flex-wrap:wrap;
-    font-family:var(--mono);
-    font-size:max(14px,.88vw);letter-spacing:.16em;text-transform:uppercase;
-    opacity:.65;
-  }
-  .meta-row span:not(.dot){display:inline-block}
-  .meta-row .dot{
-    display:inline-block;width:4px;height:4px;border-radius:50%;
-    background:currentColor;opacity:.5;vertical-align:middle
-  }
-
-  /* ============ KPI Hero (视觉英雄数据) ============ */
-  .kpi-hero{
-    font-family:var(--sans);
-    font-weight:800;
-    font-size:22vw;
-    line-height:.82;
-    letter-spacing:-.05em;
-    font-feature-settings:"tnum","ss01";
-  }
-  .kpi-hero .unit{
-    font-family:var(--sans),var(--sans-zh);
-    font-weight:500;
-    font-size:.18em;
-    letter-spacing:0;
-    opacity:.5;
-    margin-left:.12em;
-    vertical-align:.5em;
-  }
-  .kpi-hero.accent{color:var(--accent)}
-  .kpi-big{
-    font-family:var(--sans);
-    font-weight:800;
-    font-size:11vw;
-    line-height:.85;
-    letter-spacing:-.04em;
-    font-feature-settings:"tnum"
-  }
-  .kpi-mid{
-    font-family:var(--sans);
-    font-weight:700;
-    font-size:6vw;
-    line-height:.88;
-    letter-spacing:-.03em;
-    font-feature-settings:"tnum"
-  }
-
-  /* ============ Stat Card (数据卡片 · 极简) ============ */
-  .stat-card{
-    display:flex;flex-direction:column;
-    gap:.6vh;align-items:flex-start;
-    padding-top:1.6vh;
-    border-top:2px solid currentColor;
-  }
-  .stat-card.thin{border-top-width:1px;border-color:rgba(127,127,127,.4)}
-  .stat-card.accent-top{border-top-color:var(--accent);border-top-width:3px}
-  .stat-card .stat-label{
-    font-family:var(--mono);
-    font-size:max(14px,.82vw);
-    letter-spacing:.24em;text-transform:uppercase;
-    opacity:.6;
-  }
-  .stat-card .stat-nb{
-    font-family:var(--sans);
-    font-weight:800;
-    font-size:5.6vw;
-    line-height:.88;
-    letter-spacing:-.035em;
-    font-feature-settings:"tnum";
-    margin-top:.4vh;
-  }
-  .stat-card .stat-nb .stat-unit{
-    font-family:var(--sans),var(--sans-zh);
-    font-weight:500;
-    font-size:.32em;
-    letter-spacing:0;
-    opacity:.6;
-    margin-left:.14em;
-    vertical-align:.4em;
-  }
-  .stat-card .stat-note{
-    font-family:var(--sans),var(--sans-zh);
-    font-weight:400;
-    font-size:max(16px,.98vw);
-    line-height:1.5;
-    opacity:.7;
-    margin-top:.6vh;
-  }
-  .grid-4 .stat-card .stat-nb{font-size:4.6vw}
-  .grid-3 .stat-card .stat-nb{font-size:6.4vw}
-  .grid-6 .stat-card .stat-nb{font-size:4vw}
-
-  /* ============ Accent Block (高亮色块包裹内容) ============ */
-  .accent-block{
-    background:var(--accent);color:var(--accent-on);
-    padding:2.4vh 2vw;
-  }
-  .accent-block.tight{padding:1.4vh 1.4vw}
-  .accent-block .h-md,.accent-block .h-xl,.accent-block .kpi-mid{color:var(--accent-on)}
-
-  .ink-block{
-    background:var(--ink);color:var(--paper);
-    padding:2.4vh 2vw
-  }
-  .grey-block{
-    background:var(--grey-1);
-    padding:2.4vh 2vw
-  }
-
-  /* 高亮文字 (mark 风格) */
-  .mark{
-    background:var(--accent);color:var(--accent-on);
-    padding:0 .2em;
-    box-decoration-break:clone;
-    -webkit-box-decoration-break:clone;
-  }
-  .mark.ink{background:var(--ink);color:var(--paper)}
-  .underline-accent{
-    background-image:linear-gradient(to bottom, transparent 70%, var(--accent) 70%, var(--accent) 96%, transparent 96%);
-    padding:0 .05em
-  }
-
-  /* ============ Pipeline / Step ============ */
-  .pipeline-section{margin-top:3.2vh;padding-top:2.2vh;border-top:1px solid rgba(127,127,127,.3)}
-  .pipeline-section:first-of-type{border-top:0;padding-top:0;margin-top:2.4vh}
-  .pipeline-label{
-    font-family:var(--mono);
-    font-size:max(14px,.84vw);
-    letter-spacing:.24em;text-transform:uppercase;
-    opacity:.6;margin-bottom:1.8vh;
-  }
-  .pipeline{
-    display:grid;
-    grid-template-columns:repeat(5,1fr);
-    gap:1vw;
-  }
-  .pipeline[data-cols="3"]{grid-template-columns:repeat(3,1fr)}
-  .pipeline[data-cols="4"]{grid-template-columns:repeat(4,1fr)}
-  .pipeline[data-cols="6"]{grid-template-columns:repeat(6,1fr)}
-  .step{
-    display:flex;flex-direction:column;gap:.6vh;
-    padding-top:1.2vh;
-    border-top:2px solid currentColor;
-  }
-  .step.accent-top{border-top-color:var(--accent);border-top-width:3px}
-  .step-nb{
-    font-family:var(--mono);
-    font-weight:500;
-    font-size:max(14px,1vw);
-    opacity:.5;letter-spacing:.04em
-  }
-  .step-title{
-    font-family:var(--sans),var(--sans-zh);
-    font-weight:700;
-    font-size:1.4vw;
-    letter-spacing:-.01em;
-    line-height:1.2;
-  }
-  .step-desc{
-    font-family:var(--sans),var(--sans-zh);
-    font-weight:400;
-    font-size:max(16px,.94vw);
-    line-height:1.45;
-    opacity:.7;
-  }
-
-  /* ============ 网格系统 (模块化网格) ============ */
-  .frame{flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden}
-  .frame.grid-2-7-5,
-  .frame.grid-2-6-6,
-  .frame.grid-2-8-4,
-  .frame.grid-2-4-8,
-  .frame.grid-3-3,
-  .frame.grid-12,
-  .frame.grid-6,
-  .frame.grid-4,
-  .frame.grid-3{display:grid}
-
-  /* 12 列模块化网格 (瑞士风核心) */
-  .grid-12{
-    display:grid;
-    grid-template-columns:repeat(12,1fr);
-    gap:2vh 1.2vw;
-    align-items:start;
-  }
-  .span-2{grid-column:span 2}
-  .span-3{grid-column:span 3}
-  .span-4{grid-column:span 4}
-  .span-5{grid-column:span 5}
-  .span-6{grid-column:span 6}
-  .span-7{grid-column:span 7}
-  .span-8{grid-column:span 8}
-  .span-9{grid-column:span 9}
-  .span-12{grid-column:span 12}
-
-  /* 经典分栏 */
-  .grid-2-7-5{display:grid;grid-template-columns:7fr 5fr;gap:3vw 4vh;align-items:start}
-  .grid-2-6-6{display:grid;grid-template-columns:1fr 1fr;gap:3vw 4vh;align-items:start}
-  .grid-2-8-4{display:grid;grid-template-columns:8fr 4fr;gap:3vw 4vh;align-items:start}
-  .grid-2-4-8{display:grid;grid-template-columns:4fr 8fr;gap:3vw 4vh;align-items:start}
-  .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:3vw 4vh;align-items:start}
-  .grid-3-3{display:grid;grid-template-columns:repeat(3,1fr);grid-auto-rows:minmax(0,1fr);gap:2.4vh 2vw}
-  .grid-4{display:grid;grid-template-columns:repeat(2,1fr);grid-template-rows:repeat(2,1fr);gap:3vh 3vw;flex:1;align-content:center}
-  .grid-6{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,1fr);gap:3vh 2.4vw;flex:1;align-content:center}
-
-  /* 工具类 */
-  .col{display:flex;flex-direction:column;gap:2vh}
-  .row{display:flex;align-items:center;gap:2vw}
-  .fill{flex:1}
-  .center{align-items:center;justify-content:center;text-align:center}
-  .right{text-align:right;justify-self:end}
-  .top{align-self:start}
-  .bottom{align-self:end}
-  .va-center{align-self:center}
-  .nowrap{white-space:nowrap}
-
-  /* 非对称定位 */
-  .pos-absolute{position:absolute}
-  .bottom-left{position:absolute;left:5vw;bottom:8vh;max-width:50vw}
-  .bottom-right{position:absolute;right:5vw;bottom:8vh;max-width:50vw;text-align:right}
-  .top-right{position:absolute;right:5vw;top:5.5vh;text-align:right}
-  .top-left{position:absolute;left:5vw;top:5.5vh}
-
-  /* ============ Callout (引用框 · 极简) ============ */
-  .callout{
-    padding:2vh 2vw;
-    border-left:3px solid var(--accent);
-    font-family:var(--sans),var(--sans-zh);
-    font-size:max(14px,1vw);
-    line-height:1.55;
-    opacity:.9;
-  }
-  .callout.ink{border-left-color:currentColor}
-  .callout .cite,.callout .callout-src{
-    display:block;margin-top:1.2vh;
-    font-family:var(--mono);
-    font-size:14px;letter-spacing:.16em;text-transform:uppercase;
-    opacity:.6;
-  }
-
-  /* ============ Icons (Lucide via CDN) ============ */
-  .ico{width:1em;height:1em;display:inline-block;vertical-align:-.12em;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
-  .ico-lg,.ico-md,.ico-sm{fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round}
-  .ico-lg{width:2.4vw;height:2.4vw;stroke-width:1.4;display:inline-block}
-  .ico-md{width:1.6vw;height:1.6vw;stroke-width:1.6;display:inline-block;vertical-align:-.4em}
-  .ico-sm{width:1vw;height:1vw;stroke-width:1.8;display:inline-block;vertical-align:-.15em;opacity:.7}
-
-  /* ============ 几何小图标 (装饰) ============ */
-  .geo-dot{width:.7vw;height:.7vw;border-radius:50%;background:var(--accent);display:inline-block;vertical-align:middle}
-  .geo-square{width:.7vw;height:.7vw;background:var(--accent);display:inline-block;vertical-align:middle}
-  .geo-line{width:2vw;height:2px;background:var(--accent);display:inline-block;vertical-align:middle}
-  .geo-circle-o{width:.9vw;height:.9vw;border:2px solid currentColor;border-radius:50%;display:inline-block;vertical-align:middle}
-
-  /* ============ 图片 frame-img ============ */
-  .frame-img{overflow:hidden;position:relative;background:var(--paper);box-sizing:border-box;width:100%}
-  .slide.dark .frame-img{background:rgba(255,255,255,.06)}
-  .frame-img > img{width:100%;height:100%;object-fit:cover;object-position:center center;display:block}
-  .frame-img.fit-contain > img{object-fit:contain;object-position:center center}
-  .frame-img.pos-top > img{object-position:top center}
-  .frame-img.pos-face > img{object-position:center 35%}
-  .frame-img.r-16x9{aspect-ratio:16/9;max-height:64vh}
-  .frame-img.r-21x9{aspect-ratio:21/9;max-height:54vh}
-  .frame-img.r-16x10{aspect-ratio:16/10;max-height:56vh}
-  .frame-img.r-4x3{aspect-ratio:4/3;max-height:56vh}
-  .frame-img.r-3x2{aspect-ratio:3/2;max-height:46vh}
-  .frame-img.r-3x4{aspect-ratio:3/4;max-height:60vh}
-  .frame-img.r-1x1{aspect-ratio:1/1;max-height:50vh}
-  .frame-img.h-16{height:16vh}
-  .frame-img.h-18{height:18vh}
-  .frame-img.h-22{height:22vh}
-  .frame-img.h-26{height:26vh}
-  .frame-img.h-28{height:28vh}
-  .frame-img.h-32{height:32vh}
-  .frame-img.swiss-lined{border-top:2px solid var(--accent)}
-  .frame-img.swiss-keyline{border:0}
-
-  /* P22 Image Hero: 下半屏内容区必须和图片拉开距离,不要贴在图下沿 */
-  .image-hero-body{
-    display:grid;grid-template-columns:6fr 6fr;gap:3vw;
-    padding:6.6vh 5vw 4.4vh;flex:1;align-content:start
-  }
-  .image-hero-stats{
-    display:grid;grid-template-columns:repeat(3,1fr);gap:2vw;align-items:start
-  }
-  .img-cap{
-    display:block;margin-top:.8vh;
-    font-family:var(--mono);
-    font-size:max(14px,.82vw);
-    letter-spacing:.2em;text-transform:uppercase;
-    opacity:.6;
-  }
-  figure.frame-img,figure.tile{margin:0;display:flex;flex-direction:column;min-width:0}
-  figure.tile > .frame-img{flex:0 0 auto}
-
-  /* 瑞士风图文混排: 只用直角、发丝线、单一 accent；图像容器不加圆角/阴影 */
-  .swiss-img-split{display:grid;grid-template-columns:5fr 7fr;gap:3vw;align-items:start;flex:1;min-height:0}
-  .swiss-img-split.reverse{grid-template-columns:7fr 5fr}
-  .swiss-img-split.align-bottom{align-items:end}
-  .swiss-img-split.align-bottom .swiss-img-copy{align-self:end}
-  .swiss-img-split.align-image-bottom{align-items:end;padding-bottom:var(--nav-safe-bottom)}
-  .swiss-img-split.align-image-bottom .swiss-img-copy{align-self:end}
-  .swiss-img-split.align-image-bottom figure.tile{align-self:end;position:relative}
-  .swiss-img-split.align-image-bottom figure.tile > .swiss-img-caption{
-    position:absolute;left:0;right:0;top:calc(100% + var(--sp-4));margin-top:0
-  }
-  .nav-safe-bottom{padding-bottom:var(--nav-safe-bottom)}
-  .nav-safe-bottom-tight{padding-bottom:calc(var(--nav-safe-bottom) * .65)}
-  .swiss-img-copy{display:flex;flex-direction:column;gap:var(--sp-6);min-width:0}
-  .swiss-img-copy .rule{margin:0}
-  .swiss-img-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--sp-5);align-items:start;margin-top:var(--sp-7)}
-  .swiss-img-grid.two{grid-template-columns:repeat(2,1fr)}
-  .swiss-img-grid.tight{margin-top:0}
-  .swiss-img-caption{
-    display:flex;justify-content:space-between;gap:var(--sp-5);
-    margin-top:var(--sp-4);
-    font-family:var(--mono);font-size:max(14px,.74vw);
-    letter-spacing:.16em;text-transform:uppercase;color:var(--text-helper);
-    border-top:1px solid var(--border-subtle);padding-top:var(--sp-4)
-  }
-  .swiss-img-caption strong{
-    font-family:var(--sans),var(--sans-zh);font-size:max(16px,.9vw);
-    font-weight:600;letter-spacing:0;text-transform:none;color:var(--text-primary)
-  }
-
-  /* ============ Bar Chart (扁平几何图表) ============ */
-  .bar-chart{display:flex;flex-direction:column;gap:1.4vh}
-  .bar-row{display:grid;grid-template-columns:8em 1fr 4em;gap:1.4vw;align-items:center}
-  .bar-row .bar-label{font-family:var(--mono);font-size:max(14px,.84vw);letter-spacing:.14em;text-transform:uppercase;opacity:.7}
-  .bar-row .bar-track{height:14px;background:rgba(127,127,127,.18);position:relative}
-  .bar-row .bar-fill{height:100%;background:var(--accent);position:absolute;left:0;top:0}
-  .bar-row .bar-fill.ink{background:currentColor}
-  .bar-row .bar-value{font-family:var(--sans);font-weight:700;font-size:max(16px,1.05vw);text-align:right;font-feature-settings:"tnum"}
-
-  /* ============ 导航 ============ */
-  /* 底部分页导航: 仅保留方块本身,无背景无描边 */
-  #nav{position:fixed;left:50%;bottom:2vh;transform:translateX(-50%);z-index:30;display:flex;gap:10px;padding:0;background:transparent;border:0}
-  #nav .dot{width:6px;height:6px;background:rgba(0,0,0,.28);cursor:pointer;transition:all .25s ease;border:0;padding:0;border-radius:0}
-  #nav .dot:hover{background:rgba(0,0,0,.55)}
-  #nav .dot.active{background:var(--accent);width:18px}
-  body.dark-bg #nav .dot{background:rgba(255,255,255,.32)}
-  body.dark-bg #nav .dot.active{background:var(--accent)}
-
-  #hint{position:fixed;bottom:2.4vh;right:2.5vw;z-index:30;font-family:var(--mono);font-size:14px;letter-spacing:.14em;text-transform:uppercase;opacity:.4;color:var(--ink-tint, currentColor)}
-  body.dark-bg #hint{color:var(--paper);opacity:.4}
-  body.low-power #hint{color:var(--accent);opacity:.72}
-  body.dark-bg.low-power #hint{color:var(--paper);opacity:.72}
-
-  /* ESC 索引页: 动画元素强制可见 (覆盖 motion-ready 的 opacity:0) */
-  #overview [data-anim]{opacity:1!important;transform:none!important}
-  #overview .slide *{animation:none!important;transition:none!important}
-
-  /* 统一卡片样式 token: card-fill (默认灰底 · 中性) + card-ink (反转高对比) + card-accent (单一焦点) */
-  .card-fill{background:#f5f5f4;border:0;color:var(--text-primary)}
-  .card-ink{background:var(--ink);border:0;color:var(--paper)}
-  .card-ink .t-meta,.card-ink .t-cat{color:rgba(255,255,255,.6)}
-  .card-accent{background:var(--accent);border:0;color:var(--accent-on)}
-  .card-accent .t-meta,.card-accent .t-cat{color:var(--accent-on)}
-
-  /* ============ 动效 (与原模板一致) ============ */
-  [data-anim]{opacity:1}
-  body.motion-ready [data-anim]{opacity:0}
-  body.motion-ready [data-anim="left"]{transform:translateX(-24px)}
-  body.motion-ready [data-anim="right"]{transform:translateX(24px)}
-  body.motion-ready [data-anim="line"]{opacity:0;transform:translateY(10px)}
-  body.motion-ready [data-animate="pipeline"] [data-anim]{opacity:.15}
-  body.low-power #deck{transition:none!important}
-  body.low-power *,
-  body.low-power *::before,
-  body.low-power *::after{animation:none!important;transition:none!important}
-  body.low-power.motion-ready [data-anim],
-  body.low-power [data-anim]{opacity:1!important;transform:none!important}
-
-  /* ============================================================
-     ↓↓↓ V2 EXTENSIONS · Canvas Mode + 参考图新类
-     验证效果后沉淀回 template-swiss.html
-     ============================================================ */
-
-  /* Windows 适配:雅黑没有 ExtraLight 200,中文大字号字重补偿 */
-  body.is-win .name-mega,
-  body.is-win .num-mega,
-  body.is-win .kpi-thin,
-  body.is-win .tl-node .multi{
-    font-weight:300;letter-spacing:-.02em;
-  }
-  body.is-win [style*="font-weight:200"]{font-weight:300 !important}
-
-  /* 全屏铺满模式 · 关闭 WebGL · 卡片即页面 */
-  body.canvas-mode{background:var(--paper)}
-  body.canvas-mode canvas.bg{display:none !important}
-  body.canvas-mode .slide{background:var(--paper);padding:0;align-items:stretch;justify-content:stretch}
-  body.canvas-mode .slide.hero{background:var(--paper)}
-
-  .canvas-card{
-    width:100vw;
-    height:100vh;
-    background:var(--paper);color:var(--ink);
-    padding:5.6vh 5vw 4.4vh;
-    display:flex;flex-direction:column;
-    position:relative;overflow:hidden;
-    box-shadow:none;
-    border-radius:0;
-  }
-  .slide.dark .canvas-card{background:var(--ink);color:var(--paper)}
-  .slide.accent .canvas-card{background:var(--accent);color:var(--accent-on)}
-  .slide.grey .canvas-card{background:var(--grey-1);color:var(--ink)}
-  .slide.split .canvas-card{padding:0;flex-direction:row}
-
-  /* ============ ASCII 点阵呼吸场 · IKB 封面/封底专用 ============
-     用法:在 .canvas-card(或 split .half.b-accent)内首位插入 <canvas class="ascii-bg" aria-hidden="true">.
-     动画由本文件底部的 ASCII IIFE 自动启动,所有 canvas.ascii-bg 都会被扫到.
-     其他内容靠 .canvas-card > *:not(.ascii-bg){z-index:1} 自动浮在上层. */
-  canvas.ascii-bg{
-    position:absolute;inset:0;width:100%;height:100%;
-    pointer-events:none;z-index:0;
-    mix-blend-mode:screen;opacity:.92;
-  }
-  .canvas-card > *:not(.ascii-bg){position:relative;z-index:1}
-  .slide.accent .canvas-card .chrome-min{color:rgba(255,255,255,.62)}
-  .slide.accent .canvas-card .t-meta{color:rgba(255,255,255,.7)}
-  .split-half > .half.b-accent .chrome-min{color:rgba(255,255,255,.62)}
-
-  /* 编号目录页 · 超大数字 + 国家名风格 — 越大越细 */
-  .num-mega{
-    font-family:var(--sans);font-weight:200;
-    font-size:9vw;line-height:1;letter-spacing:-.04em;
-    font-feature-settings:"tnum"
-  }
-  .num-mega.thin{font-weight:200}
-  .name-mega{
-    font-family:var(--sans);font-weight:200;
-    font-size:9vw;line-height:1;letter-spacing:-.035em;
-  }
-  .name-mega.muted{color:var(--grey-3)}
-
-  /* 细体超大 KPI — 字号越大权重越低 */
-  .kpi-thin{
-    font-family:var(--sans);font-weight:200;
-    font-size:14vw;line-height:.92;letter-spacing:-.045em;
-    font-feature-settings:"tnum"
-  }
-  .kpi-thin .unit{font-size:.3em;font-weight:300;opacity:.55;margin-left:.15em;vertical-align:.6em}
-  .kpi-thin.accent{color:var(--accent)}
-  .kpi-thin-sm{
-    font-family:var(--sans);font-weight:250;
-    font-size:5.6vw;line-height:1.04;letter-spacing:-.03em;
-    font-feature-settings:"tnum"
-  }
-  .kpi-thin-sm .unit{font-size:.3em;font-weight:300;opacity:.55;margin-left:.12em;vertical-align:.45em}
-
-  /* 4 列细线 KPI 行 — 顶部一根 hairline,内部不再加竖线 */
-  /* 4 列 KPI: 用纵向分割线建立网格感 (Carbon 2x grid 模数) */
-  .kpi-row-4{
-    display:grid;grid-template-columns:repeat(4,1fr);
-    gap:0;padding-top:2.4vh;
-    border-top:1px solid var(--grey-2)
-  }
-  .kpi-row-4 > .kpi-cell{
-    padding:1.6vh 1.6vw 0;
-    border-left:1px solid var(--grey-2)
-  }
-  .kpi-row-4 > .kpi-cell:first-child{padding-left:0;border-left:none}
-  .kpi-cell .lbl{font-family:var(--mono);font-size:max(14px,.78vw);letter-spacing:.18em;text-transform:uppercase;opacity:.55;margin-bottom:1.2vh}
-  .kpi-cell .nb{font-family:var(--sans);font-weight:250;font-size:3.2vw;line-height:1;letter-spacing:-.025em;font-feature-settings:"tnum"}
-  .kpi-cell .nb .unit{font-size:.32em;font-weight:300;opacity:.6;margin-left:.1em;vertical-align:.4em}
-  .kpi-cell .note{font-family:var(--sans),var(--sans-zh);font-size:max(16px,.92vw);line-height:1.5;opacity:.7;margin-top:1.2vh}
-
-  /* 时间线轴 — 通用 axis token, 横纵共享
-     axis 列 = 24px 固定宽,dot 直径 8px,绝对居中在 axis 列中线 (12px)
-     虚线绝对定位 left:12px,与 dot 中心严格对齐 */
-  .timeline-v{
-    --tl-axis-w:24px;        /* axis 列固定宽度 */
-    --tl-dot:8px;            /* 圆点直径 */
-    position:relative;margin-top:var(--sp-7)
-  }
-  .timeline-v::before{
-    content:"";position:absolute;
-    left:calc(var(--tl-axis-w) / 2);
-    transform:translateX(-50%);
-    top:var(--sp-5);bottom:var(--sp-5);
-    width:1px;
-    background:repeating-linear-gradient(to bottom,currentColor 0 4px,transparent 4px 8px);
-    opacity:.35;pointer-events:none;z-index:0
-  }
-  .tl-node{
-    position:relative;
-    display:grid;
-    grid-template-columns:var(--tl-axis-w) minmax(0,7em) minmax(0,7.6em) 1fr;
-    gap:0 var(--sp-5);
-    align-items:center;
-    padding:var(--sp-7) 0
-  }
-  /* 进度点: 纯色实心圆,无背景无描边,精确居中在 axis 列中线 */
-  .tl-node .dot{
-    width:var(--tl-dot);height:var(--tl-dot);
-    border-radius:50%;
-    background:currentColor;
-    justify-self:center;
-    z-index:1
-  }
-  .tl-node.accent .dot{background:var(--accent)}
-  .tl-node .yr{
-    font-family:var(--mono);font-weight:500;
-    font-size:max(14px,1vw);letter-spacing:.04em
-  }
-  .tl-node .multi{
-    font-family:var(--sans);font-weight:200;
-    font-size:clamp(28px,2.8vw,56px);
-    line-height:.95;letter-spacing:-.025em;
-    white-space:nowrap;
-    overflow:hidden;
-    min-width:0
-  }
-  .tl-node .multi .unit{
-    font-size:.36em;font-weight:300;opacity:.6;
-    margin-left:.2em;
-    vertical-align:.42em;
-    letter-spacing:0
-  }
-  .tl-node.accent .multi{color:var(--accent)}
-  .tl-node .desc{
-    font-family:var(--sans),var(--sans-zh);
-    font-size:max(16px,.94vw);line-height:1.55;opacity:.78;
-    min-width:0
-  }
-
-  /* 横向时间线 (.timeline-h) — 与 .timeline-v 共享 axis token, 视觉语言一致 */
-  .timeline-h{
-    --tl-axis-w:8px;
-    --tl-dot:8px;
-    position:relative;
-    flex:1;
-    display:flex;align-items:center
-  }
-  .timeline-h::before{
-    content:"";position:absolute;
-    top:50%;left:5%;right:5%;height:1px;
-    transform:translateY(-50%);
-    background:repeating-linear-gradient(to right,currentColor 0 4px,transparent 4px 8px);
-    opacity:.35;pointer-events:none;z-index:0
-  }
-  .timeline-h .tl-row{
-    position:relative;width:100%;
-    display:grid;grid-template-columns:repeat(5,1fr);
-    align-items:center
-  }
-  .timeline-h .th-node{
-    position:relative;display:flex;justify-content:center
-  }
-  /* 横向 dot: 8px 纯色实心,无描边无阴影 (与 P2 保持一致) */
-  .timeline-h .th-node .dot{
-    width:var(--tl-dot);height:var(--tl-dot);
-    border-radius:50%;
-    background:var(--ink);
-    z-index:1;position:relative
-  }
-  .timeline-h .th-node.accent .dot{background:var(--accent)}
-  .timeline-h .th-node .label{
-    position:absolute;left:50%;transform:translateX(-50%);
-    width:13vw;text-align:center;
-    display:flex;flex-direction:column;gap:.4vh
-  }
-  .timeline-h .th-node.up .label{bottom:calc(50% + 22px)}
-  .timeline-h .th-node.down .label{top:calc(50% + 22px)}
-  .timeline-h .th-node .yr{
-    font-family:var(--mono);font-size:max(14px,.78vw);letter-spacing:.05em;
-    color:var(--text-helper);font-weight:500
-  }
-  .timeline-h .th-node.accent .yr{color:var(--accent)}
-  .timeline-h .th-node .name{
-    font-family:var(--sans);font-size:max(16px,1.05vw);font-weight:400;
-    color:var(--text-primary);line-height:1.2;letter-spacing:-.005em
-  }
-  .timeline-h .th-node.accent .name{color:var(--accent)}
-  .timeline-h .th-node .desc{
-    font-family:var(--sans),var(--sans-zh);font-size:max(14px,.84vw);
-    color:var(--text-secondary);font-weight:400;line-height:1.4
-  }
-
-  /* 几何图示 (参考图 5) — SVG-friendly 容器 */
-  .geo-icon{width:5vw;height:5vw;display:block;margin-bottom:2.2vh;color:var(--ink);flex-shrink:0}
-  .slide.dark .geo-icon{color:var(--paper)}
-  .geo-icon svg{width:100%;height:100%;overflow:visible}
-  .geo-icon .stroke{fill:none;stroke:currentColor;stroke-width:1.4}
-  .geo-icon .stroke-accent{fill:none;stroke:var(--accent);stroke-width:1.4}
-  .geo-icon .fill-accent{fill:var(--accent)}
-
-  /* 卡片网格 (参考图 1 卡片漂浮) — 在 canvas-card 内部再分卡 */
-  .sub-grid-3-2{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,1fr);gap:1.4vh 1.4vw;flex:1;align-content:stretch;margin-top:3vh}
-  .sub-card{
-    background:var(--grey-1);
-    padding:2.4vh 1.6vw 2vh;
-    display:flex;flex-direction:column;
-    position:relative;border-radius:3px;
-    min-height:0
-  }
-  .slide.dark .sub-card{background:rgba(255,255,255,.06)}
-  .sub-card.accent{background:var(--accent);color:var(--accent-on)}
-  .sub-card.ink{background:var(--ink);color:var(--paper)}
-  .sub-card .nb-corner{
-    position:absolute;top:1.6vh;right:1.4vw;
-    font-family:var(--mono);font-size:max(14px,.8vw);
-    letter-spacing:.16em;opacity:.55
-  }
-  .sub-card .ttl{font-family:var(--sans),var(--sans-zh);font-weight:500;font-size:max(17px,1.5vw);line-height:1.2;letter-spacing:-.015em;margin-bottom:1vh}
-  .sub-card .desc{font-family:var(--sans),var(--sans-zh);font-size:max(16px,.94vw);line-height:1.55;opacity:.78;margin-top:auto}
-  .sub-card .lucide{width:2.4vw;height:2.4vw;stroke-width:1.4;color:currentColor;margin-bottom:1.6vh;flex-shrink:0}
-  .sub-card.accent .lucide{color:var(--accent-on)}
-
-  /* 三层架构纯色块拼图 (参考图 4 + 6) — 横排等高色块 */
-  .stack-row{display:grid;grid-template-columns:repeat(3,1fr);gap:1.6vw;flex:1;margin-top:6vh;align-items:stretch}
-  .stack-block{
-    display:flex;flex-direction:column;
-    padding:3.2vh 1.8vw 2.4vh;
-    position:relative;
-    min-height:0
-  }
-  .stack-block.b-accent{background:var(--accent);color:var(--accent-on)}
-  .stack-block.b-grey{background:var(--grey-1);color:var(--ink)}
-  .stack-block.b-ink{background:var(--ink);color:var(--paper)}
-  .stack-block .layer-nb{font-family:var(--mono);font-size:max(14px,.84vw);letter-spacing:.18em;opacity:.65;margin-bottom:auto}
-  .stack-block .layer-icon{margin-bottom:1.6vh}
-  .stack-block .layer-icon svg{width:3vw;height:3vw}
-  .stack-block .layer-icon .stroke{fill:none;stroke:currentColor;stroke-width:1.6}
-  .stack-block .layer-ttl{font-family:var(--sans),var(--sans-zh);font-weight:400;font-size:max(17px,2vw);line-height:1.1;margin-top:1vh;letter-spacing:-.02em}
-  .stack-block .layer-desc{font-family:var(--sans),var(--sans-zh);font-weight:400;font-size:max(16px,.94vw);line-height:1.55;opacity:.88;margin-top:1.4vh}
-  .stack-block .lucide{width:2.6vw;height:2.6vw;stroke-width:1.4;margin-bottom:1.6vh;flex-shrink:0}
-  .stack-block .layer-tag{font-family:var(--mono);font-size:max(14px,.74vw);letter-spacing:.16em;text-transform:uppercase;opacity:.7;margin-top:1.6vh;border-top:1px solid currentColor;padding-top:1vh}
-
-  /* 不等高柱状 KPI 塔 (参考图 6) */
-  .bar-towers{
-    display:grid;grid-template-columns:repeat(4,1fr);
-    gap:1.2vw;flex:1;align-items:end;margin-top:auto
-  }
-  .bar-tower{
-    display:flex;flex-direction:column;justify-content:flex-end;
-    min-height:0;height:100%
-  }
-  .bar-tower .cap{
-    background:var(--grey-1);
-    height:5.6vh;
-    display:flex;align-items:center;justify-content:center;
-    margin-bottom:.4vh
-  }
-  .bar-tower .cap svg{width:1.6vw;height:1.6vw;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
-  .bar-tower .body-block{
-    flex:0 1 auto;
-    padding:2vh 1.2vw 2vh;
-    display:flex;flex-direction:column;justify-content:flex-end;
-    min-height:18vh
-  }
-  .bar-tower .body-block.h-1{min-height:22vh}
-  .bar-tower .body-block.h-2{min-height:30vh}
-  .bar-tower .body-block.h-3{min-height:38vh}
-  .bar-tower .body-block.h-4{min-height:46vh}
-  /* 默认所有 KPI 塔统一为浅描边卡 — 不抢戏;只有 .b-accent 突出为 IKB */
-  .bar-tower .body-block{background:var(--paper);color:var(--ink);border:1px solid var(--grey-2)}
-  .bar-tower .body-block.b-accent{background:var(--accent);color:var(--accent-on);border-color:var(--accent)}
-  .bar-tower .lbl{font-family:var(--mono);font-size:max(14px,.82vw);letter-spacing:.16em;text-transform:uppercase;opacity:.65;margin-bottom:1vh}
-  .bar-tower .nb{font-family:var(--sans);font-weight:250;font-size:max(20px,2.8vw);line-height:1;letter-spacing:-.03em;font-feature-settings:"tnum"}
-  .bar-tower .body-block.b-accent .nb{font-weight:300}
-  .bar-tower .nb .unit{font-size:.36em;font-weight:300;opacity:.7;margin-left:.08em;vertical-align:.4em}
-  .bar-tower .sub{font-family:var(--sans),var(--sans-zh);font-size:max(16px,.92vw);opacity:.75;margin-top:1.2vh;line-height:1.5}
-  .bar-tower .cap{background:var(--grey-1);color:var(--ink)}
-  .bar-tower .lucide{width:1.6vw;height:1.6vw;stroke-width:1.4}
-
-  /* ============ Carbon Productive Type Tokens ============
-     用于 PPT 中的"productive 时刻": 列表、表格行、说明文、章节标签
-     固定 px 字号,密集紧凑;与 vw-based 的 Expressive 巨字形成双极对比 */
-
-  /* category label / eyebrow / section tag — small, bold, uppercase */
-  .t-cat{
-    font-family:var(--mono);
-    font-size:14px;font-weight:600;
-    letter-spacing:.15em;text-transform:uppercase;
-    color:var(--text-helper);line-height:1.3
-  }
-  .t-cat.accent{color:var(--accent)}
-  .t-cat.on-dark{color:rgba(255,255,255,.78)}
-
-  /* page chrome / breadcrumb / running header — extra-small mono */
-  .t-meta{
-    font-family:var(--mono);
-    font-size:14px;font-weight:500;
-    letter-spacing:.14em;text-transform:uppercase;
-    color:var(--text-helper);line-height:1.45
-  }
-
-  /* helper / caption — secondary text */
-  .t-helper{
-    font-family:var(--sans),var(--sans-zh);
-    font-size:14px;font-weight:400;
-    color:var(--text-helper);line-height:1.5;
-    letter-spacing:.005em
-  }
-
-  /* body small — list items, table rows, captions */
-  .t-body-sm{
-    font-family:var(--sans),var(--sans-zh);
-    font-size:16px;font-weight:400;
-    color:var(--text-secondary);line-height:1.55;
-    letter-spacing:0
-  }
-
-  /* body — paragraphs, descriptions */
-  .t-body{
-    font-family:var(--sans),var(--sans-zh);
-    font-size:18px;font-weight:400;
-    color:var(--text-primary);line-height:1.5;
-    letter-spacing:-.005em
-  }
-
-  /* body emphasis — 强调正文 */
-  .t-body-emp{
-    font-family:var(--sans),var(--sans-zh);
-    font-size:18px;font-weight:600;       /* SemiBold per Carbon */
-    color:var(--text-primary);line-height:1.5;
-    letter-spacing:-.005em
-  }
-
-  /* productive heading — section title within slide */
-  .t-h-prod{
-    font-family:var(--sans),var(--sans-zh);
-    font-size:22px;font-weight:600;
-    color:var(--text-primary);line-height:1.4;
-    letter-spacing:-.01em
-  }
-
-  /* dark background variants */
-  .slide.dark .t-cat,.slide.dark .t-meta,.slide.dark .t-helper{color:rgba(255,255,255,.62)}
-  .slide.dark .t-body-sm{color:rgba(255,255,255,.78)}
-  .slide.dark .t-body,.slide.dark .t-body-emp,.slide.dark .t-h-prod{color:var(--paper)}
-  .split-half .half.b-ink .t-cat,.split-half .half.b-ink .t-meta,.split-half .half.b-ink .t-helper{color:rgba(255,255,255,.62)}
-  .split-half .half.b-ink .t-body-sm{color:rgba(255,255,255,.78)}
-  .split-half .half.b-ink .t-body,.split-half .half.b-ink .t-body-emp,.split-half .half.b-ink .t-h-prod{color:var(--paper)}
-
-  /* 斜杠点阵装饰 (参考图 6 左下) */
-  .hatch{
-    background-image:repeating-linear-gradient(135deg,currentColor 0 1px,transparent 1px 8px);
-    opacity:.55
-  }
-
-  /* ========== V3: 高级点阵装饰 — 圆点 / × 号 / 圆圈 ========== */
-  /* 实心圆点矩阵 — 用于大面积装饰 */
-  .dot-mat{
-    --d:14px;
-    background-image:radial-gradient(currentColor 1.4px,transparent 1.6px);
-    background-size:var(--d) var(--d);
-    background-position:0 0;
-    opacity:.5
-  }
-  .dot-mat.lg{--d:22px}
-  .dot-mat.xl{--d:34px}
-  .dot-mat.dense{--d:9px;opacity:.62}
-
-  /* 描边圆圈矩阵 — 工业感 */
-  .ring-mat{
-    --d:18px;
-    background-image:
-      radial-gradient(circle at 50% 50%,transparent 2px,currentColor 2px,currentColor 2.6px,transparent 2.7px);
-    background-size:var(--d) var(--d);
-    opacity:.55
-  }
-  .ring-mat.lg{--d:28px}
-
-  /* × 号矩阵 — SVG mask 实现真正的 × 网格平铺 */
-  .cross-mat{
-    --d:22px;
-    background-color:currentColor;
-    -webkit-mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 22'><g stroke='black' stroke-width='1.4' stroke-linecap='round' fill='none'><line x1='8' y1='8' x2='14' y2='14'/><line x1='14' y1='8' x2='8' y2='14'/></g></svg>");
-            mask-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 22'><g stroke='black' stroke-width='1.4' stroke-linecap='round' fill='none'><line x1='8' y1='8' x2='14' y2='14'/><line x1='14' y1='8' x2='8' y2='14'/></g></svg>");
-    -webkit-mask-size:var(--d) var(--d);
-            mask-size:var(--d) var(--d);
-    -webkit-mask-repeat:repeat;mask-repeat:repeat;
-    opacity:.42
-  }
-  .cross-mat.lg{--d:32px}
-
-  /* ========== V3: 几何水平柱状图 ========== */
-  /* 横向柱图: 标签列 + 柱体列 + 数值列 — 严格瑞士网格 */
-  .h-bar-chart{
-    display:grid;
-    grid-template-columns:11em minmax(0,1fr) 8em;
-    gap:1.6vh 1.6vw;
-    align-items:center;
-    margin-top:2.4vh;
-    font-feature-settings:"tnum"
-  }
-  .h-bar-chart .row-lbl{
-    font-family:var(--sans),var(--sans-zh);
-    font-weight:500;
-    font-size:max(14px,1vw);
-    letter-spacing:-.005em;
-    text-align:left
-  }
-  .h-bar-chart .row-track{
-    height:3.2vh;
-    background:var(--grey-1);
-    position:relative;
-    overflow:hidden
-  }
-  .h-bar-chart .row-fill{
-    height:100%;
-    background:var(--ink);
-    transition:width 1s cubic-bezier(.5,0,.2,1)
-  }
-  .h-bar-chart .row-fill.accent{background:var(--accent)}
-  .h-bar-chart .row-fill.grey{background:var(--grey-3)}
-  .h-bar-chart .row-val{
-    font-family:var(--sans);font-weight:250;
-    font-size:max(16px,1.5vw);
-    letter-spacing:-.02em;
-    line-height:1
-  }
-  .h-bar-chart .row-val .unit{
-    font-size:.5em;opacity:.55;font-weight:300;
-    margin-left:.15em;letter-spacing:.04em
-  }
-
-  /* 垂直柱图: 用于 KPI 对比页(章节 P8) */
-  .v-bar-chart{
-    display:grid;
-    grid-template-columns:repeat(var(--cols,4),1fr);
-    align-items:end;
-    gap:1.4vw;
-    height:50vh;
-    margin-top:3vh
-  }
-  .v-bar-chart .col{display:flex;flex-direction:column;gap:1.4vh;align-items:stretch;height:100%}
-  .v-bar-chart .col-bar{
-    flex:1 1 auto;
-    background:var(--grey-1);
-    border-top:2px solid var(--ink);
-    position:relative;
-    display:flex;align-items:flex-start;justify-content:center;
-    padding-top:1vh
-  }
-  .v-bar-chart .col-bar.accent{background:var(--accent);border-top-color:var(--accent);color:var(--accent-on)}
-  .v-bar-chart .col-bar.ink{background:var(--ink);color:var(--paper);border-top-color:var(--ink)}
-  .v-bar-chart .col-bar .v{
-    font-family:var(--sans);font-weight:250;
-    font-size:max(18px,1.6vw);letter-spacing:-.02em
-  }
-  .v-bar-chart .col-lbl{
-    font-family:var(--mono);font-size:max(14px,.78vw);
-    letter-spacing:.14em;text-transform:uppercase;opacity:.6;
-    text-align:center;flex:0 0 auto
-  }
-
-  /* 对仗对比双栏 (章节 P9) */
-  .duo-compare{
-    display:grid;grid-template-columns:1fr 1px 1fr;
-    gap:0 3.4vw;
-    flex:1;align-items:stretch;margin-top:8vh
-  }
-  .duo-compare .vrule{background:var(--grey-2);width:1px;align-self:stretch}
-  .duo-compare .col{display:flex;flex-direction:column;gap:1.6vh;padding:0 .4vw}
-  .duo-compare .col-tag{
-    font-family:var(--mono);font-size:max(14px,.78vw);
-    letter-spacing:.16em;text-transform:uppercase;
-    color:var(--grey-3);
-    display:flex;align-items:center;gap:.6vw
-  }
-  .duo-compare .col-tag .num{
-    font-weight:600;color:var(--ink);
-    border:1px solid var(--ink);
-    padding:.2em .6em;font-size:.92em
-  }
-  .duo-compare .col.accent .col-tag .num{color:var(--accent);border-color:var(--accent)}
-  .duo-compare .col-ttl{
-    font-family:var(--sans),var(--sans-zh);font-weight:200;
-    font-size:3.6vw;line-height:1;letter-spacing:-.03em
-  }
-  .duo-compare .col.accent .col-ttl{color:var(--accent)}
-  .duo-compare .col-desc{
-    font-family:var(--sans),var(--sans-zh);
-    font-size:max(16px,1.04vw);line-height:1.55;opacity:.78;
-    max-width:30vw
-  }
-  .duo-compare .col-list{
-    list-style:none;display:flex;flex-direction:column;gap:1vh;
-    margin-top:auto;padding-top:2vh;border-top:1px solid var(--grey-2)
-  }
-  .duo-compare .col-list li{
-    font-family:var(--sans),var(--sans-zh);
-    font-size:max(16px,.94vw);line-height:1.5;
-    padding-left:1.4em;position:relative
-  }
-  .duo-compare .col-list li::before{
-    content:"";position:absolute;left:0;top:.6em;
-    width:.5em;height:1px;background:currentColor;opacity:.55
-  }
-  .duo-compare .col.accent .col-list li::before{background:var(--accent);opacity:1}
-
-  /* 半屏 statement (参考图 7) */
-  .split-half{display:grid;grid-template-columns:1fr 1fr;gap:0;flex:1;align-items:stretch}
-  .split-half > .half{padding:5vh 3.4vw;display:flex;flex-direction:column;min-width:0}
-  .split-half > .half.r-border{border-left:1px solid rgba(127,127,127,.22)}
-  .split-half > .half.b-grey{background:var(--grey-1)}
-  .split-half > .half.b-accent{background:var(--accent);color:var(--accent-on)}
-  .split-half > .half.b-ink{background:var(--ink);color:var(--paper)}
-
-  /* 极简页眉 — t-meta 风格 (Carbon productive label-01) */
-  .canvas-card .chrome-min{
-    display:flex;justify-content:space-between;align-items:flex-start;
-    font-family:var(--mono);font-size:14px;font-weight:500;
-    letter-spacing:.14em;text-transform:uppercase;
-    color:var(--text-helper);
-    flex:0 0 auto;
-    margin-bottom:var(--sp-9);   /* 48px */
-  }
-  .canvas-card .chrome-min.tight{margin-bottom:var(--sp-7)}   /* 32px */
-  .canvas-card .chrome-min .l, .canvas-card .chrome-min .r{
-    max-width:48vw;line-height:1.5
-  }
-  .slide.dark .canvas-card .chrome-min,.split-half .half.b-ink .canvas-card .chrome-min{color:rgba(255,255,255,.62)}
-
-  /* 响应式降级 */
-  @media (max-width:900px){
-    .h-hero{font-size:16vw}
-    .h-hero-zh{font-size:13vw}
-    .h-xl{font-size:9vw}
-    .h-xl-zh{font-size:8vw}
-    .kpi-hero{font-size:32vw}
-    .kpi-big{font-size:16vw}
-    .pipeline{grid-template-columns:repeat(2,1fr)}
-    .grid-2-7-5,.grid-2-6-6,.grid-2-8-4,.grid-2-4-8{grid-template-columns:1fr}
-    .grid-12{grid-template-columns:repeat(6,1fr)}
-  }
+:root{
+  --blue:#007AFF;--green:#34C759;--orange:#FF9500;--red:#FF3B30;
+  --text:#1d1d1f;--text2:#6e6e73;--bg:#f5f5f7;--card:#fff;
+  --radius:18px;--shadow:0 2px 12px rgba(0,0,0,.08);
+  --sans:"Inter","SF Pro Display","Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;
+  --mono:"JetBrains Mono","SF Mono","Consolas",monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;scroll-snap-type:y mandatory;overflow-y:scroll;height:100vh}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
+.slide{
+  scroll-snap-align:start;min-height:100vh;
+  display:flex;flex-direction:column;justify-content:center;
+  padding:6vh 8vw;gap:2.4vh;
+}
+.slide.hero{background:var(--text);color:#fff;text-align:center;align-items:center}
+.slide.blue{background:var(--blue);color:#fff;text-align:center;align-items:center}
+.slide.split{display:grid;grid-template-columns:1fr 1fr;gap:4vw;align-items:center}
+
+h1{font-size:clamp(2.4rem,4vw,4.8rem);font-weight:700;letter-spacing:-.02em;line-height:1.1}
+h2{font-size:clamp(1.6rem,2.4vw,2.8rem);font-weight:600;letter-spacing:-.01em;line-height:1.2}
+h3{font-size:clamp(1.2rem,1.6vw,1.8rem);font-weight:600}
+p,li{font-size:clamp(1rem,1.3vw,1.3rem);line-height:1.55;color:var(--text2)}
+
+.card{background:var(--card);border-radius:var(--radius);padding:2.4vh 2.4vw;box-shadow:var(--shadow)}
+.card-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:2vh}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:3vw;align-items:start}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:2vh}
+.grid4{display:grid;grid-template-columns:repeat(2,1fr);gap:2vh}
+.grid5{display:grid;grid-template-columns:repeat(5,1fr);gap:2vh}
+
+.tag{display:inline-block;padding:.4vh 1vw;border-radius:20px;font-size:.85rem;font-weight:600}
+.tag.blue{background:rgba(0,122,255,.12);color:var(--blue)}
+.tag.green{background:rgba(52,199,89,.12);color:var(--green)}
+.tag.orange{background:rgba(255,149,0,.12);color:var(--orange)}
+.tag.red{background:rgba(255,59,48,.12);color:var(--red)}
+
+pre{
+  background:#1d1d1f;color:#f5f5f7;border-radius:16px;padding:2.4vh 2vw;
+  font-family:var(--mono);font-size:clamp(.82rem,1vw,1rem);
+  line-height:1.5;overflow-x:auto;white-space:pre-wrap;
+}
+pre .kw{color:#5AC8FA}
+pre .cm{color:#8E8E93;font-style:italic}
+pre .hl{background:rgba(0,122,255,.2);display:inline-block;width:100%;padding:0 .4vw;margin-left:-.4vw}
+
+img{max-width:100%;height:auto;object-fit:contain;border-radius:12px}
+.img-full{width:100%;max-height:62vh;object-fit:contain}
+
+.flow{display:flex;align-items:center;justify-content:center;gap:.8vw;flex-wrap:wrap}
+.flow-item{background:var(--card);border-radius:var(--radius);padding:2vh 2vw;text-align:center;box-shadow:var(--shadow);min-width:100px}
+.flow-arrow{font-size:1.4rem;color:var(--blue)}
+
+.kpi{font-size:clamp(2.4rem,4vw,5rem);font-weight:700;color:var(--blue);line-height:1}
+.kpi-label{font-size:.9rem;color:var(--text2);text-transform:uppercase;letter-spacing:.06em}
+
+table{width:100%;border-collapse:collapse;font-size:clamp(.82rem,1vw,1rem)}
+td,th{padding:1.2vh 1vw;text-align:left;border-bottom:1px solid #e5e5ea}
+th{font-weight:600;color:var(--blue);border-bottom:2px solid var(--blue)}
+.foot{text-align:center;color:var(--text2);font-size:.9rem;margin-top:auto;padding-top:3vh}
 </style>
 </head>
-<body class="canvas-mode">
-<script>
-  // Windows 平台标记 — 雅黑没有 ExtraLight,需要字重补偿
-  if(/Win/i.test(navigator.platform || navigator.userAgentData?.platform || '')){
-    document.body.classList.add('is-win');
-  }
-  (function(){
-    const KEY = 'guizang-ppt-low-power';
-    const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const stored = localStorage.getItem(KEY);
-    window.__lowPowerMode = stored === '1' || (stored === null && reduced);
-    function updateHint(){
-      const hint = document.getElementById('hint');
-      if(hint) hint.textContent = `← → 翻页 · B ${window.__lowPowerMode ? '动态' : '静态'} · ESC 索引`;
-    }
-    window.__setLowPowerMode = function(on, opts={}){
-      window.__lowPowerMode = !!on;
-      document.body.classList.toggle('low-power', window.__lowPowerMode);
-      if(opts.persist !== false) localStorage.setItem(KEY, window.__lowPowerMode ? '1' : '0');
-      if(window.__lowPowerMode && document.getAnimations){
-        document.getAnimations().forEach(a=>a.cancel());
-      }
-      updateHint();
-      dispatchEvent(new CustomEvent('swiss-low-power-change', {detail:{on:window.__lowPowerMode}}));
-      if(window.__playSlide) window.__playSlide(window.__currentSlideIndex || 0);
-    };
-    document.body.classList.toggle('low-power', window.__lowPowerMode);
-    addEventListener('DOMContentLoaded', updateHint, {once:true});
-  })();
-</script>
+<body>
 
-<canvas id="bg-grid" class="bg"></canvas>
-<div id="hint">← → 翻页 · B 静态 · ESC 索引</div>
+<!-- ══ 1. COVER ══ -->
+<section class="slide hero">
+<div class="tag" style="color:#fff;background:rgba(255,255,255,.2)">数据库课程设计 · 答辩汇报</div>
+<h1 style="font-size:clamp(2.8rem,5vw,6rem);max-width:14ch;">校园外卖<br>两段式配送<br>数据库系统</h1>
+<p style="color:rgba(255,255,255,.7);font-size:clamp(1rem,1.4vw,1.4rem);">MySQL 8.0 · Flask · ECharts · DeepSeek AI</p>
+<div style="display:flex;gap:2vw;justify-content:center;margin-top:2vh;">
+<span class="tag" style="background:rgba(255,255,255,.15);color:#fff">7 表 3NF</span>
+<span class="tag" style="background:rgba(255,255,255,.15);color:#fff">4 索引</span>
+<span class="tag" style="background:rgba(255,255,255,.15);color:#fff">7 触发器</span>
+<span class="tag" style="background:rgba(255,255,255,.15);color:#fff">4 存储过程</span>
+<span class="tag" style="background:rgba(255,255,255,.15);color:#fff">2 视图</span>
+</div>
+<div class="foot" style="color:rgba(255,255,255,.5)">2026 年 6 月</div>
+</section>
 
-<div id="deck">
-
-<!-- ============================================================
-     SLIDES 插入区 · 在此处填充所有 <section class="slide ..."> 页面
-     页面骨架参考 references/layouts-swiss.md
-     主题色配置参考 references/themes-swiss.md
-     ============================================================ -->
-<!-- SLIDES_HERE — 47 页直接手写 HTML -->
-
-<!-- ═══════ 1 · 封面 ═══════ -->
-<section class="slide hero dark">
-<div class="canvas-card" style="display:flex;flex-direction:column;justify-content:center;gap:3.2vh;">
-<div class="kicker accent no-line">数据库课程设计 · 答辩汇报</div>
-<h1 class="h-hero-zh" style="font-size:min(6.4vw,13vh);line-height:1.06;max-width:18ch;">校园外卖<br>两段式配送<br>数据库系统</h1>
-<div class="lead" style="margin-top:2vh;max-width:40ch;opacity:.82;">MySQL 8.0 &nbsp;·&nbsp; Flask &nbsp;·&nbsp; ECharts &nbsp;·&nbsp; DeepSeek AI<br>7 表 4 索引 7 触发器 4 存储过程 2 视图</div>
-<div class="meta-row" style="margin-top:8vh;"><span>2026 年 6 月</span><span class="dot"></span><span>AI Text-to-SQL</span></div>
+<!-- ══ 2. TOC ══ -->
+<section class="slide">
+<h2>目录</h2>
+<div class="card" style="display:flex;flex-direction:column;gap:0;">
+<div style="display:flex;justify-content:space-between;align-items:center;padding:1.6vh 0;border-bottom:1px solid #e5e5ea;"><span style="font-weight:700;font-size:2rem;color:var(--blue)">01</span><span style="font-size:1.4rem;flex:1;margin-left:2vw;">项目背景与需求分析</span><span style="color:var(--text2)">3</span></div>
+<div style="display:flex;justify-content:space-between;align-items:center;padding:1.6vh 0;border-bottom:1px solid #e5e5ea;"><span style="font-weight:700;font-size:2rem;color:var(--blue)">02</span><span style="font-size:1.4rem;flex:1;margin-left:2vw;">系统设计与数据库架构</span><span style="color:var(--text2)">7</span></div>
+<div style="display:flex;justify-content:space-between;align-items:center;padding:1.6vh 0;border-bottom:1px solid #e5e5ea;"><span style="font-weight:700;font-size:2rem;color:var(--blue)">03</span><span style="font-size:1.4rem;flex:1;margin-left:2vw;">索引策略与性能优化</span><span style="color:var(--text2)">18</span></div>
+<div style="display:flex;justify-content:space-between;align-items:center;padding:1.6vh 0;border-bottom:1px solid #e5e5ea;"><span style="font-weight:700;font-size:2rem;color:var(--blue)">04</span><span style="font-size:1.4rem;flex:1;margin-left:2vw;">七重触发器防护盾</span><span style="color:var(--text2)">21</span></div>
+<div style="display:flex;justify-content:space-between;align-items:center;padding:1.6vh 0;border-bottom:1px solid #e5e5ea;"><span style="font-weight:700;font-size:2rem;color:var(--blue)">05</span><span style="font-size:1.4rem;flex:1;margin-left:2vw;">存储过程与事务管理</span><span style="color:var(--text2)">33</span></div>
+<div style="display:flex;justify-content:space-between;align-items:center;padding:1.6vh 0;border-bottom:1px solid #e5e5ea;"><span style="font-weight:700;font-size:2rem;color:var(--blue)">06</span><span style="font-size:1.4rem;flex:1;margin-left:2vw;">视图 · 窗口函数 · AI 查询</span><span style="color:var(--text2)">37</span></div>
+<div style="display:flex;justify-content:space-between;align-items:center;padding:1.6vh 0;border-bottom:1px solid #e5e5ea;"><span style="font-weight:700;font-size:2rem;color:var(--blue)">07</span><span style="font-size:1.4rem;flex:1;margin-left:2vw;">系统大屏与可视化展示</span><span style="color:var(--text2)">41</span></div>
+<div style="display:flex;justify-content:space-between;align-items:center;padding:1.6vh 0;"><span style="font-weight:700;font-size:2rem;color:var(--blue)">08</span><span style="font-size:1.4rem;flex:1;margin-left:2vw;">创新总结与成果交付</span><span style="color:var(--text2)">48</span></div>
 </div>
 </section>
 
-<!-- ═══════ 2 · 目录 ═══════ -->
-<section class="slide light">
-<div class="kicker">CONTENTS</div>
-<h2 class="h-xl-zh" style="font-size:min(3.4vw,6.8vh);margin-bottom:3.6vh;">目 录</h2>
-<div style="display:flex;flex-direction:column;gap:0;">
-<div style="display:flex;align-items:baseline;gap:2.4vw;padding:1.3vh 0;border-bottom:1px solid var(--border-subtle);"><span style="font-family:var(--mono);font-size:max(22px,1.6vw);font-weight:300;color:var(--accent);min-width:4ch;">01</span><span style="font-size:max(18px,1.3vw);font-weight:400;flex:1;">项目背景与需求分析</span><span style="font-family:var(--mono);font-size:max(14px,.9vw);opacity:.45;">3</span></div>
-<div style="display:flex;align-items:baseline;gap:2.4vw;padding:1.3vh 0;border-bottom:1px solid var(--border-subtle);"><span style="font-family:var(--mono);font-size:max(22px,1.6vw);font-weight:300;color:var(--accent);min-width:4ch;">02</span><span style="font-size:max(18px,1.3vw);font-weight:400;flex:1;">系统设计与数据库架构</span><span style="font-family:var(--mono);font-size:max(14px,.9vw);opacity:.45;">7</span></div>
-<div style="display:flex;align-items:baseline;gap:2.4vw;padding:1.3vh 0;border-bottom:1px solid var(--border-subtle);"><span style="font-family:var(--mono);font-size:max(22px,1.6vw);font-weight:300;color:var(--accent);min-width:4ch;">03</span><span style="font-size:max(18px,1.3vw);font-weight:400;flex:1;">索引策略与性能优化</span><span style="font-family:var(--mono);font-size:max(14px,.9vw);opacity:.45;">17</span></div>
-<div style="display:flex;align-items:baseline;gap:2.4vw;padding:1.3vh 0;border-bottom:1px solid var(--border-subtle);"><span style="font-family:var(--mono);font-size:max(22px,1.6vw);font-weight:300;color:var(--accent);min-width:4ch;">04</span><span style="font-size:max(18px,1.3vw);font-weight:400;flex:1;">七重触发器防护盾</span><span style="font-family:var(--mono);font-size:max(14px,.9vw);opacity:.45;">20</span></div>
-<div style="display:flex;align-items:baseline;gap:2.4vw;padding:1.3vh 0;border-bottom:1px solid var(--border-subtle);"><span style="font-family:var(--mono);font-size:max(22px,1.6vw);font-weight:300;color:var(--accent);min-width:4ch;">05</span><span style="font-size:max(18px,1.3vw);font-weight:400;flex:1;">存储过程与事务管理</span><span style="font-family:var(--mono);font-size:max(14px,.9vw);opacity:.45;">31</span></div>
-<div style="display:flex;align-items:baseline;gap:2.4vw;padding:1.3vh 0;border-bottom:1px solid var(--border-subtle);"><span style="font-family:var(--mono);font-size:max(22px,1.6vw);font-weight:300;color:var(--accent);min-width:4ch;">06</span><span style="font-size:max(18px,1.3vw);font-weight:400;flex:1;">视图 · 窗口函数 · AI 查询</span><span style="font-family:var(--mono);font-size:max(14px,.9vw);opacity:.45;">35</span></div>
-<div style="display:flex;align-items:baseline;gap:2.4vw;padding:1.3vh 0;border-bottom:1px solid var(--border-subtle);"><span style="font-family:var(--mono);font-size:max(22px,1.6vw);font-weight:300;color:var(--accent);min-width:4ch;">07</span><span style="font-size:max(18px,1.3vw);font-weight:400;flex:1;">系统大屏与可视化展示</span><span style="font-family:var(--mono);font-size:max(14px,.9vw);opacity:.45;">39</span></div>
-<div style="display:flex;align-items:baseline;gap:2.4vw;padding:1.3vh 0;border-bottom:1px solid var(--border-subtle);"><span style="font-family:var(--mono);font-size:max(22px,1.6vw);font-weight:300;color:var(--accent);min-width:4ch;">08</span><span style="font-size:max(18px,1.3vw);font-weight:400;flex:1;">创新总结与成果交付</span><span style="font-family:var(--mono);font-size:max(14px,.9vw);opacity:.45;">46</span></div>
+<!-- ══ 3. SECTION 01 ══ -->
+<section class="slide blue">
+<h2 style="font-weight:300;font-size:clamp(2rem,3.4vw,3.6rem);">01 &nbsp; 项目背景与需求分析</h2>
+<p style="color:rgba(255,255,255,.8);">校园外卖市场 · 传统痛点 · 两段式配送模型</p>
+</section>
+
+<!-- ══ 4. Market + Pain ══ -->
+<section class="slide">
+<h2>校园外卖市场与痛点</h2>
+<div class="grid3">
+<div class="card" style="text-align:center"><div class="kpi">4,500 亿+</div><div class="kpi-label">中国外卖市场 2025</div><p>年增长 22.4%</p></div>
+<div class="card" style="text-align:center"><div class="kpi" style="color:var(--green)">70%+</div><div class="kpi-label">高校外卖渗透率</div><p>大学生消费主力</p></div>
+<div class="card" style="text-align:center"><div class="kpi" style="color:var(--orange)">120 万单/日</div><div class="kpi-label">头部高校日均外卖</div><p>高峰期配送压力巨大</p></div>
+</div>
+<h3 style="margin-top:1vh;">三大痛点</h3>
+<div class="card">
+<p style="margin:.6vh 0"><strong style="color:var(--red)">[1] 校门禁入</strong> — 校外骑手不能进宿舍区，学生需步行数百米取餐</p>
+<p style="margin:.6vh 0"><strong style="color:var(--red)">[2] 高峰拥堵</strong> — 30+ 骑手同时在校门口，场面混乱，时效无法保证</p>
+<p style="margin:.6vh 0"><strong style="color:var(--red)">[3] 丢失错拿</strong> — 外卖堆放地上无管理，日均丢失率 3%-5%</p>
 </div>
 </section>
 
-<!-- ═══════ 3 · Section 01 ═══════ -->
-<section class="slide accent">
-<div class="canvas-card" style="display:flex;flex-direction:column;justify-content:center;gap:2.4vh;">
-<div style="font-family:var(--mono);font-size:max(18px,1.2vw);opacity:.68;letter-spacing:.2em;">01</div>
-<h2 class="h-xl-zh" style="font-size:min(4.6vw,9.6vh);font-weight:300;">项目背景与需求分析</h2>
-<p class="lead" style="opacity:.72;">校园外卖市场 · 传统痛点 · 两段式配送模型</p>
+<!-- ══ 5. Two-Stage Model ══ -->
+<section class="slide">
+<h2>两段式配送模型</h2>
+<p>将一条配送链拆为两段，在宿舍楼下设置<strong style="color:var(--blue)">智能寄存柜</strong>作为中转枢纽。</p>
+<div class="flow" style="margin:3vh 0;">
+<div class="flow-item"><strong>商家出餐</strong></div><span class="flow-arrow">→</span>
+<div class="flow-item"><strong>干线骑手取餐</strong><br><small>Stage1_Trunk</small></div><span class="flow-arrow">→</span>
+<div class="flow-item" style="border:2px solid var(--blue);"><strong>包裹入柜</strong><br><small>chk_capacity 约束</small></div><span class="flow-arrow">→</span>
+<div class="flow-item"><strong>楼栋骑手配送</strong><br><small>Stage2_Floor</small></div><span class="flow-arrow">→</span>
+<div class="flow-item"><strong>学生签收</strong></div>
+</div>
+<div class="card" style="background:rgba(0,122,255,.06);border:1px solid rgba(0,122,255,.2);">
+<p style="color:var(--blue);">核心价值：校外骑手只送到寄存点（不进宿舍区），楼栋骑手负责最后 100 米 — 安全、高效、全链路可追溯。</p>
 </div>
 </section>
 
-<!-- ═══════ 4 · 市场与痛点 ═══════ -->
-<section class="slide light">
-<div class="kicker">市场概览</div>
-<h2 class="h-md" style="margin-bottom:2.4vh;">校园外卖的机遇与挑战</h2>
-<div class="lead" style="margin-bottom:2.4vh;">中国外卖市场 2025 年规模 <span class="mark">4,500 亿+</span>，年增长 22.4%。高校渗透率突破 <span class="mark">70%</span>，头部高校日均外卖 <span class="mark">120 万单</span>。</div>
-<div class="rule" style="margin:2.4vh 0;"></div>
+<!-- ══ 6. State Machine ══ -->
+<section class="slide">
+<h2>六态订单状态机</h2>
+<div class="flow" style="margin:3vh 0;">
+<div class="flow-item" style="background:var(--blue);color:#fff;"><strong>Paid</strong><br><small style="color:rgba(255,255,255,.7)">已支付</small></div><span class="flow-arrow">→</span>
+<div class="flow-item"><strong>Stage1<br>Assigned</strong><br><small>干线取餐</small></div><span class="flow-arrow">→</span>
+<div class="flow-item"><strong>Arrived<br>At_Point</strong><br><small>已入柜</small></div><span class="flow-arrow">→</span>
+<div class="flow-item"><strong>Stage2<br>Assigned</strong><br><small>楼栋配送</small></div><span class="flow-arrow">→</span>
+<div class="flow-item" style="background:var(--green);color:#fff;"><strong>Completed</strong><br><small style="color:rgba(255,255,255,.7)">已签收</small></div>
+</div>
+<div style="text-align:center"><span class="tag red">Cancelled 已取消退款</span><span style="margin-left:1vw;color:var(--text2);">← 任意非终态均可转入</span></div>
+</section>
+
+<!-- ══ 7. SECTION 02 ══ -->
+<section class="slide blue">
+<h2 style="font-weight:300;font-size:clamp(2rem,3.4vw,3.6rem);">02 &nbsp; 系统设计与数据库架构</h2>
+<p style="color:rgba(255,255,255,.8);">三层架构 · 技术栈 · ER 图 · 7 张核心表 · 严格 3NF</p>
+</section>
+
+<!-- ══ 8. Architecture ══ -->
+<section class="slide">
+<h2>系统三层架构</h2>
 <div style="display:flex;flex-direction:column;gap:2vh;">
-<div style="display:flex;gap:2vw;align-items:flex-start;"><span style="font-family:var(--mono);font-size:max(18px,1vw);color:var(--accent);min-width:4ch;">01</span><div><strong style="font-size:max(20px,1.2vw);">校门禁入</strong><p class="body" style="margin-top:.4vh;">校外骑手被保安拦下，无法进入宿舍区，学生需步行数百米取餐</p></div></div>
-<div style="display:flex;gap:2vw;align-items:flex-start;"><span style="font-family:var(--mono);font-size:max(18px,1vw);color:var(--accent);min-width:4ch;">02</span><div><strong style="font-size:max(20px,1.2vw);">高峰拥堵</strong><p class="body" style="margin-top:.4vh;">午晚餐高峰 30+ 骑手同时在校门口，场面混乱，配送时效无法保证</p></div></div>
-<div style="display:flex;gap:2vw;align-items:flex-start;"><span style="font-family:var(--mono);font-size:max(18px,1vw);color:var(--accent);min-width:4ch;">03</span><div><strong style="font-size:max(20px,1.2vw);">丢失错拿</strong><p class="body" style="margin-top:.4vh;">外卖堆放地上无管理无追溯，日均丢失率 3%-5%</p></div></div>
+<div class="card" style="border-left:4px solid var(--blue);"><h3 style="color:var(--blue);">展现层</h3><p>Flask + ECharts 实时大屏 · 3 个 Tab · 30 秒自动刷新</p></div>
+<div class="card" style="border-left:4px solid var(--green);"><h3 style="color:var(--green);">业务层</h3><p>Python Flask REST API · 4 个存储过程 · AI Text-to-SQL (DeepSeek)</p></div>
+<div class="card" style="border-left:4px solid var(--orange);"><h3 style="color:var(--orange);">数据层</h3><p>MySQL 8.0 InnoDB · 7 表 4 索引 7 触发器 2 视图 · FOR UPDATE 行级锁</p></div>
 </div>
 </section>
 
-<!-- ═══════ 5 · 两段式配送模型 ═══════ -->
-<section class="slide light">
-<div class="kicker">解决方案</div>
-<h2 class="h-md" style="margin-bottom:3vh;">两段式配送模型</h2>
-<div class="lead" style="margin-bottom:2.4vh;">一条配送链拆为两段，宿舍楼下设<span class="mark">智能寄存柜</span>作为中转枢纽</div>
-<div style="display:flex;align-items:center;gap:0;justify-content:center;margin:3vh 0;">
-<div style="background:var(--accent);color:var(--accent-on);padding:2.4vh 2.4vw;text-align:center;"><div style="font-size:max(18px,1.2vw);font-weight:600;">商家出餐</div></div>
-<div style="font-size:max(20px,1.4vw);opacity:.35;padding:0 .8vw;">▶</div>
-<div style="background:var(--accent);color:var(--accent-on);padding:2.4vh 2.4vw;text-align:center;opacity:.85;"><div style="font-size:max(18px,1.2vw);font-weight:600;">干线骑手取餐</div><div style="font-size:max(13px,.7vw);opacity:.7;margin-top:.4vh;">Stage1_Trunk</div></div>
-<div style="font-size:max(20px,1.4vw);opacity:.35;padding:0 .8vw;">▶</div>
-<div style="background:var(--accent);color:var(--accent-on);padding:2.4vh 2.4vw;text-align:center;opacity:.7;"><div style="font-size:max(18px,1.2vw);font-weight:600;">包裹入柜</div><div style="font-size:max(13px,.7vw);opacity:.7;margin-top:.4vh;">chk_capacity 约束</div></div>
-<div style="font-size:max(20px,1.4vw);opacity:.35;padding:0 .8vw;">▶</div>
-<div style="background:var(--accent);color:var(--accent-on);padding:2.4vh 2.4vw;text-align:center;opacity:.55;"><div style="font-size:max(18px,1.2vw);font-weight:600;">楼栋骑手配送</div><div style="font-size:max(13px,.7vw);opacity:.7;margin-top:.4vh;">Stage2_Floor</div></div>
-<div style="font-size:max(20px,1.4vw);opacity:.35;padding:0 .8vw;">▶</div>
-<div style="background:var(--accent);color:var(--accent-on);padding:2.4vh 2.4vw;text-align:center;opacity:.4;"><div style="font-size:max(18px,1.2vw);font-weight:600;">学生签收</div></div>
-</div>
-<div class="rule" style="margin:2.8vh 0;"></div>
-<div class="body">核心价值：校外骑手只送到寄存点（不进宿舍区），楼栋骑手负责最后 100 米 — 安全、高效、全链路可追溯</div>
-</section>
-
-<!-- ═══════ 6 · 六态状态机 ═══════ -->
-<section class="slide light">
-<div class="kicker">状态机设计</div>
-<h2 class="h-md" style="margin-bottom:2.4vh;">六态订单状态机</h2>
-<div style="display:flex;align-items:center;justify-content:center;gap:0;flex-wrap:wrap;">
-<div style="background:var(--accent);color:var(--accent-on);padding:2vh 1.6vw;text-align:center;"><div style="font-size:max(16px,1vw);font-weight:600;">Paid</div><div style="font-size:max(11px,.62vw);opacity:.7;margin-top:.3vh;">已支付</div></div>
-<div style="font-size:max(18px,1.2vw);opacity:.35;padding:0 .6vw;">▶</div>
-<div style="background:var(--accent);color:var(--accent-on);padding:2vh 1.6vw;text-align:center;opacity:.85;"><div style="font-size:max(16px,1vw);font-weight:600;">Stage1<br>Assigned</div><div style="font-size:max(11px,.62vw);opacity:.7;margin-top:.3vh;">干线取餐</div></div>
-<div style="font-size:max(18px,1.2vw);opacity:.35;padding:0 .6vw;">▶</div>
-<div style="background:var(--accent);color:var(--accent-on);padding:2vh 1.6vw;text-align:center;opacity:.7;"><div style="font-size:max(16px,1vw);font-weight:600;">Arrived<br>At_Point</div><div style="font-size:max(11px,.62vw);opacity:.7;margin-top:.3vh;">已入柜</div></div>
-<div style="font-size:max(18px,1.2vw);opacity:.35;padding:0 .6vw;">▶</div>
-<div style="background:var(--accent);color:var(--accent-on);padding:2vh 1.6vw;text-align:center;opacity:.55;"><div style="font-size:max(16px,1vw);font-weight:600;">Stage2<br>Assigned</div><div style="font-size:max(11px,.62vw);opacity:.7;margin-top:.3vh;">楼栋配送</div></div>
-<div style="font-size:max(18px,1.2vw);opacity:.35;padding:0 .6vw;">▶</div>
-<div style="background:var(--accent);color:var(--accent-on);padding:2vh 1.6vw;text-align:center;opacity:.4;"><div style="font-size:max(16px,1vw);font-weight:600;">Completed</div><div style="font-size:max(11px,.62vw);opacity:.7;margin-top:.3vh;">已签收</div></div>
-</div>
-<div style="text-align:center;margin-top:2.4vh;"><span class="tag accent">Cancelled 已取消退款</span><br><span class="body-sm" style="margin-top:1vh;display:block;">任意非终态均可转入</span></div>
-<div class="rule" style="margin:2.4vh 0;"></div>
-<div class="body-sm" style="opacity:.7;">全链路 TIMESTAMP 审计：created_at → stage1_completed_at → stage2_completed_at</div>
-</section>
-
-<!-- ═══════ 7 · Section 02 ═══════ -->
-<section class="slide accent">
-<div class="canvas-card" style="display:flex;flex-direction:column;justify-content:center;gap:2.4vh;">
-<div style="font-family:var(--mono);font-size:max(18px,1.2vw);opacity:.68;letter-spacing:.2em;">02</div>
-<h2 class="h-xl-zh" style="font-size:min(4.6vw,9.6vh);font-weight:300;">系统设计与数据库架构</h2>
-<p class="lead" style="opacity:.72;">三层架构 · 技术栈 · ER 图 · 7 张表 · 严格 3NF</p>
+<!-- ══ 9. Tech Stack ══ -->
+<section class="slide">
+<h2>技术栈</h2>
+<div class="card-grid">
+<div class="card"><h3 style="color:var(--blue);">MySQL 8.0</h3><p>InnoDB · FOR UPDATE 行级锁 · RANK() OVER 窗口函数</p></div>
+<div class="card"><h3 style="color:var(--green);">Python Flask</h3><p>REST API · PyMySQL · DeepSeek AI 集成</p></div>
+<div class="card"><h3 style="color:var(--orange);">ECharts</h3><p>3 个 Tab · 饼图 + 柱状图 · 30 秒刷新</p></div>
+<div class="card"><h3 style="color:var(--red);">DeepSeek</h3><p>Text-to-SQL · Schema 注入 · 仅允许 SELECT</p></div>
+<div class="card"><h3 style="color:#5856D6;">Cloudflare</h3><p>Tunnel 公网隧道 · HTTPS · 扫码即看</p></div>
+<div class="card"><h3>数据库核心技术栈</h3><p>7 表 3NF · 7 触发器 · ACID 事务 · 12 CHECK</p></div>
 </div>
 </section>
 
-<!-- ═══════ 8 · 系统架构 ═══════ -->
-<section class="slide light">
-<div class="kicker">架构设计</div>
-<h2 class="h-md" style="margin-bottom:2.4vh;">系统三层架构</h2>
-<div style="display:flex;flex-direction:column;gap:2vh;">
-<div style="display:flex;align-items:stretch;"><div style="background:var(--accent);color:var(--accent-on);padding:2.4vh 2vw;min-width:14ch;display:flex;align-items:center;justify-content:center;font-size:max(22px,1.6vw);font-weight:300;">展现层</div><div style="background:var(--grey-1);padding:2.4vh 2vw;flex:1;display:flex;align-items:center;"><span class="body">Flask + ECharts 实时大屏 · 3 Tab · 30 秒自动刷新</span></div></div>
-<div style="display:flex;align-items:stretch;"><div style="background:var(--accent);color:var(--accent-on);padding:2.4vh 2vw;min-width:14ch;display:flex;align-items:center;justify-content:center;font-size:max(22px,1.6vw);font-weight:300;">业务层</div><div style="background:var(--grey-1);padding:2.4vh 2vw;flex:1;display:flex;align-items:center;"><span class="body">Python Flask REST API · 4 个存储过程 · AI Text-to-SQL</span></div></div>
-<div style="display:flex;align-items:stretch;"><div style="background:var(--accent);color:var(--accent-on);padding:2.4vh 2vw;min-width:14ch;display:flex;align-items:center;justify-content:center;font-size:max(22px,1.6vw);font-weight:300;">数据层</div><div style="background:var(--grey-1);padding:2.4vh 2vw;flex:1;display:flex;align-items:center;"><span class="body">MySQL 8.0 InnoDB · 7 表 4 索引 7 触发器 2 视图 · FOR UPDATE 行级锁</span></div></div>
-</div>
+<!-- ══ 10. ER Diagram ══ -->
+<section class="slide">
+<h2>E-R 图 — 7 张核心表 · 严格 3NF</h2>
+<img src="images/er_diagram.png" class="img-full" alt="ER Diagram">
+<div class="foot">5 个外键级联 · 12 个 CHECK 约束 · ENUM 限死合法值 · 无冗余</div>
 </section>
 
-<!-- ═══════ 9 · 技术栈 ═══════ -->
-<section class="slide light">
-<div class="kicker">技术栈</div>
-<h2 class="h-md" style="margin-bottom:2vh;">技术栈全图</h2>
-<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:2vh;">
-<div style="border-top:3px solid var(--accent);padding-top:1.6vh;"><div style="font-size:max(18px,1.1vw);font-weight:700;">MySQL 8.0</div><div class="body-sm" style="margin-top:.8vh;">InnoDB 引擎 · FOR UPDATE 行级锁 · RANK() OVER 窗口函数</div></div>
-<div style="border-top:3px solid var(--accent);padding-top:1.6vh;"><div style="font-size:max(18px,1.1vw);font-weight:700;">Python Flask</div><div class="body-sm" style="margin-top:.8vh;">REST API · PyMySQL 原生 SQL · DeepSeek AI 集成</div></div>
-<div style="border-top:3px solid var(--accent);padding-top:1.6vh;"><div style="font-size:max(18px,1.1vw);font-weight:700;">ECharts</div><div class="body-sm" style="margin-top:.8vh;">3 个功能 Tab · 饼图 + 柱状图 · 30 秒自动刷新</div></div>
-<div style="border-top:3px solid var(--accent);padding-top:1.6vh;"><div style="font-size:max(18px,1.1vw);font-weight:700;">DeepSeek</div><div class="body-sm" style="margin-top:.8vh;">Text-to-SQL · Schema 注入提示词 · 仅允许 SELECT</div></div>
-<div style="border-top:3px solid var(--accent);padding-top:1.6vh;"><div style="font-size:max(18px,1.1vw);font-weight:700;">Cloudflare</div><div class="body-sm" style="margin-top:.8vh;">Tunnel 公网隧道 · HTTPS 加密 · 扫码即访问</div></div>
-<div style="border-top:3px solid var(--accent);padding-top:1.6vh;"><div style="font-size:max(18px,1.1vw);font-weight:700;">数据库核心技术栈</div><div class="body-sm" style="margin-top:.8vh;">7 表 3NF · 7 触发器防护盾 · ACID 事务 · 12 CHECK 约束</div></div>
-</div>
+<!-- ══ 11. 7 Tables ══ -->
+<section class="slide">
+<h2>7 张核心表</h2>
+<table>
+<tr><th>表名</th><th>中文</th><th>核心约束</th></tr>
+<tr><td style="font-family:var(--mono)">users</td><td>学生</td><td>balance >= 0 · phone UNIQUE</td></tr>
+<tr><td style="font-family:var(--mono)">merchants</td><td>商家</td><td>rating 1~5</td></tr>
+<tr><td style="font-family:var(--mono)">dishes</td><td>菜品</td><td>stock >= 0 · status 0/1 上下架</td></tr>
+<tr><td style="font-family:var(--mono)">pickup_points</td><td>寄存点</td><td><span class="tag red" style="font-size:.75rem;">chk_capacity</span> CHECK(current <= capacity)</td></tr>
+<tr><td style="font-family:var(--mono)">riders</td><td>骑手</td><td>ENUM rider_type + status</td></tr>
+<tr><td style="font-family:var(--mono)">orders</td><td>订单</td><td>6 态 ENUM · 双骑手 FK · 3 TIMESTAMP</td></tr>
+<tr><td style="font-family:var(--mono)">order_items</td><td>明细</td><td>quantity > 0 · FK CASCADE</td></tr>
+</table>
+<div class="foot">严格 3NF：非主属性完全函数依赖主键，无传递依赖。5 FK + 12 CHECK 保证数据完整。</div>
 </section>
 
-<!-- ═══════ 10 · ER 图 ═══════ -->
-<section class="slide light">
-<div class="kicker">数据库设计</div>
-<h2 class="h-md" style="margin-bottom:1.4vh;">E-R 图 — 7 张核心表 · 严格 3NF</h2>
-<figure class="frame-img r-16x9" style="flex:1;max-height:66vh;">
-<img src="images/er_diagram.png" style="width:100%;height:100%;object-fit:contain;object-position:center;" alt="ER Diagram">
-</figure>
-<div class="body-sm" style="margin-top:1.2vh;opacity:.6;">5 个外键级联 · 12 个 CHECK 约束 · ENUM 限死合法值 · 无冗余</div>
-</section>
-
-<!-- ═══════ 11 · 7 表概览 ═══════ -->
-<section class="slide light">
-<div class="kicker">数据表</div>
-<h2 class="h-md" style="margin-bottom:2vh;">7 张核心表概览</h2>
-<div style="display:flex;flex-direction:column;gap:0;">
-<div style="display:flex;align-items:center;padding:1vh 0;border-bottom:2px solid var(--accent);font-size:max(14px,.8vw);font-weight:600;gap:1.4vw;"><span style="font-family:var(--mono);min-width:13ch;">表名</span><span style="min-width:8ch;">中文</span><span style="flex:1;">核心约束与作用</span></div>
-<div style="display:flex;align-items:center;padding:.9vh 0;border-bottom:1px solid var(--border-subtle);gap:1.4vw;font-size:max(14px,.78vw);"><span style="font-family:var(--mono);min-width:13ch;">users</span><span style="min-width:8ch;opacity:.6;">学生</span><span style="flex:1;opacity:.75;">校园卡钱包 + 宿舍 · balance>=0 · phone UNIQUE</span></div>
-<div style="display:flex;align-items:center;padding:.9vh 0;border-bottom:1px solid var(--border-subtle);gap:1.4vw;font-size:max(14px,.78vw);"><span style="font-family:var(--mono);min-width:13ch;">merchants</span><span style="min-width:8ch;opacity:.6;">商家</span><span style="flex:1;opacity:.75;">档口信息 · rating 1~5</span></div>
-<div style="display:flex;align-items:center;padding:.9vh 0;border-bottom:1px solid var(--border-subtle);gap:1.4vw;font-size:max(14px,.78vw);"><span style="font-family:var(--mono);min-width:13ch;">dishes</span><span style="min-width:8ch;opacity:.6;">菜品</span><span style="flex:1;opacity:.75;">库存管理 · stock>=0 · status 0/1 上下架</span></div>
-<div style="display:flex;align-items:center;padding:.9vh 0;border-bottom:1px solid var(--border-subtle);gap:1.4vw;font-size:max(14px,.78vw);"><span style="font-family:var(--mono);min-width:13ch;">pickup_points</span><span style="min-width:8ch;opacity:.6;">寄存点</span><span style="flex:1;opacity:.75;"><span class="mark">chk_capacity</span> CHECK(current<=capacity) — 80 格绝不 81 包</span></div>
-<div style="display:flex;align-items:center;padding:.9vh 0;border-bottom:1px solid var(--border-subtle);gap:1.4vw;font-size:max(14px,.78vw);"><span style="font-family:var(--mono);min-width:13ch;">riders</span><span style="min-width:8ch;opacity:.6;">骑手</span><span style="flex:1;opacity:.75;">ENUM rider_type(Stage1_Trunk/Stage2_Floor) + status</span></div>
-<div style="display:flex;align-items:center;padding:.9vh 0;border-bottom:1px solid var(--border-subtle);gap:1.4vw;font-size:max(14px,.78vw);"><span style="font-family:var(--mono);min-width:13ch;">orders</span><span style="min-width:8ch;opacity:.6;">订单</span><span style="flex:1;opacity:.75;">6 态 ENUM + 双骑手 FK + 3 TIMESTAMP + 5 FK</span></div>
-<div style="display:flex;align-items:center;padding:.9vh 0;border-bottom:1px solid var(--border-subtle);gap:1.4vw;font-size:max(14px,.78vw);"><span style="font-family:var(--mono);min-width:13ch;">order_items</span><span style="min-width:8ch;opacity:.6;">明细</span><span style="flex:1;opacity:.75;">quantity>0 · FK orders(CASCADE) · 快照单价</span></div>
-</div>
-<div class="body-sm" style="margin-top:1.4vh;opacity:.6;">严格 3NF：非主属性完全函数依赖主键，无传递依赖 · 5 个 FK 保证引用完整 · 12 个 CHECK 约束在引擎层执行业务规则</div>
-</section>
-
-<!-- ═══════ 12 · pickup_points 表 ═══════ -->
-<section class="slide light">
-<div class="kicker">关键表详解</div>
-<h2 class="h-md" style="margin-bottom:1.8vh;">pickup_points — 物理容积硬约束</h2>
-<pre style="background:var(--grey-1);padding:2.4vh 2vw;font-family:var(--mono);font-size:max(15px,.92vw);line-height:1.5;color:var(--ink);white-space:pre-wrap;margin:0;flex:1;overflow:hidden;">CREATE TABLE pickup_points (
-
-  point_id         INT PRIMARY KEY AUTO_INCREMENT,
-  point_name       VARCHAR(50)  NOT NULL,    -- 寄存点名称
-  location         VARCHAR(200) NOT NULL,    -- 物理位置
-  capacity         INT          NOT NULL,     -- 最大格子数
-
-  current_packages INT DEFAULT 0
-    CHECK (current_packages >= 0),
-
-  <span style="color:var(--accent);font-weight:600;">-- ★ 核心约束：物理容积绝不可超越</span>
-  <span style="color:var(--accent);font-weight:600;">CONSTRAINT chk_capacity</span>
-  <span style="color:var(--accent);font-weight:600;">  CHECK (current_packages <= capacity)</span>
-);</pre>
-<div class="body-sm" style="margin-top:1.4vh;opacity:.75;">物理柜子只有 80 个格子 → 第 81 个包裹塞不进去 → CHECK 约束在 MySQL 引擎层阻止写入 → 应用层没有机会犯错。</div>
-</section>
-
-<!-- ═══════ 13 · orders 表 ═══════ -->
-<section class="slide light">
-<div class="kicker">核心表详解</div>
-<h2 class="h-md" style="margin-bottom:1.6vh;">orders — 六态状态机 + 双骑手 + 三时间戳</h2>
-<pre style="background:var(--grey-1);padding:2vh 2vw;font-family:var(--mono);font-size:max(15px,.9vw);line-height:1.48;color:var(--ink);white-space:pre-wrap;margin:0;flex:1;overflow:hidden;">CREATE TABLE orders (
-  order_id         INT PRIMARY KEY AUTO_INCREMENT,
-
-  <span style="color:var(--accent);font-weight:600;">-- ★ 六态状态机（ENUM 限死合法值）</span>
-  order_status     ENUM('Paid', 'Stage1_Assigned',
-                        'Arrived_At_Point', 'Stage2_Assigned',
-                        'Completed', 'Cancelled'),
-
-  <span style="color:var(--accent);font-weight:600;">-- 双骑手独立绑定</span>
-  stage1_rider_id  INT,   -- FK → riders (干线骑手)
-  stage2_rider_id  INT,   -- FK → riders (楼栋骑手)
-
-  <span style="color:var(--accent);font-weight:600;">-- 全链路时间审计</span>
-  created_at            TIMESTAMP,   -- 下单时间
-  stage1_completed_at   TIMESTAMP,   -- 干线送达寄存柜
-  stage2_completed_at   TIMESTAMP,   -- 最终送达学生
-
-  -- 5 个外键约束: users, merchants, pickup_points,
-  --              stage1_rider_id, stage2_rider_id
-);</pre>
-<div class="body-sm" style="margin-top:1.2vh;opacity:.75;">ENUM 限死 6 种合法状态 · 双骑手独立追踪两段进度 · 3 个 TIMESTAMP 精确审计 · 5 个 FK 保证引用完整</div>
-</section>
-
-<!-- ═══════ 14 · 状态机 + 骑手联动 ═══════ -->
-<section class="slide light">
-<div class="kicker">状态机联动</div>
-<h2 class="h-md" style="margin-bottom:2vh;">订单状态机 + 骑手状态联动</h2>
-<div style="display:flex;flex-direction:column;gap:0;">
-<div style="display:flex;padding:1.2vh 0;border-bottom:2px solid var(--accent);font-size:max(14px,.8vw);font-weight:600;gap:1.6vw;"><span style="min-width:16ch;">订单状态</span><span style="min-width:16ch;">含义</span><span style="min-width:18ch;">触发方式</span><span style="flex:1;">骑手状态联动</span></div>
-<div style="display:flex;padding:1vh 0;border-bottom:1px solid var(--border-subtle);font-size:max(14px,.78vw);gap:1.6vw;"><span style="font-family:var(--mono);min-width:16ch;">Paid</span><span style="min-width:16ch;opacity:.7;">已支付待指派</span><span style="min-width:18ch;opacity:.65;">sp_create_order</span><span style="flex:1;opacity:.6;">—</span></div>
-<div style="display:flex;padding:1vh 0;border-bottom:1px solid var(--border-subtle);font-size:max(14px,.78vw);gap:1.6vw;"><span style="font-family:var(--mono);min-width:16ch;">Stage1_Assigned</span><span style="min-width:16ch;opacity:.7;">干线取餐中</span><span style="min-width:18ch;opacity:.65;">指派 stage1_rider_id</span><span style="flex:1;color:var(--accent);">干线 → Delivering</span></div>
-<div style="display:flex;padding:1vh 0;border-bottom:1px solid var(--border-subtle);font-size:max(14px,.78vw);gap:1.6vw;"><span style="font-family:var(--mono);min-width:16ch;">Arrived_At_Point</span><span style="min-width:16ch;opacity:.7;">包裹已入柜</span><span style="min-width:18ch;opacity:.65;">sp_arrive_at_pickup_point</span><span style="flex:1;color:var(--accent);">干线 → Idle（释放）</span></div>
-<div style="display:flex;padding:1vh 0;border-bottom:1px solid var(--border-subtle);font-size:max(14px,.78vw);gap:1.6vw;"><span style="font-family:var(--mono);min-width:16ch;">Stage2_Assigned</span><span style="min-width:16ch;opacity:.7;">楼栋配送中</span><span style="min-width:18ch;opacity:.65;">指派 stage2_rider_id</span><span style="flex:1;color:var(--accent);">楼栋 → Delivering</span></div>
-<div style="display:flex;padding:1vh 0;border-bottom:1px solid var(--border-subtle);font-size:max(14px,.78vw);gap:1.6vw;"><span style="font-family:var(--mono);min-width:16ch;">Completed</span><span style="min-width:16ch;opacity:.7;">学生签收</span><span style="min-width:18ch;opacity:.65;">sp_stage2_deliver</span><span style="flex:1;color:var(--accent);">楼栋 → Idle（释放）</span></div>
-<div style="display:flex;padding:1vh 0;font-size:max(14px,.78vw);gap:1.6vw;"><span style="font-family:var(--mono);min-width:16ch;">Cancelled</span><span style="min-width:16ch;opacity:.7;">已取消退款</span><span style="min-width:18ch;opacity:.65;">sp_cancel_order</span><span style="flex:1;color:var(--accent);">所有骑手 → Idle</span></div>
-</div>
-<div class="body" style="margin-top:2.4vh;color:var(--accent);">核心价值：订单状态一变更 → 触发器自动联动骑手 → 应用层零代码维护骑手状态</div>
-</section>
-
-<!-- ═══════ 15 · riders 表 ═══════ -->
-<section class="slide light">
-<div class="kicker">关键表详解</div>
-<h2 class="h-md" style="margin-bottom:1.6vh;">riders — 两段式特种骑手</h2>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:2.4vw;flex:1;">
-<pre style="background:var(--grey-1);padding:2vh 2vw;font-family:var(--mono);font-size:max(15px,.9vw);line-height:1.5;color:var(--ink);white-space:pre-wrap;margin:0;overflow:hidden;">CREATE TABLE riders (
-  rider_id   INT PRIMARY KEY AUTO_INCREMENT,
-
-  <span style="color:var(--accent);font-weight:600;">rider_type ENUM('Stage1_Trunk',</span>
-  <span style="color:var(--accent);font-weight:600;">                 'Stage2_Floor')</span>
-    NOT NULL,
-
-  <span style="color:var(--accent);font-weight:600;">status     ENUM('Idle',</span>
-  <span style="color:var(--accent);font-weight:600;">                 'Delivering',</span>
-  <span style="color:var(--accent);font-weight:600;">                 'Offline')</span>
-    DEFAULT 'Idle',
-);</pre>
-<div style="display:flex;flex-direction:column;gap:2vh;justify-content:center;">
-<div class="callout">ENUM 在数据库层强制分工<br>→ Stage1_Trunk 只能做干线<br>→ Stage2_Floor 只能做楼栋</div>
-<div class="callout">status 由触发器自动管理<br>→ 指派 → Delivering<br>→ 完成/取消 → Idle<br>→ 应用层永远不需要手动改</div>
-<div class="body-sm">8 干线 + 7 楼栋 = 15 骑手</div>
-</div>
-</div>
-</section>
-
-<!-- ═══════ 16 · Section 03 ═══════ -->
-<section class="slide accent">
-<div class="canvas-card" style="display:flex;flex-direction:column;justify-content:center;gap:2.4vh;">
-<div style="font-family:var(--mono);font-size:max(18px,1.2vw);opacity:.68;letter-spacing:.2em;">03</div>
-<h2 class="h-xl-zh" style="font-size:min(4.6vw,9.6vh);font-weight:300;">索引策略与性能优化</h2>
-<p class="lead" style="opacity:.72;">4 个 B-Tree 索引 · 复合索引 · 覆盖查询</p>
-</div>
-</section>
-
-<!-- ═══════ 17 · 4 个索引 ═══════ -->
-<section class="slide light">
-<div class="kicker">性能优化</div>
-<h2 class="h-md" style="margin-bottom:2vh;">4 个 B-Tree 索引</h2>
-<div style="display:flex;flex-direction:column;gap:0;">
-<div style="display:flex;padding:1.2vh 0;border-bottom:2px solid var(--accent);font-size:max(14px,.8vw);font-weight:600;gap:1.4vw;"><span style="font-family:var(--mono);min-width:22ch;">索引名</span><span style="min-width:8ch;">表</span><span style="min-width:16ch;">字段</span><span style="flex:1;">加速场景</span></div>
-<div style="display:flex;padding:1vh 0;border-bottom:1px solid var(--border-subtle);font-size:max(14px,.76vw);gap:1.4vw;"><span style="font-family:var(--mono);min-width:22ch;">idx_orders_status</span><span style="min-width:8ch;opacity:.6;">orders</span><span style="min-width:16ch;opacity:.7;">order_status</span><span style="flex:1;opacity:.7;">大屏按状态筛选（最高频查询）</span></div>
-<div style="display:flex;padding:1vh 0;border-bottom:1px solid var(--border-subtle);font-size:max(14px,.76vw);gap:1.4vw;"><span style="font-family:var(--mono);min-width:22ch;">idx_orders_created</span><span style="min-width:8ch;opacity:.6;">orders</span><span style="min-width:16ch;opacity:.7;">created_at</span><span style="flex:1;opacity:.7;">今日 / 近7天 / 近30天时间查询</span></div>
-<div style="display:flex;padding:1vh 0;border-bottom:1px solid var(--border-subtle);font-size:max(14px,.76vw);gap:1.4vw;"><span style="font-family:var(--mono);min-width:22ch;">idx_dishes_merchant</span><span style="min-width:8ch;opacity:.6;">dishes</span><span style="min-width:16ch;opacity:.7;">merchant_id, status</span><span style="flex:1;opacity:.7;">前端"某商家在售菜品"复合覆盖</span></div>
-<div style="display:flex;padding:1vh 0;font-size:max(14px,.76vw);gap:1.4vw;"><span style="font-family:var(--mono);min-width:22ch;color:var(--accent);">idx_orders_point_status</span><span style="min-width:8ch;opacity:.6;">orders</span><span style="min-width:16ch;opacity:.7;">pickup_point_id,<br>order_status</span><span style="flex:1;opacity:.7;">容量检查 + 视图 JOIN<br><span style="color:var(--accent);">（本次新增）</span></span></div>
-</div>
-</section>
-
-<!-- ═══════ 18 · 索引设计原则 ═══════ -->
-<section class="slide light">
-<div class="kicker">索引设计</div>
-<h2 class="h-md" style="margin-bottom:2.4vh;">索引设计原则</h2>
-<div style="display:flex;flex-direction:column;gap:2.4vh;">
-<div style="display:flex;gap:2vw;align-items:flex-start;"><span style="font-family:var(--mono);font-size:max(20px,1.2vw);color:var(--accent);min-width:3ch;">01</span><div><div style="font-size:max(20px,1.2vw);font-weight:600;">高频列优先</div><p class="body" style="margin-top:.4vh;">order_status 是大屏 Tab 核心过滤字段，建索引后 GROUP BY 从全表扫描变为索引扫描</p></div></div>
-<div style="display:flex;gap:2vw;align-items:flex-start;"><span style="font-family:var(--mono);font-size:max(20px,1.2vw);color:var(--accent);min-width:3ch;">02</span><div><div style="font-size:max(20px,1.2vw);font-weight:600;">复合索引最左前缀</div><p class="body" style="margin-top:.4vh;">idx_dishes_merchant(merchant_id, status) 同时加速"按商家"和"按商家+上架"两种查询模式</p></div></div>
-<div style="display:flex;gap:2vw;align-items:flex-start;"><span style="font-family:var(--mono);font-size:max(20px,1.2vw);color:var(--accent);min-width:3ch;">03</span><div><div style="font-size:max(20px,1.2vw);font-weight:600;">覆盖查询 — 新增索引的核心价值</div><p class="body" style="margin-top:.4vh;">idx_orders_point_status 让视图 LEFT JOIN 不再全表扫描 → 查询从 ~50ms 降到 ~2ms，每次大屏刷新快 25 倍</p></div></div>
-<div style="display:flex;gap:2vw;align-items:flex-start;"><span style="font-family:var(--mono);font-size:max(20px,1.2vw);color:var(--accent);min-width:3ch;">04</span><div><div style="font-size:max(20px,1.2vw);font-weight:600;">FK 自动索引</div><p class="body" style="margin-top:.4vh;">InnoDB 为外键列自动建 B-Tree 索引 — 无需手动为 user_id、merchant_id 等 FK 列建索引</p></div></div>
-</div>
-</section>
-
-<!-- ═══════ 19 · Section 04 ═══════ -->
-<section class="slide accent">
-<div class="canvas-card" style="display:flex;flex-direction:column;justify-content:center;gap:2.4vh;">
-<div style="font-family:var(--mono);font-size:max(18px,1.2vw);opacity:.68;letter-spacing:.2em;">04</div>
-<h2 class="h-xl-zh" style="font-size:min(4.6vw,9.6vh);font-weight:300;">七重触发器防护盾</h2>
-<p class="lead" style="opacity:.72;">FOR UPDATE 行级锁 · 库存防超卖 · 骑手约束 · 状态管理 · 容量预检</p>
-</div>
-</section>
-
-<!-- ═══════ 20 · FOR UPDATE 概念 ═══════ -->
-<section class="slide light">
-<div class="kicker">核心技术</div>
-<h2 class="h-md" style="margin-bottom:1.6vh;">FOR UPDATE 行级锁 — 并发的正确解法</h2>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:2.4vw;flex:1;">
+<!-- ══ 12. pickup_points ══ -->
+<section class="slide split">
 <div>
-<div class="body" style="color:var(--accent);margin-bottom:1vh;">✖ 没有 FOR UPDATE</div>
-<pre style="background:var(--grey-1);padding:1.6vh 1.4vw;font-family:var(--mono);font-size:max(14px,.82vw);line-height:1.48;color:var(--ink);white-space:pre-wrap;margin:0;">线程 A: SELECT stock=1
-  → 判断: 够! 下单
-线程 B: SELECT stock=1
-  → 判断: 够! 也下单
-
-→ 超卖! 库存变负数!</pre>
+<h2>pickup_points</h2>
+<p style="margin:1vh 0;">寄存中转点表。核心是 <span class="tag red">chk_capacity</span> ——物理柜子 80 格，数据库绝不允许第 81 个包裹写入。</p>
+<p style="color:var(--text2);">12 个寄存点 · 容量 50~120 格 · current_packages 由存储过程 +1/-1 维护</p>
 </div>
+<pre><span class="hl"><span class="kw">CONSTRAINT</span> chk_capacity</span>
+<span class="hl">  <span class="kw">CHECK</span> (current_packages <= capacity)</span>
+
+<span class="cm">-- 物理容积硬约束</span>
+<span class="cm">-- 80 格绝不 81 包</span></pre>
+</section>
+
+<!-- ══ 13. orders ══ -->
+<section class="slide split">
 <div>
-<div class="body" style="color:var(--accent);margin-bottom:1vh;">✔ 有 FOR UPDATE</div>
-<pre style="background:var(--grey-1);padding:1.6vh 1.4vw;font-family:var(--mono);font-size:max(14px,.82vw);line-height:1.48;color:var(--ink);white-space:pre-wrap;margin:0;">线程 A: SELECT...FOR UPDATE
-  → stock=1, 加 X 排他锁
-线程 B: SELECT...FOR UPDATE
-  → 阻塞等待 A 释放锁...
+<h2>orders</h2>
+<p style="margin:1vh 0;">六态状态机 + 双骑手 + 三时间戳。ENUM 限死 6 种合法状态，杜绝脏数据。</p>
+<p>5 个外键 + 12 CHECK，双骑手独立追踪两段进度。</p>
+</div>
+<pre><span class="hl">order_status <span class="kw">ENUM</span>('Paid',</span>
+<span class="hl">  'Stage1_Assigned','Arrived_At_Point',</span>
+<span class="hl">  'Stage2_Assigned','Completed',</span>
+<span class="hl">  'Cancelled')</span>
 
-A: COMMIT → B: stock=0
-  → 库存不足! 正确拒绝 ✔</pre>
-</div>
-</div>
-<div class="body-sm" style="margin-top:1.6vh;opacity:.8;">本系统在 3 个关键场景使用：触发器 1（验库存）+ 触发器 7（验容量）+ sp_create_order（下单容量预检）</div>
+stage1_rider_id <span class="kw">INT</span>,  <span class="cm">-- FK→riders</span>
+stage2_rider_id <span class="kw">INT</span>,  <span class="cm">-- FK→riders</span>
+
+created_at          <span class="kw">TIMESTAMP</span>,
+stage1_completed_at <span class="kw">TIMESTAMP</span>,
+stage2_completed_at <span class="kw">TIMESTAMP</span></pre>
 </section>
 
-<!-- ═══════ 21 · 触发器 1：库存检查 ═══════ -->
-<section class="slide light">
-<div class="kicker">触发器 1</div>
-<h2 class="h-md" style="margin-bottom:1.2vh;">库存防超卖检查 · BEFORE INSERT ON order_items</h2>
-<pre style="background:var(--grey-1);padding:2vh 2vw;font-family:var(--mono);font-size:max(15px,.88vw);line-height:1.45;color:var(--ink);white-space:pre-wrap;margin:0;flex:1;overflow:hidden;">CREATE TRIGGER trg_check_dish_stock_before_order
-BEFORE INSERT ON order_items FOR EACH ROW
-BEGIN
-
-  <span style="color:var(--accent);font-weight:600;">-- ★ FOR UPDATE 锁定菜品行（X 排他锁）</span>
-  SELECT stock, status INTO v_stock, v_status
-  FROM dishes WHERE dish_id = NEW.dish_id
-  <span style="color:var(--accent);font-weight:600;">FOR UPDATE;</span>
-
-  <span style="color:var(--accent);font-weight:600;">-- 检查 1：是否已下架</span>
-  IF v_status = 0 THEN
-    SIGNAL SQLSTATE '45000'
-      SET MESSAGE_TEXT = '商品已下架！';
-  END IF;
-
-  <span style="color:var(--accent);font-weight:600;">-- 检查 2：库存是否充足</span>
-  IF v_stock < NEW.quantity THEN
-    SIGNAL SQLSTATE '45000'
-      SET MESSAGE_TEXT = '库存不足！';
-  END IF;
-END</pre>
-<div class="body-sm" style="margin-top:1.2vh;opacity:.8;">两个学生同时买最后一份 → 第二个事务被阻塞 → 等第一个提交后读到 stock=0 → 正确拒绝。即使绕过 Flask 直接 SQL 插入也会被拦截。</div>
+<!-- ══ 14. State + Rider ══ -->
+<section class="slide">
+<h2>状态机 + 骑手联动</h2>
+<table>
+<tr><th>订单状态</th><th>含义</th><th>骑手联动</th></tr>
+<tr><td style="font-family:var(--mono)">Paid</td><td>已支付待指派</td><td>—</td></tr>
+<tr><td style="font-family:var(--mono)">Stage1_Assigned</td><td>干线骑手取餐中</td><td><span class="tag blue">干线 → Delivering</span></td></tr>
+<tr><td style="font-family:var(--mono)">Arrived_At_Point</td><td>包裹已入寄存柜</td><td><span class="tag green">干线 → Idle</span></td></tr>
+<tr><td style="font-family:var(--mono)">Stage2_Assigned</td><td>楼栋骑手配送中</td><td><span class="tag blue">楼栋 → Delivering</span></td></tr>
+<tr><td style="font-family:var(--mono)">Completed</td><td>学生签收</td><td><span class="tag green">楼栋 → Idle</span></td></tr>
+<tr><td style="font-family:var(--mono)">Cancelled</td><td>已取消退款</td><td><span class="tag red">所有骑手 → Idle</span></td></tr>
+</table>
+<p style="margin-top:2vh;color:var(--blue);">核心价值：订单状态一变更 → 触发器自动联动骑手。应用层零代码维护骑手状态。</p>
 </section>
 
-<!-- ═══════ 22 · 触发器 2：库存扣减 ═══════ -->
-<section class="slide light">
-<div class="kicker">触发器 2</div>
-<h2 class="h-md" style="margin-bottom:1.6vh;">库存自动扣减 · AFTER INSERT ON order_items</h2>
-<pre style="background:var(--grey-1);padding:2.4vh 2vw;font-family:var(--mono);font-size:max(16px,.96vw);line-height:1.5;color:var(--ink);white-space:pre-wrap;margin:0;flex:1;overflow:hidden;">CREATE TRIGGER trg_reduce_dish_stock_after_order
-AFTER INSERT ON order_items FOR EACH ROW
-BEGIN
-
-  <span style="color:var(--accent);font-weight:600;">UPDATE dishes</span>
-  <span style="color:var(--accent);font-weight:600;">SET stock = stock - NEW.quantity</span>
-  <span style="color:var(--accent);font-weight:600;">WHERE dish_id = NEW.dish_id;</span>
-
-END</pre>
-<div class="body" style="margin-top:1.6vh;color:var(--accent);">BEFORE + AFTER 双触发器协同：</div>
-<div class="body-sm" style="margin-top:.8vh;">INSERT INTO order_items → Trig 1 (FOR UPDATE 验库存) → ✔ 通过 → Trig 2 (扣库存) → COMMIT</div>
-<div class="body-sm" style="margin-top:.4vh;">Trig 1 拒绝 → Trig 2 不触发 → 库存分毫不差</div>
-</section>
-
-<!-- ═══════ 23 · 触发器 3-4：骑手类型约束 ═══════ -->
-<section class="slide light">
-<div class="kicker">触发器 3-4</div>
-<h2 class="h-md" style="margin-bottom:1.4vh;">骑手类型约束 · ENUM + 触发器双重保护</h2>
-<pre style="background:var(--grey-1);padding:2vh 2vw;font-family:var(--mono);font-size:max(14px,.82vw);line-height:1.44;color:var(--ink);white-space:pre-wrap;margin:0;flex:1;overflow:hidden;"><span style="color:var(--accent);font-weight:600;">-- Trig 3: BEFORE INSERT — 新建订单时检查骑手类型</span>
-IF NEW.stage1_rider_id IS NOT NULL
-   AND NOT EXISTS (
-     SELECT 1 FROM riders
-     WHERE rider_id = NEW.stage1_rider_id
-       AND rider_type = 'Stage1_Trunk'
-   ) THEN
-  SIGNAL SQLSTATE '45000'
-    SET MESSAGE_TEXT = '干线骑手必须是 Stage1_Trunk!';
-END IF;
-<span style="opacity:.5;">-- 同理检查 stage2_rider_id → 必须是 Stage2_Floor</span>
-
-<span style="color:var(--accent);font-weight:600;">-- Trig 4: BEFORE UPDATE — 更换骑手时检查（仅新旧不同时触发）</span>
-IF NEW.stage1_rider_id != OLD.stage1_rider_id
-   OR OLD.stage1_rider_id IS NULL THEN
-   <span style="opacity:.5;">-- 同 Trig 3 的校验逻辑</span>
-END IF;</pre>
-<div class="body-sm" style="margin-top:1.2vh;opacity:.8;">如果错把楼栋骑手派去商家取餐，业务全乱 → 双层保护：riders 表 ENUM（限死合法值）+ 触发器（验证用法正确）→ INSERT + UPDATE 全覆盖</div>
-</section>
-
-<!-- ═══════ 24 · 触发器 5-6：骑手状态管理 ═══════ -->
-<section class="slide light">
-<div class="kicker">触发器 5-6</div>
-<h2 class="h-md" style="margin-bottom:1.6vh;">骑手状态自动管理 · Idle ↔ Delivering</h2>
-<div style="display:flex;flex-direction:column;gap:0;margin-bottom:2vh;">
-<div style="display:flex;padding:1vh 0;border-bottom:2px solid var(--accent);font-size:max(14px,.78vw);font-weight:600;gap:1.6vw;"><span style="min-width:14ch;">事件</span><span style="min-width:20ch;">订单状态</span><span style="min-width:16ch;">骑手状态</span><span style="flex:1;">触发</span></div>
-<div style="display:flex;padding:.9vh 0;border-bottom:1px solid var(--border-subtle);font-size:max(14px,.76vw);gap:1.6vw;"><span style="min-width:14ch;">指派干线</span><span style="min-width:20ch;opacity:.7;">→ Stage1_Assigned</span><span style="min-width:16ch;color:var(--accent);">Idle → Delivering</span><span style="flex:1;opacity:.6;">Trig 5 (INSERT)</span></div>
-<div style="display:flex;padding:.9vh 0;border-bottom:1px solid var(--border-subtle);font-size:max(14px,.76vw);gap:1.6vw;"><span style="min-width:14ch;">干线送达</span><span style="min-width:20ch;opacity:.7;">→ Arrived_At_Point</span><span style="min-width:16ch;color:var(--accent);">Delivering → Idle</span><span style="flex:1;opacity:.6;">Trig 6 (UPDATE)</span></div>
-<div style="display:flex;padding:.9vh 0;border-bottom:1px solid var(--border-subtle);font-size:max(14px,.76vw);gap:1.6vw;"><span style="min-width:14ch;">指派楼栋</span><span style="min-width:20ch;opacity:.7;">→ Stage2_Assigned</span><span style="min-width:16ch;color:var(--accent);">Idle → Delivering</span><span style="flex:1;opacity:.6;">Trig 6 (UPDATE)</span></div>
-<div style="display:flex;padding:.9vh 0;border-bottom:1px solid var(--border-subtle);font-size:max(14px,.76vw);gap:1.6vw;"><span style="min-width:14ch;">最终签收</span><span style="min-width:20ch;opacity:.7;">→ Completed</span><span style="min-width:16ch;color:var(--accent);">Delivering → Idle</span><span style="flex:1;opacity:.6;">Trig 6 (UPDATE)</span></div>
-<div style="display:flex;padding:.9vh 0;font-size:max(14px,.76vw);gap:1.6vw;"><span style="min-width:14ch;">订单取消</span><span style="min-width:20ch;opacity:.7;">→ Cancelled</span><span style="min-width:16ch;color:var(--accent);">→ Idle（全部）</span><span style="flex:1;opacity:.6;">Trig 6 (UPDATE)</span></div>
-</div>
-<pre style="background:var(--grey-1);padding:1.6vh 1.6vw;font-family:var(--mono);font-size:max(14px,.82vw);line-height:1.44;color:var(--ink);white-space:pre-wrap;margin:0;"><span style="color:var(--accent);font-weight:600;">-- Trig 6 AFTER UPDATE: 状态驱动骑手释放</span>
-IF NEW.order_status = 'Arrived_At_Point'
-   AND OLD.stage1_rider_id IS NOT NULL THEN
-  UPDATE riders SET status = 'Idle'
-  WHERE rider_id = OLD.stage1_rider_id;
-END IF;</pre>
-<div class="body-sm" style="margin-top:1.2vh;opacity:.85;">核心价值：订单状态一改 → 骑手自动释放 → 应用层零手动代码</div>
-</section>
-
-<!-- ═══════ 25 · 触发器 7（新增）：容量预检 ═══════ -->
-<section class="slide light">
-<div class="kicker">触发器 7 · NEW</div>
-<h2 class="h-md" style="margin-bottom:1.4vh;">寄存点容量预检 — 防止骑手白跑一趟</h2>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:2.4vw;flex:1;">
-<pre style="background:var(--grey-1);padding:2vh 2vw;font-family:var(--mono);font-size:max(14px,.84vw);line-height:1.45;color:var(--ink);white-space:pre-wrap;margin:0;overflow:hidden;">CREATE TRIGGER trg_check_pickup_point_capacity
-BEFORE INSERT ON orders FOR EACH ROW
-BEGIN
-
-  <span style="color:var(--accent);font-weight:600;">-- ★ FOR UPDATE 锁定寄存点行</span>
-  SELECT current_packages, capacity
-  INTO v_pt_current, v_pt_capacity
-  FROM pickup_points
-  WHERE point_id = NEW.pickup_point_id
-  <span style="color:var(--accent);font-weight:600;">FOR UPDATE;</span>
-
-  IF v_pt_current >= v_pt_capacity THEN
-    SIGNAL SQLSTATE '45000'
-      SET MESSAGE_TEXT = '寄存点已满！';
-  END IF;
-END</pre>
-<div style="display:flex;flex-direction:column;gap:2vh;">
-<div class="accent-block" style="padding:2vh 2vw;">
-<div class="body" style="color:var(--accent-on);">以前的问题</div>
-<div class="body-sm" style="color:var(--accent-on);opacity:.9;margin-top:.6vh;">只有 chk_capacity → 骑手送到了才拦截 → 骑手白跑 → ROLLBACK 抹掉成果</div>
-</div>
-<div class="accent-block" style="padding:2vh 2vw;">
-<div class="body" style="color:var(--accent-on);">现在两层防护</div>
-<div class="body-sm" style="color:var(--accent-on);opacity:.9;margin-top:.6vh;">第一层（主动）：下单时查容量 → 满则拒 → 引导换柜<br>第二层（被动）：chk_capacity CHECK → 极端并发兜底</div>
-</div>
-</div>
-</div>
-<div class="body-sm" style="margin-top:1.2vh;opacity:.8;">结论：爆仓 = 柜子满了不让选这个柜，不是不让订外卖。用户被引导到邻近有空位的寄存点。</div>
-</section>
-
-<!-- ═══════ 26 · 七重触发器总览 ═══════ -->
-<section class="slide light">
-<div class="kicker">总览</div>
-<h2 class="h-md" style="margin-bottom:1.8vh;">七重触发器总览</h2>
-<div style="display:flex;flex-direction:column;gap:0;">
-<div style="display:flex;padding:1vh 0;border-bottom:2px solid var(--accent);font-size:max(14px,.78vw);font-weight:600;gap:1vw;"><span style="min-width:3ch;">#</span><span style="min-width:14ch;">功能</span><span style="min-width:7ch;">时机</span><span style="min-width:8ch;">事件</span><span style="flex:1;">核心逻辑</span></div>
-<div style="display:flex;padding:.8vh 0;border-bottom:1px solid var(--border-subtle);font-size:max(13px,.72vw);gap:1vw;"><span style="font-family:var(--mono);min-width:3ch;">1</span><span style="min-width:14ch;">库存防超卖(检查)</span><span style="min-width:7ch;opacity:.5;">BEFORE</span><span style="min-width:8ch;opacity:.5;">INSERT</span><span style="flex:1;opacity:.7;">FOR UPDATE 锁行 → 验库存下架 → SIGNAL</span></div>
-<div style="display:flex;padding:.8vh 0;border-bottom:1px solid var(--border-subtle);font-size:max(13px,.72vw);gap:1vw;"><span style="font-family:var(--mono);min-width:3ch;">2</span><span style="min-width:14ch;">库存防超卖(扣减)</span><span style="min-width:7ch;opacity:.5;">AFTER</span><span style="min-width:8ch;opacity:.5;">INSERT</span><span style="flex:1;opacity:.7;">stock = stock - quantity</span></div>
-<div style="display:flex;padding:.8vh 0;border-bottom:1px solid var(--border-subtle);font-size:max(13px,.72vw);gap:1vw;"><span style="font-family:var(--mono);min-width:3ch;">3</span><span style="min-width:14ch;">骑手类型校验</span><span style="min-width:7ch;opacity:.5;">BEFORE</span><span style="min-width:8ch;opacity:.5;">INSERT</span><span style="flex:1;opacity:.7;">stage1=Trunk, stage2=Floor → SIGNAL</span></div>
-<div style="display:flex;padding:.8vh 0;border-bottom:1px solid var(--border-subtle);font-size:max(13px,.72vw);gap:1vw;"><span style="font-family:var(--mono);min-width:3ch;">4</span><span style="min-width:14ch;">骑手类型校验</span><span style="min-width:7ch;opacity:.5;">BEFORE</span><span style="min-width:8ch;opacity:.5;">UPDATE</span><span style="flex:1;opacity:.7;">同#3，仅骑手变更时触发</span></div>
-<div style="display:flex;padding:.8vh 0;border-bottom:1px solid var(--border-subtle);font-size:max(13px,.72vw);gap:1vw;"><span style="font-family:var(--mono);min-width:3ch;">5</span><span style="min-width:14ch;">骑手状态管理</span><span style="min-width:7ch;opacity:.5;">AFTER</span><span style="min-width:8ch;opacity:.5;">INSERT</span><span style="flex:1;opacity:.7;">指派骑手 → Delivering</span></div>
-<div style="display:flex;padding:.8vh 0;border-bottom:1px solid var(--border-subtle);font-size:max(13px,.72vw);gap:1vw;"><span style="font-family:var(--mono);min-width:3ch;">6</span><span style="min-width:14ch;">骑手状态管理</span><span style="min-width:7ch;opacity:.5;">AFTER</span><span style="min-width:8ch;opacity:.5;">UPDATE</span><span style="flex:1;opacity:.7;">完成/取消 → Idle 释放</span></div>
-<div style="display:flex;padding:.8vh 0;font-size:max(13px,.72vw);gap:1vw;"><span style="font-family:var(--mono);min-width:3ch;color:var(--accent);">7</span><span style="min-width:14ch;color:var(--accent);">容量预检 (NEW!)</span><span style="min-width:7ch;opacity:.5;">BEFORE</span><span style="min-width:8ch;opacity:.5;">INSERT</span><span style="flex:1;opacity:.7;color:var(--accent);">FOR UPDATE 查容量 → 满则 SIGNAL</span></div>
-</div>
-<div class="body-sm" style="margin-top:1.6vh;opacity:.65;">库存管理 2 个 · 骑手类型约束 2 个 · 状态自动管理 2 个 · 容量预检 1 个 = 七重防护盾</div>
-</section>
-
-<!-- ═══════ 27 · 触发器分类哲学 ═══════ -->
-<section class="slide light">
-<div class="kicker">设计哲学</div>
-<h2 class="h-md" style="margin-bottom:2vh;">触发器分类与设计原则</h2>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:2.4vh;">
-<div style="border-top:3px solid var(--accent);padding-top:1.6vh;"><div style="font-size:max(20px,1.2vw);font-weight:700;">库存防线</div><div style="font-family:var(--mono);font-size:max(14px,.8vw);opacity:.5;margin-top:.4vh;">Trig 1 + Trig 2</div><p class="body" style="margin-top:1vh;">FOR UPDATE 锁库存 → 验 → 扣<br>并发安全由数据库保证</p></div>
-<div style="border-top:3px solid var(--accent);padding-top:1.6vh;"><div style="font-size:max(20px,1.2vw);font-weight:700;">类型防线</div><div style="font-family:var(--mono);font-size:max(14px,.8vw);opacity:.5;margin-top:.4vh;">Trig 3 + Trig 4</div><p class="body" style="margin-top:1vh;">ENUM + 触发器双重约束<br>Stage1 绝不等于 Stage2</p></div>
-<div style="border-top:3px solid var(--accent);padding-top:1.6vh;"><div style="font-size:max(20px,1.2vw);font-weight:700;">状态防线</div><div style="font-family:var(--mono);font-size:max(14px,.8vw);opacity:.5;margin-top:.4vh;">Trig 5 + Trig 6</div><p class="body" style="margin-top:1vh;">订单改 → 骑手自动改<br>应用层零状态同步代码</p></div>
-<div style="border-top:3px solid var(--accent);padding-top:1.6vh;"><div style="font-size:max(20px,1.2vw);font-weight:700;">容量防线</div><div style="font-family:var(--mono);font-size:max(14px,.8vw);opacity:.5;margin-top:.4vh;">Trig 7 (NEW)</div><p class="body" style="margin-top:1vh;">下单前查容量 FOR UPDATE<br>满则拒，骑手不会白跑</p></div>
-</div>
-<div class="accent-block" style="margin-top:2.4vh;padding:2vh 2vw;">
-<div class="body" style="color:var(--accent-on);">设计哲学：约束写在离数据最近的地方。即使应用层有 bug、绕过 Flask 直接操作 MySQL，数据完整性也不会被破坏。</div>
-</div>
-</section>
-
-<!-- ═══════ 28 · FOR UPDATE 实测 ═══════ -->
-<section class="slide light">
-<div class="kicker">实测验证</div>
-<h2 class="h-md" style="margin-bottom:1.6vh;">FOR UPDATE 并发场景实测</h2>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:2.4vw;flex:1;">
+<!-- ══ 15. riders ══ -->
+<section class="slide split">
 <div>
-<div class="body" style="color:var(--accent);margin-bottom:1vh;">Session A — 先到，获锁</div>
-<pre style="background:var(--grey-1);padding:1.6vh 1.4vw;font-family:var(--mono);font-size:max(14px,.8vw);line-height:1.44;color:var(--ink);white-space:pre-wrap;margin:0;">START TRANSACTION;
-
-SELECT stock FROM dishes
-  WHERE dish_id=1 <span style="color:var(--accent);">FOR UPDATE</span>;
-  → stock = 1  ✔
-
-INSERT INTO order_items ...
-  → stock: 1 → 0
-
-COMMIT;  <span style="opacity:.5;">-- 释放 X 锁</span></pre>
+<h2>riders</h2>
+<p style="margin:1vh 0;">两段式特种骑手。ENUM 在数据库层强制分工，应用层写错会被触发器拦截。</p>
+<p>status 由触发器自动管理 — 指派 → Delivering / 完成 → Idle。</p>
+<p style="color:var(--text2);">8 干线 + 7 楼栋 = 15 骑手</p>
 </div>
+<pre><span class="hl">rider_type <span class="kw">ENUM</span>(</span>
+<span class="hl">  'Stage1_Trunk',   <span class="cm">-- 干线</span></span>
+<span class="hl">  'Stage2_Floor'    <span class="cm">-- 楼栋</span></span>
+<span class="hl">) <span class="kw">NOT NULL</span></span>
+
+status <span class="kw">ENUM</span>('Idle','Delivering',
+             'Offline')
+<span class="kw">DEFAULT</span> 'Idle'</pre>
+</section>
+
+<!-- ══ 16. SECTION 03 ══ -->
+<section class="slide blue">
+<h2 style="font-weight:300;font-size:clamp(2rem,3.4vw,3.6rem);">03 &nbsp; 索引策略与性能优化</h2>
+<p style="color:rgba(255,255,255,.8);">4 个 B-Tree 索引 · 复合索引 · 覆盖查询</p>
+</section>
+
+<!-- ══ 17. Indexes ══ -->
+<section class="slide">
+<h2>4 个 B-Tree 索引</h2>
+<table>
+<tr><th>索引名</th><th>表</th><th>字段</th><th>加速场景</th></tr>
+<tr><td style="font-family:var(--mono)">idx_orders_status</td><td>orders</td><td>order_status</td><td>大屏按状态筛选（最高频）</td></tr>
+<tr><td style="font-family:var(--mono)">idx_orders_created</td><td>orders</td><td>created_at</td><td>今日 / 近7天 / 近30天</td></tr>
+<tr><td style="font-family:var(--mono)">idx_dishes_merchant</td><td>dishes</td><td>merchant_id, status</td><td>前端"某商家在售菜品"</td></tr>
+<tr><td style="font-family:var(--mono);color:var(--blue);">idx_orders_point_status</td><td>orders</td><td>pickup_point_id, order_status</td><td style="color:var(--blue);">容量检查 + 视图 JOIN（新增）</td></tr>
+</table>
+</section>
+
+<!-- ══ 18. Index principle ══ -->
+<section class="slide">
+<h2>索引设计原则</h2>
+<div class="grid2">
+<div class="card"><h3 style="color:var(--blue);">高频列优先</h3><p>order_status 是大屏核心过滤字段，建索引后 GROUP BY 从全表扫描变索引扫描</p></div>
+<div class="card"><h3 style="color:var(--blue);">复合索引最左前缀</h3><p>idx_dishes_merchant(merchant_id, status) 同时加速两种查询</p></div>
+<div class="card" style="border:2px solid rgba(0,122,255,.3);"><h3 style="color:var(--blue);">覆盖查询（新增索引价值）</h3><p>idx_orders_point_status 让视图 JOIN 从 ~50ms 降到 ~2ms — 大屏快 25 倍</p></div>
+<div class="card"><h3 style="color:var(--blue);">FK 自动索引</h3><p>InnoDB 为外键列自动建 B-Tree，无需手动建索引</p></div>
+</div>
+</section>
+
+<!-- ══ 19. SECTION 04 ══ -->
+<section class="slide blue">
+<h2 style="font-weight:300;font-size:clamp(2rem,3.4vw,3.6rem);">04 &nbsp; 七重触发器防护盾</h2>
+<p style="color:rgba(255,255,255,.8);">FOR UPDATE 行级锁 · 库存防超卖 · 骑手约束 · 状态管理 · 容量预检</p>
+</section>
+
+<!-- ══ 20. FOR UPDATE ══ -->
+<section class="slide split">
 <div>
-<div class="body" style="color:var(--accent);margin-bottom:1vh;">Session B — 后到，等待</div>
-<pre style="background:var(--grey-1);padding:1.6vh 1.4vw;font-family:var(--mono);font-size:max(14px,.8vw);line-height:1.44;color:var(--ink);white-space:pre-wrap;margin:0;">START TRANSACTION;
-
-SELECT stock FROM dishes
-  WHERE dish_id=1 <span style="color:var(--accent);">FOR UPDATE</span>;
-  → 阻塞等待 A 释放锁...
-
-<span style="opacity:.5;">-- A 提交后 B 获得锁</span>
-  → stock = 0
-  → 0 < 1
-  → SIGNAL '库存不足!'  ✔
-
-ROLLBACK;</pre>
+<h2>FOR UPDATE 行级锁</h2>
+<p style="margin:1.4vh 0;">把"读-判断-写"三步变成<strong style="color:var(--blue);">一个原子操作</strong>。数据库课程核心考点。</p>
+<div class="card" style="background:rgba(255,59,48,.06);border:1px solid rgba(255,59,48,.2);margin-bottom:1.4vh;">
+<p><strong style="color:var(--red);">没有 FOR UPDATE：</strong><br>线程 A 读到 stock=1 → 线程 B 也读到 stock=1 → 都下单 → 超卖</p>
+</div>
+<div class="card" style="background:rgba(52,199,89,.06);border:1px solid rgba(52,199,89,.2);">
+<p><strong style="color:var(--green);">有 FOR UPDATE：</strong><br>线程 A 加 X 排他锁 → 线程 B 阻塞等待 → A 提交后 B 读到 stock=0 → 正确拒绝</p>
 </div>
 </div>
-<div class="body-sm" style="margin-top:1.4vh;color:var(--accent);">结论：FOR UPDATE 把"读-判断-写"三步变成原子操作。是数据库课程的核心考点。</div>
+<pre><span class="kw">SELECT</span> stock, status
+<span class="kw">FROM</span> dishes
+<span class="kw">WHERE</span> dish_id = NEW.dish_id
+<span class="hl"><span class="kw">FOR UPDATE</span>;</span>  <span class="cm">-- 排他锁</span>
+
+<span class="cm">-- 本系统 3 个场景使用:</span>
+<span class="cm">-- 1. 触发器 1: 验库存</span>
+<span class="cm">-- 2. 触发器 7: 验容量</span>
+<span class="cm">-- 3. sp_create_order: 下单预检</span></pre>
 </section>
 
-<!-- ═══════ 29 · Section 05 ═══════ -->
-<section class="slide accent">
-<div class="canvas-card" style="display:flex;flex-direction:column;justify-content:center;gap:2.4vh;">
-<div style="font-family:var(--mono);font-size:max(18px,1.2vw);opacity:.68;letter-spacing:.2em;">05</div>
-<h2 class="h-xl-zh" style="font-size:min(4.6vw,9.6vh);font-weight:300;">存储过程与事务管理</h2>
-<p class="lead" style="opacity:.72;">4 个存储过程 · ACID 事务 · ROLLBACK 回滚 · 游标恢复</p>
-</div>
-</section>
-
-<!-- ═══════ 30 · sp_create_order ═══════ -->
-<section class="slide light">
-<div class="kicker">存储过程 1</div>
-<h2 class="h-md" style="margin-bottom:1.6vh;">sp_create_order — 原子下单（四步一事务）</h2>
-<div style="display:flex;gap:0;align-items:center;margin-bottom:2vh;">
-<div style="background:var(--accent);color:var(--accent-on);padding:1.2vh 1.6vw;text-align:center;"><div style="font-size:max(16px,.9vw);font-weight:600;">[1]<br>容量预检</div><div style="font-size:max(11px,.6vw);opacity:.7;margin-top:.3vh;">FOR UPDATE</div></div>
-<div style="font-size:max(18px,1vw);opacity:.3;padding:0 .6vw;">▶</div>
-<div style="background:var(--accent);color:var(--accent-on);padding:1.2vh 1.6vw;text-align:center;opacity:.85;"><div style="font-size:max(16px,.9vw);font-weight:600;">[2]<br>余额检查</div><div style="font-size:max(11px,.6vw);opacity:.7;margin-top:.3vh;">balance</div></div>
-<div style="font-size:max(18px,1vw);opacity:.3;padding:0 .6vw;">▶</div>
-<div style="background:var(--accent);color:var(--accent-on);padding:1.2vh 1.6vw;text-align:center;opacity:.7;"><div style="font-size:max(16px,.9vw);font-weight:600;">[3]<br>扣款 + 创单</div><div style="font-size:max(11px,.6vw);opacity:.7;margin-top:.3vh;">UPDATE + INSERT</div></div>
-<div style="font-size:max(18px,1vw);opacity:.3;padding:0 .6vw;">▶</div>
-<div style="background:var(--accent);color:var(--accent-on);padding:1.2vh 1.6vw;text-align:center;opacity:.55;"><div style="font-size:max(16px,.9vw);font-weight:600;">[4]<br>写明细</div><div style="font-size:max(11px,.6vw);opacity:.7;margin-top:.3vh;">→ Trig 1+2</div></div>
-</div>
-<pre style="background:var(--grey-1);padding:1.8vh 2vw;font-family:var(--mono);font-size:max(15px,.88vw);line-height:1.45;color:var(--ink);white-space:pre-wrap;margin:0;"><span style="color:var(--accent);font-weight:600;">DECLARE EXIT HANDLER FOR SQLEXCEPTION</span>
-<span style="color:var(--accent);font-weight:600;">BEGIN</span>
-  <span style="color:var(--accent);font-weight:600;">ROLLBACK;</span>   <span style="opacity:.5;">-- 四步全撤</span>
-  <span style="color:var(--accent);font-weight:600;">RESIGNAL;</span>   <span style="opacity:.5;">-- 向上抛错</span>
-<span style="color:var(--accent);font-weight:600;">END;</span>
-
-<span style="color:var(--accent);font-weight:600;">START TRANSACTION;</span>
-  <span style="opacity:.5;">-- 容量预检 (FOR UPDATE) → 余额检查 → 扣款 → 插订单 → 插明细</span>
-<span style="color:var(--accent);font-weight:600;">COMMIT;</span>  <span style="opacity:.5;">-- 全成功才提交</span></pre>
-<div class="body-sm" style="margin-top:1.2vh;opacity:.85;">ACID 教科书级实现：任一环节失败 → ROLLBACK 全部撤销。sp_create_order 与 5 个触发器协作形成完整防护链。</div>
-</section>
-
-<!-- ═══════ 31 · 两段配送 SP ═══════ -->
-<section class="slide light">
-<div class="kicker">存储过程 2-4</div>
-<h2 class="h-md" style="margin-bottom:1.6vh;">两段配送存储过程 + 取消退款</h2>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:2vw;flex:1;">
+<!-- ══ 21. Trigger 1 ══ -->
+<section class="slide split">
 <div>
-<div class="body" style="color:var(--accent);">sp_arrive_at_pickup_point</div>
-<pre style="background:var(--grey-1);padding:1.4vh 1.4vw;font-family:var(--mono);font-size:max(12px,.68vw);line-height:1.4;color:var(--ink);white-space:pre-wrap;margin-top:1vh;">START TRANSACTION;
+<h2>触发器 1</h2>
+<h3 style="color:var(--blue);">库存防超卖检查</h3>
+<p style="margin:1vh 0;">BEFORE INSERT ON order_items</p>
+<p>两个学生同时买最后一份 → 第二个被阻塞 → 读到 stock=0 → 正确拒绝。即使绕过 Flask 直连数据库也会被拦截。</p>
+</div>
+<pre><span class="hl"><span class="kw">SELECT</span> stock, status</span>
+<span class="hl"><span class="kw">INTO</span> v_stock, v_status</span>
+<span class="hl"><span class="kw">FROM</span> dishes</span>
+<span class="hl"><span class="kw">WHERE</span> dish_id = NEW.dish_id</span>
+<span class="hl"><span class="kw">FOR UPDATE</span>;</span>  <span class="cm">-- X 排他锁</span>
 
-<span style="opacity:.5;">-- 状态跳转 + 时间戳</span>
-UPDATE orders SET
+<span class="kw">IF</span> v_stock < NEW.quantity <span class="kw">THEN</span>
+  <span class="kw">SIGNAL</span> '45000'
+    <span class="kw">SET</span> MESSAGE_TEXT = '库存不足!';
+<span class="kw">END IF</span>;</pre>
+</section>
+
+<!-- ══ 22. Trigger 2 ══ -->
+<section class="slide split">
+<div>
+<h2>触发器 2</h2>
+<h3 style="color:var(--blue);">库存自动扣减</h3>
+<p style="margin:1.4vh 0;">AFTER INSERT ON order_items</p>
+<p>只有触发器 1 通过后才执行 → 安全可靠。</p>
+<div class="card" style="background:rgba(0,122,255,.06);margin-top:1.4vh;">
+<p><strong>BEFORE + AFTER 协同：</strong><br>INSERT → Trig 1 (验) → ✔ → Trig 2 (扣) → COMMIT<br>Trig 1 拒绝 → Trig 2 不触发</p>
+</div>
+</div>
+<pre><span class="hl"><span class="kw">UPDATE</span> dishes</span>
+<span class="hl"><span class="kw">SET</span> stock = stock - NEW.quantity</span>
+<span class="hl"><span class="kw">WHERE</span> dish_id = NEW.dish_id;</span></pre>
+</section>
+
+<!-- ══ 23. Trigger 3-4 ══ -->
+<section class="slide split">
+<div>
+<h2>触发器 3-4</h2>
+<h3 style="color:var(--blue);">骑手类型约束</h3>
+<p style="margin:1vh 0;">如果错把楼栋骑手派去商家取餐，业务全乱。</p>
+<p>BEFORE INSERT + BEFORE UPDATE 双触发覆盖所有指派路径。ENUM 限死合法值 + 触发器校验用法 → <strong>双重保护</strong>。</p>
+</div>
+<pre><span class="kw">IF</span> NOT <span class="kw">EXISTS</span> (
+  <span class="kw">SELECT</span> 1 <span class="kw">FROM</span> riders
+  <span class="kw">WHERE</span> rider_id = NEW.stage1_rider_id
+    <span class="kw">AND</span> rider_type = <span class="hl">'Stage1_Trunk'</span>
+) <span class="kw">THEN</span>
+  <span class="kw">SIGNAL</span> '45000'
+    <span class="kw">SET</span> MESSAGE_TEXT = '干线骑手必须是 Trunk!';
+<span class="kw">END IF</span>;</pre>
+</section>
+
+<!-- ══ 24. Trigger 5-6 ══ -->
+<section class="slide">
+<h2>触发器 5-6：骑手状态自动管理</h2>
+<table>
+<tr><th>事件</th><th>订单状态变化</th><th>骑手状态</th></tr>
+<tr><td>指派干线</td><td>→ Stage1_Assigned</td><td><span class="tag blue">Idle → Delivering</span></td></tr>
+<tr><td>干线送达</td><td>→ Arrived_At_Point</td><td><span class="tag green">Delivering → Idle</span></td></tr>
+<tr><td>指派楼栋</td><td>→ Stage2_Assigned</td><td><span class="tag blue">Idle → Delivering</span></td></tr>
+<tr><td>最终签收</td><td>→ Completed</td><td><span class="tag green">Delivering → Idle</span></td></tr>
+<tr><td>订单取消</td><td>→ Cancelled</td><td><span class="tag red">→ Idle（全部释放）</span></td></tr>
+</table>
+<pre style="margin-top:2vh;"><span class="hl"><span class="kw">IF</span> NEW.order_status = 'Arrived_At_Point'</span>
+<span class="hl">   <span class="kw">AND</span> OLD.stage1_rider_id <span class="kw">IS NOT NULL</span></span>
+<span class="hl"><span class="kw">THEN</span></span>
+<span class="hl">  <span class="kw">UPDATE</span> riders <span class="kw">SET</span> status = 'Idle'</span>
+<span class="hl">  <span class="kw">WHERE</span> rider_id = OLD.stage1_rider_id;</span>
+<span class="hl"><span class="kw">END IF</span>;</span></pre>
+</section>
+
+<!-- ══ 25. Trigger 7 ══ -->
+<section class="slide split">
+<div>
+<h2>触发器 7 <span class="tag red">NEW</span></h2>
+<h3 style="color:var(--blue);">寄存点容量预检</h3>
+<p style="margin:1vh 0;">BEFORE INSERT ON orders</p>
+<div class="card" style="background:rgba(255,59,48,.06);border:1px solid rgba(255,59,48,.2);margin-bottom:1.4vh;">
+<p><strong style="color:var(--red);">以前：</strong>只有 chk_capacity → 骑手送到了才拦截 → 骑手白跑 → ROLLBACK 抹掉成果</p>
+</div>
+<div class="card" style="background:rgba(52,199,89,.06);border:1px solid rgba(52,199,89,.2);">
+<p><strong style="color:var(--green);">现在：</strong>下单时 FOR UPDATE 查容量 → 满则拒 → 引导换寄存点。<strong>两层防护。</strong></p>
+</div>
+</div>
+<pre><span class="hl"><span class="kw">SELECT</span> current_packages, capacity</span>
+<span class="hl"><span class="kw">INTO</span> v_current, v_capacity</span>
+<span class="hl"><span class="kw">FROM</span> pickup_points</span>
+<span class="hl"><span class="kw">WHERE</span> point_id = NEW.pickup_point_id</span>
+<span class="hl"><span class="kw">FOR UPDATE</span>;</span>  <span class="cm">-- 锁寄存点</span>
+
+<span class="hl"><span class="kw">IF</span> v_current >= v_capacity <span class="kw">THEN</span></span>
+<span class="hl">  <span class="kw">SIGNAL</span> '45000'</span>
+<span class="hl">    <span class="kw">SET</span> MESSAGE_TEXT = '寄存点已满!';</span>
+<span class="hl"><span class="kw">END IF</span>;</span></pre>
+</section>
+
+<!-- ══ 26. 7 Triggers Summary ══ -->
+<section class="slide">
+<h2>七重触发器总览</h2>
+<table>
+<tr><th>#</th><th>功能</th><th>时机</th><th>核心</th></tr>
+<tr><td>1</td><td>库存防超卖（检查）</td><td>BEFORE INSERT</td><td>FOR UPDATE 锁行 → 验</td></tr>
+<tr><td>2</td><td>库存防超卖（扣减）</td><td>AFTER INSERT</td><td>stock = stock - qty</td></tr>
+<tr><td>3</td><td>骑手类型校验</td><td>BEFORE INSERT</td><td>stage1=Trunk, stage2=Floor</td></tr>
+<tr><td>4</td><td>骑手类型校验</td><td>BEFORE UPDATE</td><td>同#3，骑手变更时触发</td></tr>
+<tr><td>5</td><td>骑手状态管理</td><td>AFTER INSERT</td><td>指派 → Delivering</td></tr>
+<tr><td>6</td><td>骑手状态管理</td><td>AFTER UPDATE</td><td>完成/取消 → Idle</td></tr>
+<tr style="color:var(--blue);"><td><strong>7</strong></td><td><strong>容量预检（NEW）</strong></td><td>BEFORE INSERT</td><td>FOR UPDATE 查容量 → 满则拒</td></tr>
+</table>
+<div class="foot">库存 x2 · 骑手类型 x2 · 状态管理 x2 · 容量预检 x1 — 约束写在离数据最近的地方</div>
+</section>
+
+<!-- ══ 27. FOR UPDATE Demo ══ -->
+<section class="slide split">
+<div>
+<h2>FOR UPDATE 实测</h2>
+<p style="margin:1vh 0;">同一道菜只剩 1 份，两个学生同时下单。</p>
+<div class="card" style="background:rgba(52,199,89,.06);margin-bottom:1vh;"><p><strong style="color:var(--green);">Session A（先到）：</strong>FOR UPDATE 获 X 锁 → stock=1 → 下单成功 → COMMIT</p></div>
+<div class="card" style="background:rgba(255,59,48,.06);"><p><strong style="color:var(--red);">Session B（后到）：</strong>阻塞等待 → A 提交后获锁 → stock=0 → SIGNAL 拒绝 ✔</p></div>
+</div>
+<pre><span class="cm">-- A 先到，获锁成功</span>
+<span class="kw">START TRANSACTION</span>;
+<span class="kw">SELECT</span> stock <span class="kw">FROM</span> dishes
+<span class="kw">WHERE</span> dish_id=1 <span class="hl"><span class="kw">FOR UPDATE</span></span>;
+<span class="kw">INSERT INTO</span> order_items ... <span class="cm">-- 1→0</span>
+<span class="kw">COMMIT</span>;  <span class="cm">-- 释放 X 锁</span>
+
+<span class="cm">-- B 后到，阻塞→获锁→stock=0</span>
+<span class="kw">SELECT ... FOR UPDATE</span>;  <span class="cm">-- 等待...</span>
+<span class="hl"><span class="kw">SIGNAL</span> '库存不足!'</span>  <span class="cm">-- ✔ 正确拒绝</span></pre>
+</section>
+
+<!-- ══ 28. Trigger Design Philosophy ══ -->
+<section class="slide">
+<h2>触发器设计哲学</h2>
+<div class="grid4" style="margin-bottom:2vh;">
+<div class="card" style="border-top:3px solid var(--blue);"><h3>库存防线</h3><p style="font-family:var(--mono);font-size:.85rem;">Trig 1 + Trig 2</p><p>FOR UPDATE 锁 → 验 → 扣</p></div>
+<div class="card" style="border-top:3px solid var(--green);"><h3>类型防线</h3><p style="font-family:var(--mono);font-size:.85rem;">Trig 3 + Trig 4</p><p>ENUM + 触发器双重约束</p></div>
+<div class="card" style="border-top:3px solid var(--orange);"><h3>状态防线</h3><p style="font-family:var(--mono);font-size:.85rem;">Trig 5 + Trig 6</p><p>订单改 → 骑手自动改</p></div>
+<div class="card" style="border-top:3px solid var(--red);"><h3>容量防线</h3><p style="font-family:var(--mono);font-size:.85rem;">Trig 7 (NEW)</p><p>下单前查容量 FOR UPDATE</p></div>
+</div>
+<div class="card" style="background:rgba(0,122,255,.06);"><p style="color:var(--blue);text-align:center;">约束写在离数据最近的地方。即使应用层有 bug、绕过 Flask 直连 MySQL，数据完整性也不会被破坏。</p></div>
+</section>
+
+<!-- ══ 29. SECTION 05 ══ -->
+<section class="slide blue">
+<h2 style="font-weight:300;font-size:clamp(2rem,3.4vw,3.6rem);">05 &nbsp; 存储过程与事务管理</h2>
+<p style="color:rgba(255,255,255,.8);">4 个存储过程 · ACID · ROLLBACK · 游标</p>
+</section>
+
+<!-- ══ 30. sp_create_order ══ -->
+<section class="slide split">
+<div>
+<h2>sp_create_order</h2>
+<h3 style="color:var(--blue);">原子下单（四步一事务）</h3>
+<div class="flow" style="margin:2vh 0;justify-content:flex-start;">
+<div class="flow-item" style="font-size:.9rem;">[1] 容量预检<br><small>FOR UPDATE</small></div><span class="flow-arrow">→</span>
+<div class="flow-item" style="font-size:.9rem;">[2] 余额检查</div><span class="flow-arrow">→</span>
+<div class="flow-item" style="font-size:.9rem;">[3] 扣款+创单</div><span class="flow-arrow">→</span>
+<div class="flow-item" style="font-size:.9rem;">[4] 写明细<br><small>→ Trig 1+2</small></div>
+</div>
+<p>任一环节失败 → ROLLBACK 全部撤销。ACID 教科书级实现。</p>
+</div>
+<pre><span class="hl"><span class="kw">DECLARE EXIT HANDLER FOR</span></span>
+<span class="hl"><span class="kw">SQLEXCEPTION</span></span>
+<span class="hl"><span class="kw">BEGIN</span></span>
+<span class="hl">  <span class="kw">ROLLBACK</span>;</span>  <span class="cm">-- 全部撤销</span>
+<span class="hl">  <span class="kw">RESIGNAL</span>;</span>  <span class="cm">-- 向上抛错</span>
+<span class="hl"><span class="kw">END</span>;</span>
+
+<span class="kw">START TRANSACTION</span>;
+  <span class="cm">-- 容量预检 → 余额 → 扣款</span>
+  <span class="cm">-- → INSERT orders → INSERT items</span>
+<span class="kw">COMMIT</span>;  <span class="cm">-- 全成功才提交</span></pre>
+</section>
+
+<!-- ══ 31. Two-stage SPs ══ -->
+<section class="slide">
+<h2>两段配送 + 取消退款</h2>
+<div class="grid2">
+<div class="card"><h3 style="color:var(--blue);">sp_arrive_at_pickup_point</h3>
+<pre style="margin-top:1vh;font-size:.8rem;"><span class="kw">UPDATE</span> orders <span class="kw">SET</span>
   order_status='Arrived_At_Point',
   stage1_completed_at=NOW();
 
-<span style="opacity:.5;">-- 寄存点 +1 → chk_capacity</span>
-UPDATE pickup_points
-  SET current_packages=
-       current_packages+1;
-
-<span style="opacity:.5;">-- Trig: 干线骑手 → Idle</span>
-COMMIT;</pre>
-</div>
-<div>
-<div class="body" style="color:var(--accent);">sp_stage2_deliver</div>
-<pre style="background:var(--grey-1);padding:1.4vh 1.4vw;font-family:var(--mono);font-size:max(12px,.68vw);line-height:1.4;color:var(--ink);white-space:pre-wrap;margin-top:1vh;">START TRANSACTION;
-
-UPDATE orders SET
+<span class="kw">UPDATE</span> pickup_points <span class="kw">SET</span>
+  current_packages = current_packages+1;
+<span class="cm">-- → chk_capacity 在此执行</span>
+<span class="cm">-- Trig: 干线骑手 → Idle</span></pre></div>
+<div class="card"><h3 style="color:var(--green);">sp_stage2_deliver</h3>
+<pre style="margin-top:1vh;font-size:.8rem;"><span class="kw">UPDATE</span> orders <span class="kw">SET</span>
   order_status='Completed',
   stage2_completed_at=NOW();
 
-UPDATE pickup_points
-  SET current_packages=
-       current_packages-1
-  WHERE current_packages>0;
-
-<span style="opacity:.5;">-- Trig: 楼栋骑手 → Idle</span>
-COMMIT;</pre>
+<span class="kw">UPDATE</span> pickup_points <span class="kw">SET</span>
+  current_packages = current_packages-1
+<span class="kw">WHERE</span> current_packages>0;
+<span class="cm">-- Trig: 楼栋骑手 → Idle</span></pre></div>
 </div>
-</div>
-<div class="rule" style="margin:1.6vh 0;"></div>
-<div class="body" style="color:var(--accent);">sp_cancel_order</div>
-<div class="body-sm">状态检查 → 退款(UPDATE balance) →<span class="mark">游标遍历 order_items</span>逐道菜恢复库存 → 已入库包裹 current-1 → 标记 Cancelled → 触发器释放所有骑手</div>
+<div class="card" style="margin-top:1vh;"><h3 style="color:var(--red);">sp_cancel_order</h3><p>退款 ↑ · <span style="color:var(--blue);">游标遍历 order_items</span> 逐道菜恢复库存 · 已入库包裹 current-1 · 标记 Cancelled → 触发器释放所有骑手</p></div>
 </section>
 
-<!-- ═══════ 32 · 事务回滚与爆仓 ═══════ -->
-<section class="slide light">
-<div class="kicker">事务管理</div>
-<h2 class="h-md" style="margin-bottom:1.8vh;">事务回滚与爆仓处理流程</h2>
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:3vw;flex:1;">
-<div style="display:flex;flex-direction:column;gap:2vh;">
-<div class="callout"><strong style="font-size:max(18px,1vw);">正常路径 — 第一层拦截</strong><br><br>用户下单 → FOR UPDATE 查容量 → 80/80 满! → SIGNAL → 用户看到"请选邻近寄存点" → 换 2 期下单 ✔</div>
-<div class="callout"><strong style="font-size:max(18px,1vw);">极端路径 — 第二层兜底</strong><br><br>sp_arrive → UPDATE current=81 → chk_capacity: 81>80! → ROLLBACK → 订单回到 Stage1_Assigned</div>
+<!-- ══ 32. Transaction & Capacity ══ -->
+<section class="slide split">
+<div>
+<h2>事务回滚与爆仓处理</h2>
+<div class="card" style="background:rgba(52,199,89,.06);margin-bottom:1.4vh;"><p><strong style="color:var(--green);">正常路径 — 第一层拦截：</strong>下单 → FOR UPDATE 查容量 → 80/80 满! → SIGNAL → 换寄存点 ✔</p></div>
+<div class="card" style="background:rgba(255,59,48,.06);"><p><strong style="color:var(--red);">极端路径 — 第二层兜底：</strong>sp_arrive → current=81 → chk_capacity: 81>80! → ROLLBACK</p></div>
 </div>
-<div class="accent-block" style="padding:2.4vh 2vw;display:flex;flex-direction:column;gap:1.6vh;">
-<div class="body" style="color:var(--accent-on);">两层防护总结</div>
-<div class="body-sm" style="color:var(--accent-on);opacity:.9;">第一层（主动）：下单时 FOR UPDATE → 满则拒+引导换柜 → 覆盖 99.9% 场景</div>
-<div class="body-sm" style="color:var(--accent-on);opacity:.9;">第二层（被动）：chk_capacity CHECK → 极端并发兜底</div>
-<div class="body-sm" style="color:var(--accent-on);opacity:.9;">FOR UPDATE 保证两层各自的检查都是原子的</div>
-<div class="body-sm" style="color:var(--accent-on);opacity:.9;">→ 不会出现"同时看到最后一格"</div>
-</div>
-</div>
-<div class="body-sm" style="margin-top:1.6vh;opacity:.7;">每个 SP 都有 EXIT HANDLER FOR SQLEXCEPTION → ROLLBACK → RESIGNAL。A-原子性、C-一致性(CHECK)、I-隔离性(FOR UPDATE)、D-持久性(InnoDB redo log)。</div>
-</section>
-
-<!-- ═══════ 33 · Section 06 ═══════ -->
-<section class="slide accent">
-<div class="canvas-card" style="display:flex;flex-direction:column;justify-content:center;gap:2.4vh;">
-<div style="font-family:var(--mono);font-size:max(18px,1.2vw);opacity:.68;letter-spacing:.2em;">06</div>
-<h2 class="h-xl-zh" style="font-size:min(4.6vw,9.6vh);font-weight:300;">视图 · 窗口函数 · AI 查询</h2>
-<p class="lead" style="opacity:.72;">饱和度预警 · RANK() OVER · DeepSeek Text-to-SQL</p>
+<div class="card" style="background:rgba(0,122,255,.06);">
+<h3 style="color:var(--blue);">两层防护总结</h3>
+<p>第一层：下单时 FOR UPDATE 查容量 → 覆盖 99.9%<br>第二层：chk_capacity CHECK → 极端并发安全网<br>FOR UPDATE 保证每层检查都是原子操作</p>
 </div>
 </section>
 
-<!-- ═══════ 34 · 视图 1：饱和度 ═══════ -->
-<section class="slide light">
-<div class="kicker">视图 1</div>
-<h2 class="h-md" style="margin-bottom:1.2vh;">vw_pickup_point_analytics — 饱和度预警</h2>
-<pre style="background:var(--grey-1);padding:2vh 2vw;font-family:var(--mono);font-size:max(14px,.84vw);line-height:1.45;color:var(--ink);white-space:pre-wrap;margin:0;flex:1;overflow:hidden;">CREATE VIEW vw_pickup_point_analytics AS
-SELECT
-  p.point_name,
-  p.capacity           AS max_capacity,
-  p.current_packages,
-  <span style="color:var(--accent);font-weight:600;">ROUND(p.current_packages/p.capacity*100, 2)</span>
-                       <span style="color:var(--accent);font-weight:600;">AS saturation_pct,</span>   <span style="opacity:.5;">-- 饱和度%</span>
-  COALESCE(sub.backlog_count, 0)
-                       AS backlog_count
-FROM pickup_points p
-LEFT JOIN (
-  SELECT pickup_point_id, COUNT(*) AS cnt
-  FROM orders
-  WHERE order_status IN ('Arrived_At_Point',
-                         'Stage2_Assigned')
-  GROUP BY pickup_point_id
-) sub ON p.point_id = sub.pickup_point_id;</pre>
-<div class="body-sm" style="margin-top:1.2vh;opacity:.8;">驱动大屏"爆仓预警"Tab → 每 30 秒查询 → &gt; 80% 黄警 / 100% 红警。backlog_count = current_packages（chk_capacity 保证不超容）。</div>
+<!-- ══ 33. SECTION 06 ══ -->
+<section class="slide blue">
+<h2 style="font-weight:300;font-size:clamp(2rem,3.4vw,3.6rem);">06 &nbsp; 视图 · 窗口函数 · AI 查询</h2>
+<p style="color:rgba(255,255,255,.8);">饱和度预警 · RANK() OVER · DeepSeek Text-to-SQL</p>
 </section>
 
-<!-- ═══════ 35 · 视图 2：RANK() OVER ═══════ -->
-<section class="slide light">
-<div class="kicker">视图 2</div>
-<h2 class="h-md" style="margin-bottom:1.2vh;">vw_merchant_sales_rank + RANK() OVER 窗口函数</h2>
-<pre style="background:var(--grey-1);padding:2vh 2vw;font-family:var(--mono);font-size:max(14px,.84vw);line-height:1.45;color:var(--ink);white-space:pre-wrap;margin:0;flex:1;overflow:hidden;">CREATE VIEW vw_merchant_sales_rank AS
-SELECT
-  m.merchant_name,
-  COUNT(DISTINCT o.order_id)     AS total_orders,
-  IFNULL(SUM(o.total_amount), 0) AS total_sales,
-
-  <span style="color:var(--accent);font-weight:600;">RANK() OVER (</span>
-  <span style="color:var(--accent);font-weight:600;">  ORDER BY SUM(o.total_amount) DESC</span>
-  <span style="color:var(--accent);font-weight:600;">) AS sales_rank</span>    <span style="opacity:.5;">-- ★ MySQL 8.0 窗口函数</span>
-
-FROM merchants m
-LEFT JOIN orders o
-  ON m.merchant_id = o.merchant_id
-  AND o.order_status = 'Completed'
-GROUP BY m.merchant_id;</pre>
-<div class="body-sm" style="margin-top:1.2vh;opacity:.8;">一行 SQL 完成排名 → 传统做法需要子查询+@变量漂移 → 复杂易错。RANK() 同分同名次(1,2,2,4)；DENSE_RANK() 连续(1,2,2,3)；ROW_NUMBER() 无并列(1,2,3,4)。仅统计 Completed 订单。</div>
-</section>
-
-<!-- ═══════ 36 · AI Text-to-SQL ═══════ -->
-<section class="slide light">
-<div class="kicker">AI 集成</div>
-<h2 class="h-md" style="margin-bottom:1.8vh;">AI Text-to-SQL — 自然语言查数据库</h2>
-<div style="display:flex;flex-direction:column;gap:0;margin-bottom:2vh;">
-<div style="display:flex;padding:1vh 0;border-bottom:2px solid var(--accent);font-size:max(14px,.78vw);font-weight:600;gap:1.4vw;"><span style="min-width:16ch;">用户输入</span><span style="flex:1;">AI 生成 SQL</span><span style="min-width:10ch;">结果</span></div>
-<div style="display:flex;align-items:center;padding:.9vh 0;border-bottom:1px solid var(--border-subtle);font-size:max(13px,.74vw);gap:1.4vw;"><span style="min-width:16ch;">"今天卖了多少钱？"</span><span style="flex:1;font-family:var(--mono);opacity:.7;">SELECT SUM(total_amount) FROM orders WHERE DATE=...</span><span style="min-width:10ch;color:var(--accent);font-weight:600;">12,580 元</span></div>
-<div style="display:flex;align-items:center;padding:.9vh 0;border-bottom:1px solid var(--border-subtle);font-size:max(13px,.74vw);gap:1.4vw;"><span style="min-width:16ch;">"哪个寄存点快满了？"</span><span style="flex:1;font-family:var(--mono);opacity:.7;">SELECT * FROM vw_pickup_point_analytics...</span><span style="min-width:10ch;color:var(--accent);font-weight:600;">3 期=100%</span></div>
-<div style="display:flex;align-items:center;padding:.9vh 0;font-size:max(13px,.74vw);gap:1.4vw;"><span style="min-width:16ch;">"最受欢迎商家？"</span><span style="flex:1;font-family:var(--mono);opacity:.7;">SELECT * FROM vw_merchant_sales_rank LIMIT 1</span><span style="min-width:10ch;color:var(--accent);font-weight:600;">蜜雪冰城</span></div>
+<!-- ══ 34. View 1 ══ -->
+<section class="slide split">
+<div>
+<h2>vw_pickup_point_analytics</h2>
+<h3 style="color:var(--blue);">饱和度预警视图</h3>
+<p style="margin:1vh 0;">驱动大屏"爆仓预警" Tab — 每 30 秒查询。</p>
+<p><span class="tag orange">> 80% 黄色预警</span> <span class="tag red">= 100% 红色爆仓</span></p>
 </div>
-<div class="body" style="color:var(--accent);">技术亮点</div>
-<div style="display:flex;flex-direction:column;gap:.6vh;margin-top:.8vh;">
-<div class="body-sm">Schema 注入：系统提示词包含完整 7 表结构 + ENUM 值 + 视图信息 → AI 准确理解数据库</div>
-<div class="body-sm">安全限制：仅允许 SELECT → AI 幻觉不会破坏数据</div>
-<div class="body-sm">透明展示：前端同时显示 SQL + 结果 → 可验证</div>
-<div class="body-sm">成本极低：DeepSeek API 单次查询 &lt; 0.01 元</div>
+<pre><span class="hl"><span class="kw">ROUND</span>(p.current_packages</span>
+<span class="hl">      / p.capacity * 100, 2)</span>
+<span class="hl">  <span class="kw">AS</span> saturation_pct</span>  <span class="cm">-- 饱和度%</span>
+
+<span class="kw">LEFT JOIN</span> (
+  <span class="kw">SELECT</span> pickup_point_id,
+         <span class="kw">COUNT</span>(*) <span class="kw">AS</span> cnt
+  <span class="kw">FROM</span> orders
+  <span class="kw">WHERE</span> order_status <span class="kw">IN</span>
+    ('Arrived_At_Point',
+     'Stage2_Assigned')
+  <span class="kw">GROUP BY</span> pickup_point_id
+) sub</pre>
+</section>
+
+<!-- ══ 35. View 2 ══ -->
+<section class="slide split">
+<div>
+<h2>vw_merchant_sales_rank</h2>
+<h3 style="color:var(--blue);">RANK() OVER 窗口函数</h3>
+<p style="margin:1vh 0;">一行 SQL 完成排名。传统做法需要子查询 + 变量漂移 — 复杂易错。</p>
+<p>RANK()：同分同名次 (1,2,2,4)<br>DENSE_RANK()：连续名次 (1,2,2,3)</p>
+</div>
+<pre><span class="hl"><span class="kw">RANK</span>() <span class="kw">OVER</span> (</span>
+<span class="hl">  <span class="kw">ORDER BY</span> <span class="kw">SUM</span>(o.total_amount)</span>
+<span class="hl">    <span class="kw">DESC</span></span>
+<span class="hl">) <span class="kw">AS</span> sales_rank</span>
+
+<span class="cm">-- ★ MySQL 8.0 窗口函数</span>
+<span class="cm">-- 仅统计 Completed 订单</span></pre>
+</section>
+
+<!-- ══ 36. AI Text-to-SQL ══ -->
+<section class="slide">
+<h2>AI Text-to-SQL</h2>
+<p>DeepSeek + Schema 注入。自然语言 → SQL → 数据库 → 结果。</p>
+<table style="margin-top:2vh;">
+<tr><th>用户输入</th><th>AI 生成 SQL</th><th>结果</th></tr>
+<tr><td>"今天卖了多少钱？"</td><td style="font-family:var(--mono);font-size:.82rem;">SELECT SUM(total_amount) FROM orders WHERE DATE=...</td><td style="color:var(--blue);font-weight:600;">12,580 元</td></tr>
+<tr><td>"哪个寄存点快满了？"</td><td style="font-family:var(--mono);font-size:.82rem;">SELECT * FROM vw_pickup_point_analytics...</td><td style="color:var(--blue);font-weight:600;">3 期 = 100%</td></tr>
+<tr><td>"最受欢迎商家？"</td><td style="font-family:var(--mono);font-size:.82rem;">SELECT * FROM vw_merchant_sales_rank LIMIT 1</td><td style="color:var(--blue);font-weight:600;">蜜雪冰城</td></tr>
+</table>
+<div class="card" style="margin-top:2vh;background:rgba(0,122,255,.04);">
+<p style="text-align:center;"><span class="tag blue">Schema 注入</span> 完整 7 表结构注入提示词 &nbsp; <span class="tag green">仅允许 SELECT</span> AI 幻觉不会破坏数据 &nbsp; <span class="tag orange">&lt; 0.01 元/次</span></p>
 </div>
 </section>
 
-<!-- ═══════ 37 · Section 07 ═══════ -->
-<section class="slide accent">
-<div class="canvas-card" style="display:flex;flex-direction:column;justify-content:center;gap:2.4vh;">
-<div style="font-family:var(--mono);font-size:max(18px,1.2vw);opacity:.68;letter-spacing:.2em;">07</div>
-<h2 class="h-xl-zh" style="font-size:min(4.6vw,9.6vh);font-weight:300;">系统大屏与可视化展示</h2>
-<p class="lead" style="opacity:.72;">Flask + ECharts 实时监控 · 3 个功能 Tab</p>
+<!-- ══ 37. SECTION 07 ══ -->
+<section class="slide blue">
+<h2 style="font-weight:300;font-size:clamp(2rem,3.4vw,3.6rem);">07 &nbsp; 系统大屏与可视化展示</h2>
+<p style="color:rgba(255,255,255,.8);">Flask + ECharts 实时监控 · 3 个功能 Tab</p>
+</section>
+
+<!-- ══ 38-44. Screenshots ══ -->
+<section class="slide"><h2>大屏总览</h2><img src="images/screenshots/01_dashboard_overview.png" class="img-full" style="box-shadow:0 4px 24px rgba(0,0,0,.12);" alt="Dashboard"></section>
+<section class="slide"><h2>KPI 指标卡 — 5 项核心指标 30 秒刷新</h2><img src="images/screenshots/04_kpi_top.png" class="img-full" style="box-shadow:0 4px 24px rgba(0,0,0,.12);" alt="KPI"></section>
+<section class="slide"><h2>订单管理 — 按六态筛选 + 实时表格</h2><img src="images/screenshots/02_order_section.png" class="img-full" style="box-shadow:0 4px 24px rgba(0,0,0,.12);" alt="Orders"></section>
+<section class="slide"><h2>爆仓预警 — 饱和度实时监控</h2><div style="display:grid;grid-template-columns:1fr auto;gap:2vw;align-items:center;"><img src="images/screenshots/10_overflow_dashboard.png" style="width:100%;height:auto;border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,.12);"><img src="images/screenshots/11_overflow_pickup.png" style="height:50vh;width:auto;border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,.12);"></div></section>
+<section class="slide"><h2>寄存点管理 — 12 个寄存点详情</h2><img src="images/screenshots/03_pickup_points.png" class="img-full" style="box-shadow:0 4px 24px rgba(0,0,0,.12);" alt="Points"></section>
+<section class="slide"><h2>管理页面</h2><div class="grid4"><img src="images/screenshots/05_merchants.png" style="width:100%;height:auto;border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,.12);"><img src="images/screenshots/06_students.png" style="width:100%;height:auto;border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,.12);"><img src="images/screenshots/07_riders.png" style="width:100%;height:auto;border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,.12);"><img src="images/screenshots/08_dishes.png" style="width:100%;height:auto;border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,.12);"></div></section>
+
+<!-- ══ 45. SECTION 08 ══ -->
+<section class="slide blue">
+<h2 style="font-weight:300;font-size:clamp(2rem,3.4vw,3.6rem);">08 &nbsp; 创新总结与成果交付</h2>
+<p style="color:rgba(255,255,255,.8);">7 大创新 · 项目交付物</p>
+</section>
+
+<!-- ══ 46. Innovations ══ -->
+<section class="slide">
+<h2>七大创新点</h2>
+<table>
+<tr><th>#</th><th>创新点</th><th>一句话</th></tr>
+<tr><td style="color:var(--blue);font-weight:700;">01</td><td><strong>FOR UPDATE 行级锁防超卖</strong></td><td>原子化"读-判断-写"，高并发绝不超卖</td></tr>
+<tr><td style="color:var(--blue);font-weight:700;">02</td><td><strong>七重触发器防护体系</strong></td><td>库存+骑手+状态+容量，数据库层全自动</td></tr>
+<tr><td style="color:var(--blue);font-weight:700;">03</td><td><strong>两段式配送状态机</strong></td><td>6 态 ENUM + 双骑手 + 3 时间戳</td></tr>
+<tr><td style="color:var(--blue);font-weight:700;">04</td><td><strong>chk_capacity 物理硬约束</strong></td><td>CHECK(current<=capacity)，80 格绝不 81 包</td></tr>
+<tr><td style="color:var(--blue);font-weight:700;">05</td><td><strong>RANK() OVER 窗口函数</strong></td><td>一行 SQL 排名，比应用层更快更准</td></tr>
+<tr><td style="color:var(--blue);font-weight:700;">06</td><td><strong>AI Text-to-SQL</strong></td><td>自然语言查数据，仅允许 SELECT</td></tr>
+<tr><td style="color:var(--blue);font-weight:700;">07</td><td><strong>Cloudflare Tunnel 部署</strong></td><td>免费公网隧道，扫码即看实时大屏</td></tr>
+</table>
+</section>
+
+<!-- ══ 47. Deliverables ══ -->
+<section class="slide">
+<h2>项目交付成果</h2>
+<div class="grid5">
+<div class="card" style="text-align:center;"><h3 style="color:var(--blue);">数据库</h3><p style="font-size:.9rem;">campus_delivery_db.sql<br>7 表 4 索引<br>7 触发器 4 SP 2 视图</p></div>
+<div class="card" style="text-align:center;"><h3 style="color:var(--green);">模拟数据</h3><p style="font-size:.9rem;">generate_mock_data.py<br>5000 条订单<br>容量感知生成</p></div>
+<div class="card" style="text-align:center;"><h3 style="color:var(--orange);">Flask 大屏</h3><p style="font-size:.9rem;">app.py + 模板<br>3 Tab + ECharts<br>AI Text-to-SQL</p></div>
+<div class="card" style="text-align:center;"><h3 style="color:#5856D6;">文档</h3><p style="font-size:.9rem;">实践报告 .docx<br>答辩 PPT<br>README.md</p></div>
+<div class="card" style="text-align:center;"><h3 style="color:var(--red);">部署</h3><p style="font-size:.9rem;">Cloudflare Tunnel<br>公网访问<br>扫码即看</p></div>
 </div>
 </section>
 
-<!-- ═══════ 38-44 · 截图页 ═══════ -->
-<section class="slide light">
-<div class="kicker">Dashboard</div>
-<h2 class="h-md" style="margin-bottom:1.2vh;">大屏总览 — 实时数据监控</h2>
-<figure class="frame-img r-16x9" style="flex:1;max-height:66vh;"><img src="images/screenshots/01_dashboard_overview.png" style="width:100%;height:100%;object-fit:contain;" alt="Dashboard"></figure>
+<!-- ══ 48. Thank You ══ -->
+<section class="slide hero">
+<h1 style="font-size:clamp(2.4rem,4vw,4.8rem);">感谢聆听</h1>
+<p style="color:rgba(255,255,255,.7);">欢迎扫码访问实时大屏 &nbsp;·&nbsp; GitHub: sou1maker</p>
+<div style="margin-top:4vh;color:rgba(255,255,255,.5);">MySQL 8.0 · Flask · ECharts · DeepSeek AI · 2026.06</div>
 </section>
 
-<section class="slide light">
-<div class="kicker">KPI</div>
-<h2 class="h-md" style="margin-bottom:1.2vh;">KPI 指标卡 — 5 项核心指标 30 秒刷新</h2>
-<figure class="frame-img r-16x9" style="flex:1;max-height:66vh;"><img src="images/screenshots/04_kpi_top.png" style="width:100%;height:100%;object-fit:contain;" alt="KPI"></figure>
-</section>
-
-<section class="slide light">
-<div class="kicker">订单管理</div>
-<h2 class="h-md" style="margin-bottom:1.2vh;">订单管理 — 按六态筛选 + 实时表格</h2>
-<figure class="frame-img r-16x9" style="flex:1;max-height:66vh;"><img src="images/screenshots/02_order_section.png" style="width:100%;height:100%;object-fit:contain;" alt="Orders"></figure>
-</section>
-
-<section class="slide light">
-<div class="kicker">爆仓预警</div>
-<h2 class="h-md" style="margin-bottom:1.2vh;">爆仓预警 — 饱和度实时监控</h2>
-<div style="display:grid;grid-template-columns:7fr 3fr;gap:1.6vw;flex:1;">
-<figure class="frame-img r-21x9" style="max-height:58vh;"><img src="images/screenshots/10_overflow_dashboard.png" style="width:100%;height:100%;object-fit:contain;" alt="Overflow"></figure>
-<figure class="frame-img r-3x4" style="max-height:58vh;"><img src="images/screenshots/11_overflow_pickup.png" style="width:100%;height:100%;object-fit:contain;" alt="Pickup Overflow"></figure>
-</div>
-</section>
-
-<section class="slide light">
-<div class="kicker">寄存点</div>
-<h2 class="h-md" style="margin-bottom:1.2vh;">寄存点管理 — 12 个寄存点详情</h2>
-<figure class="frame-img r-16x9" style="flex:1;max-height:66vh;"><img src="images/screenshots/03_pickup_points.png" style="width:100%;height:100%;object-fit:contain;" alt="Pickup Points"></figure>
-</section>
-
-<section class="slide light">
-<div class="kicker">管理面板</div>
-<h2 class="h-md" style="margin-bottom:1.2vh;">管理页面：商家 · 学生 · 骑手 · 菜品</h2>
-<div style="display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:1.2vh;flex:1;">
-<figure class="frame-img r-16x9"><img src="images/screenshots/05_merchants.png" style="width:100%;height:100%;object-fit:contain;" alt="Merchants"></figure>
-<figure class="frame-img r-16x9"><img src="images/screenshots/06_students.png" style="width:100%;height:100%;object-fit:contain;" alt="Students"></figure>
-<figure class="frame-img r-16x9"><img src="images/screenshots/07_riders.png" style="width:100%;height:100%;object-fit:contain;" alt="Riders"></figure>
-<figure class="frame-img r-16x9"><img src="images/screenshots/08_dishes.png" style="width:100%;height:100%;object-fit:contain;" alt="Dishes"></figure>
-</div>
-</section>
-
-<!-- ═══════ 45 · Section 08 ═══════ -->
-<section class="slide accent">
-<div class="canvas-card" style="display:flex;flex-direction:column;justify-content:center;gap:2.4vh;">
-<div style="font-family:var(--mono);font-size:max(18px,1.2vw);opacity:.68;letter-spacing:.2em;">08</div>
-<h2 class="h-xl-zh" style="font-size:min(4.6vw,9.6vh);font-weight:300;">创新总结与成果交付</h2>
-<p class="lead" style="opacity:.72;">7 大创新 · 项目交付物 · 未来展望</p>
-</div>
-</section>
-
-<!-- ═══════ 46 · 七大创新点 ═══════ -->
-<section class="slide light">
-<div class="kicker">创新点</div>
-<h2 class="h-md" style="margin-bottom:1.8vh;">七大创新点</h2>
-<div style="display:flex;flex-direction:column;gap:.6vh;">
-<div style="display:flex;align-items:center;padding:1vh 0;border-bottom:1px solid var(--border-subtle);gap:1.6vw;"><span style="font-family:var(--mono);font-size:max(18px,1vw);color:var(--accent);min-width:3ch;">01</span><span style="font-size:max(18px,1vw);font-weight:600;min-width:18ch;">FOR UPDATE 行级锁防超卖</span><span style="font-size:max(15px,.8vw);opacity:.7;flex:1;">SELECT...FOR UPDATE 原子化"读-判断-写"，高并发绝不超卖</span></div>
-<div style="display:flex;align-items:center;padding:1vh 0;border-bottom:1px solid var(--border-subtle);gap:1.6vw;"><span style="font-family:var(--mono);font-size:max(18px,1vw);color:var(--accent);min-width:3ch;">02</span><span style="font-size:max(18px,1vw);font-weight:600;min-width:18ch;">七重触发器防护体系</span><span style="font-size:max(15px,.8vw);opacity:.7;flex:1;">库存(2)+骑手(2)+状态(2)+容量(1)，数据库层全自动</span></div>
-<div style="display:flex;align-items:center;padding:1vh 0;border-bottom:1px solid var(--border-subtle);gap:1.6vw;"><span style="font-family:var(--mono);font-size:max(18px,1vw);color:var(--accent);min-width:3ch;">03</span><span style="font-size:max(18px,1vw);font-weight:600;min-width:18ch;">两段式配送状态机</span><span style="font-size:max(15px,.8vw);opacity:.7;flex:1;">6态ENUM + 双骑手 + 3时间戳，全链路追踪</span></div>
-<div style="display:flex;align-items:center;padding:1vh 0;border-bottom:1px solid var(--border-subtle);gap:1.6vw;"><span style="font-family:var(--mono);font-size:max(18px,1vw);color:var(--accent);min-width:3ch;">04</span><span style="font-size:max(18px,1vw);font-weight:600;min-width:18ch;">chk_capacity 物理硬约束</span><span style="font-size:max(15px,.8vw);opacity:.7;flex:1;">CHECK(current<=capacity) 双层防护，80格绝不81包</span></div>
-<div style="display:flex;align-items:center;padding:1vh 0;border-bottom:1px solid var(--border-subtle);gap:1.6vw;"><span style="font-family:var(--mono);font-size:max(18px,1vw);color:var(--accent);min-width:3ch;">05</span><span style="font-size:max(18px,1vw);font-weight:600;min-width:18ch;">RANK() OVER 窗口函数</span><span style="font-size:max(15px,.8vw);opacity:.7;flex:1;">一行SQL排名，比应用层更快更准</span></div>
-<div style="display:flex;align-items:center;padding:1vh 0;border-bottom:1px solid var(--border-subtle);gap:1.6vw;"><span style="font-family:var(--mono);font-size:max(18px,1vw);color:var(--accent);min-width:3ch;">06</span><span style="font-size:max(18px,1vw);font-weight:600;min-width:18ch;">AI Text-to-SQL</span><span style="font-size:max(15px,.8vw);opacity:.7;flex:1;">DeepSeek+Schema注入，自然语言查数据，仅允许SELECT</span></div>
-<div style="display:flex;align-items:center;padding:1vh 0;gap:1.6vw;"><span style="font-family:var(--mono);font-size:max(18px,1vw);color:var(--accent);min-width:3ch;">07</span><span style="font-size:max(18px,1vw);font-weight:600;min-width:18ch;">Cloudflare Tunnel 部署</span><span style="font-size:max(15px,.8vw);opacity:.7;flex:1;">免费公网隧道，评委扫码即看实时大屏</span></div>
-</div>
-</section>
-
-<!-- ═══════ 47 · 交付成果 + 致谢 ═══════ -->
-<section class="slide light">
-<div class="kicker">成果交付</div>
-<h2 class="h-md" style="margin-bottom:2vh;">项目交付成果</h2>
-<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:2vw;margin-bottom:3vh;">
-<div style="border-top:3px solid var(--accent);padding-top:1.6vh;"><div style="font-size:max(18px,1vw);font-weight:700;">数据库</div><div class="body-sm" style="margin-top:1vh;">campus_delivery_db.sql<br>7 表 4 索引<br>7 触发器 4 SP 2 视图</div></div>
-<div style="border-top:3px solid var(--accent);padding-top:1.6vh;"><div style="font-size:max(18px,1vw);font-weight:700;">模拟数据</div><div class="body-sm" style="margin-top:1vh;">generate_mock_data.py<br>5000 条订单<br>容量感知生成器</div></div>
-<div style="border-top:3px solid var(--accent);padding-top:1.6vh;"><div style="font-size:max(18px,1vw);font-weight:700;">Flask 大屏</div><div class="body-sm" style="margin-top:1vh;">app.py + 模板<br>3 Tab + ECharts<br>AI Text-to-SQL</div></div>
-<div style="border-top:3px solid var(--accent);padding-top:1.6vh;"><div style="font-size:max(18px,1vw);font-weight:700;">文档</div><div class="body-sm" style="margin-top:1vh;">实践报告 .docx<br>答辩 PPT<br>README.md</div></div>
-<div style="border-top:3px solid var(--accent);padding-top:1.6vh;"><div style="font-size:max(18px,1vw);font-weight:700;">部署</div><div class="body-sm" style="margin-top:1vh;">Cloudflare Tunnel<br>公网访问<br>扫码即看</div></div>
-</div>
-<div style="text-align:center;padding:3vh 0;border-top:1px solid var(--border-subtle);">
-<div class="h-sub" style="margin-bottom:1.2vh;">感谢各位老师聆听</div>
-<div class="body">欢迎扫码访问实时大屏 &nbsp;·&nbsp; GitHub: sou1maker</div>
-<div class="meta" style="margin-top:1.6vh;">MySQL 8.0 · Flask · ECharts · DeepSeek AI · 2026.06</div>
-</div>
-</section>
-
-</div>
-
-<div id="nav"></div>
-
-<script>
-/* =============== WebGL 网格背景 (瑞士风专用) ===============
-   极简移动网格 + 微弱点阵叠加,营造"工业感、精准感"
-   - 主网格: 缓慢漂移的细线网格
-   - 次级: 鼠标附近的极细点阵微扰
-   - 颜色: 跟随主题(浅底深线 / 深底亮线),配合 mix-blend-mode
-*/
-const VS = `attribute vec2 position;void main(){gl_Position=vec4(position,0.0,1.0);}`;
-
-const FS = `precision highp float;
-uniform vec2 u_resolution;
-uniform float u_time;
-uniform vec2 u_mouse;
-uniform float u_dark; // 0 = light, 1 = dark
-uniform vec3 u_accent;
-
-float gridLine(vec2 uv, float spacing, float thickness){
-  vec2 g = abs(fract(uv / spacing) - 0.5);
-  float d = min(g.x, g.y);
-  return 1.0 - smoothstep(thickness - 0.005, thickness + 0.005, d);
-}
-
-float dot2(vec2 p){ return dot(p,p); }
-
-void main(){
-  vec2 uv = gl_FragCoord.xy / u_resolution.xy;
-  float aspect = u_resolution.x / u_resolution.y;
-  vec2 p = uv;
-  p.x *= aspect;
-
-  // 缓慢平移
-  vec2 drift = vec2(u_time * 0.008, u_time * 0.005);
-  vec2 gp = p + drift;
-
-  // 主细网格 (大间距)
-  float mainGrid = gridLine(gp, 0.12, 0.012);
-  // 次级网格 (更细更密)
-  float subGrid = gridLine(gp, 0.024, 0.04) * 0.4;
-
-  // 鼠标附近的强化
-  vec2 m = u_mouse;
-  m.x *= aspect;
-  float md = length(p - m);
-  float mInfluence = exp(-md * 4.0) * 0.5;
-
-  float gridStrength = (mainGrid + subGrid * 0.5) * (0.45 + mInfluence);
-
-  // 点阵 (作为基底)
-  vec2 dotGrid = fract(gp * 50.0) - 0.5;
-  float dotMask = 1.0 - smoothstep(0.05, 0.14, length(dotGrid));
-  // 用低频噪声调制点阵密度
-  float wave = sin(gp.x * 1.4 + u_time * 0.15) * cos(gp.y * 1.6 - u_time * 0.12);
-  dotMask *= smoothstep(-0.3, 0.6, wave) * 0.6;
-
-  // 颜色: 浅底用深线条,深底用浅线条;高亮处带 accent 痕迹
-  vec3 lineColor = mix(vec3(0.08), vec3(0.92), u_dark);
-  vec3 bgColor = mix(vec3(0.97, 0.97, 0.96), vec3(0.06, 0.06, 0.07), u_dark);
-
-  // accent 暗示 (鼠标附近偷渡一点 accent 色)
-  vec3 col = bgColor;
-  col = mix(col, lineColor, gridStrength * 0.55);
-  col = mix(col, lineColor, dotMask * 0.35);
-  col = mix(col, u_accent, mInfluence * 0.18);
-
-  gl_FragColor = vec4(col, 1.0);
-}`;
-
-const mouse={x:0.5,y:0.5};
-addEventListener('mousemove',e=>{mouse.x=e.clientX/innerWidth;mouse.y=1-e.clientY/innerHeight});
-
-function bootGL(canvasId, fsSrc){
-  const canvas=document.getElementById(canvasId);
-  const gl=canvas.getContext('webgl',{alpha:true,antialias:true,premultipliedAlpha:false});
-  if(!gl) return ()=>false;
-  const mk=(t,s)=>{const sh=gl.createShader(t);gl.shaderSource(sh,s);gl.compileShader(sh);return sh};
-  const prog=gl.createProgram();
-  gl.attachShader(prog,mk(gl.VERTEX_SHADER,VS));
-  gl.attachShader(prog,mk(gl.FRAGMENT_SHADER,fsSrc));
-  gl.linkProgram(prog);gl.useProgram(prog);
-  const buf=gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER,buf);
-  gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]),gl.STATIC_DRAW);
-  const pos=gl.getAttribLocation(prog,'position');
-  gl.enableVertexAttribArray(pos);gl.vertexAttribPointer(pos,2,gl.FLOAT,false,0,0);
-  const lRes=gl.getUniformLocation(prog,'u_resolution');
-  const lT=gl.getUniformLocation(prog,'u_time');
-  const lM=gl.getUniformLocation(prog,'u_mouse');
-  const lD=gl.getUniformLocation(prog,'u_dark');
-  const lA=gl.getUniformLocation(prog,'u_accent');
-  const resize=()=>{
-    const d=Math.min(window.devicePixelRatio||1,2);
-    canvas.width=innerWidth*d;canvas.height=innerHeight*d;
-    gl.viewport(0,0,canvas.width,canvas.height);
-  };
-  addEventListener('resize',resize);resize();
-
-  // 读取 CSS 变量,把 accent 颜色塞进 shader
-  function readAccent(){
-    const cs = getComputedStyle(document.documentElement);
-    const hex = cs.getPropertyValue('--accent').trim() || '#002FA7';
-    const m = hex.match(/^#([0-9a-f]{6})$/i);
-    if(!m) return [0, 0.18, 0.65];
-    const n = parseInt(m[1], 16);
-    return [((n>>16)&255)/255, ((n>>8)&255)/255, (n&255)/255];
-  }
-  let accent = readAccent();
-  let dark = 0;
-
-  return (tSec, isDark)=>{
-    if(isDark !== undefined) dark = isDark ? 1 : 0;
-    accent = readAccent();
-    gl.uniform2f(lRes,canvas.width,canvas.height);
-    gl.uniform1f(lT,tSec);
-    gl.uniform2f(lM,mouse.x,mouse.y);
-    gl.uniform1f(lD,dark);
-    gl.uniform3f(lA,accent[0],accent[1],accent[2]);
-    gl.drawArrays(gl.TRIANGLES,0,6);
-    return true;
-  };
-}
-// canvas-mode / low-power: skip WebGL draw loop (no active RAF loop)
-let darkMode=false;
-let gridCtrl=null, gridRAF=0, gridT0=Date.now();
-function startGrid(){
-  if(document.body.classList.contains('canvas-mode') || window.__lowPowerMode || gridRAF) return;
-  if(!gridCtrl) gridCtrl = bootGL('bg-grid',FS);
-  if(!gridCtrl) return;
-  gridT0=Date.now();
-  function loop(){
-    if(window.__lowPowerMode){gridRAF=0;return;}
-    const t=(Date.now()-gridT0)/1000;
-    gridCtrl(t, darkMode);
-    gridRAF=requestAnimationFrame(loop);
-  }
-  gridRAF=requestAnimationFrame(loop);
-}
-function stopGrid(){
-  if(gridRAF) cancelAnimationFrame(gridRAF);
-  gridRAF=0;
-}
-if(document.body.classList.contains('canvas-mode')){
-  const c=document.getElementById('bg-grid');
-  if(c) c.remove();
-}else{
-  startGrid();
-}
-addEventListener('swiss-low-power-change', e=>{e.detail.on ? stopGrid() : startGrid();});
-
-// =============== 导航 ===============
-const deck=document.getElementById('deck');
-const slides=deck.querySelectorAll('.slide');
-const nav=document.getElementById('nav');
-let idx=0,total=slides.length,lock=false;
-
-deck.style.width=(total*100)+'vw';
-
-slides.forEach((s,i)=>{
-  const b=document.createElement('button');
-  b.className='dot';b.dataset.i=i;b.setAttribute('aria-label','Page '+(i+1));
-  b.onclick=()=>go(i);
-  nav.appendChild(b);
-});
-
-function go(n){
-  if(lock)return;
-  idx=Math.max(0,Math.min(total-1,n));
-  window.__currentSlideIndex = idx;
-  deck.style.transform=`translateX(${-idx*100}vw)`;
-  nav.querySelectorAll('.dot').forEach((d,i)=>d.classList.toggle('active',i===idx));
-  const el=slides[idx];
-  const isDark = el.classList.contains('dark') || el.classList.contains('accent');
-  document.body.classList.toggle('dark-bg', isDark);
-  darkMode = isDark;
-  if(window.__playSlide) setTimeout(()=>window.__playSlide(idx), 450);
-  lock=true;setTimeout(()=>lock=false,700);
-}
-
-/* =============== ESC 索引视图 =============== */
-let overviewOn=false;
-const ov=document.createElement('div');
-ov.id='overview';
-ov.style.cssText='position:fixed;inset:0;z-index:100;background:rgba(250,250,248,.96);backdrop-filter:blur(12px);display:none;overflow-y:auto;padding:4vh 4vw';
-document.body.appendChild(ov);
-
-function buildOverview(){
-  ov.innerHTML='';
-  const grid=document.createElement('div');
-  grid.style.cssText='display:grid;grid-template-columns:repeat(4,1fr);gap:2vh 1.6vw;max-width:90vw;margin:0 auto';
-  slides.forEach((s,i)=>{
-    const card=document.createElement('div');
-    card.style.cssText='cursor:pointer;overflow:hidden;border:2px solid '+(i===idx?'var(--accent)':'rgba(0,0,0,.12)')+';transition:border-color .2s';
-    card.onmouseenter=()=>card.style.borderColor='rgba(0,0,0,.4)';
-    card.onmouseleave=()=>card.style.borderColor=i===idx?'var(--accent)':'rgba(0,0,0,.12)';
-    const wrap=document.createElement('div');
-    const isDark = s.classList.contains('dark') || s.classList.contains('accent');
-    wrap.style.cssText='width:100%;aspect-ratio:16/9;overflow:hidden;position:relative;pointer-events:none;background:'+(isDark?'var(--ink)':'var(--paper)');
-    const clone=s.cloneNode(true);
-    clone.style.cssText='width:100vw;height:100vh;transform:scale('+(1/4.5)+');transform-origin:top left;position:absolute;top:0;left:0;pointer-events:none';
-    wrap.appendChild(clone);
-    const label=document.createElement('div');
-    /* ESC 索引卡 label */
-  label.style.cssText='padding:6px 10px;font-family:var(--mono);font-size:14px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink);opacity:.7';
-    label.textContent=(i+1)+' / '+total;
-    card.appendChild(wrap);
-    card.appendChild(label);
-    card.onclick=()=>{toggleOverview();go(i)};
-    grid.appendChild(card);
-  });
-  ov.appendChild(grid);
-}
-
-function toggleOverview(){
-  overviewOn=!overviewOn;
-  if(overviewOn){buildOverview();ov.style.display='block';}
-  else{ov.style.display='none';}
-}
-
-addEventListener('keydown',e=>{
-  if(e.key==='Escape'){e.preventDefault();toggleOverview();return;}
-  if(e.key && e.key.toLowerCase()==='b' && !e.metaKey && !e.ctrlKey && !e.altKey){
-    e.preventDefault();
-    window.__setLowPowerMode(!window.__lowPowerMode);
-    return;
-  }
-  if(overviewOn)return;
-  if(e.key==='ArrowRight'||e.key==='PageDown'||e.key===' '||e.key==='ArrowDown'){
-    if(window.__pipeAdvance && window.__pipeAdvance()) return;
-    go(idx+1);
-    return;
-  }
-  if(e.key==='ArrowLeft'||e.key==='PageUp'||e.key==='ArrowUp')go(idx-1);
-  if(e.key==='Home')go(0);
-  if(e.key==='End')go(total-1);
-});
-
-let wheelTO=null,wheelAcc=0;
-addEventListener('wheel',e=>{
-  wheelAcc+=e.deltaY+e.deltaX;
-  if(Math.abs(wheelAcc)>50){
-    if(wheelAcc>0 && window.__pipeAdvance && window.__pipeAdvance()){
-      wheelAcc=0;
-    }else{
-      go(idx+(wheelAcc>0?1:-1));wheelAcc=0;
-    }
-  }
-  clearTimeout(wheelTO);wheelTO=setTimeout(()=>wheelAcc=0,150);
-},{passive:true});
-
-let tx=0,ty=0;
-addEventListener('touchstart',e=>{tx=e.touches[0].clientX;ty=e.touches[0].clientY},{passive:true});
-addEventListener('touchend',e=>{
-  const dx=(e.changedTouches[0].clientX-tx);
-  const dy=(e.changedTouches[0].clientY-ty);
-  if(Math.abs(dx)>50&&Math.abs(dx)>Math.abs(dy)){
-    if(dx<0 && window.__pipeAdvance && window.__pipeAdvance()) return;
-    go(idx+(dx<0?1:-1));
-  }
-},{passive:true});
-
-const initialSlideParam = new URLSearchParams(location.search).get('slide');
-const initialSlide = initialSlideParam ? Number(initialSlideParam) - 1 : 0;
-go(Number.isFinite(initialSlide) ? initialSlide : 0);
-</script>
-<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
-<script>lucide.createIcons();</script>
-
-<!-- Motion One 动效引擎 (与原模板一致) -->
-<script type="module">
-let motion;
-try {
-  motion = await import('./assets/motion.min.js');
-} catch(e1) {
-  try {
-    motion = await import('https://cdn.jsdelivr.net/npm/motion@11.11.17/+esm');
-  } catch(e2) {
-    console.warn('[motion] local + CDN both failed, disabling animations', e1, e2);
-    document.querySelectorAll('[data-anim]').forEach(el=>{el.style.opacity='1';el.style.transform='none'});
-    document.querySelectorAll('[data-animate="pipeline"] [data-anim]').forEach(el=>el.style.opacity='1');
-  }
-}
-
-if(motion){
-  const { animate } = motion;
-  document.body.classList.add('motion-ready');
-
-  /* ============================================================
-     IBM Carbon Motion · 每个 recipe 服务一种表达
-     不是一刀切的 stagger,而是把动效绑在内容语义上
-     ============================================================ */
-  const EASE_PROD       = [.2, 0, .38, .9];
-  const EASE_ENTRY_EXP  = [0, 0, .3, 1];
-
-  const slides = [...document.querySelectorAll('.slide')];
-  let lastIdx = -1;
-
-  function resetAnims(slide){
-    slide.querySelectorAll('[data-anim]').forEach(el=>{
-      el.style.opacity='';
-      el.style.transform='';
-    });
-    /* 同时复位需要被 recipe 接管的元素 */
-    slide.querySelectorAll('.row-fill,.tl-node,.stack-block,.bar-tower,.sub-card,.col,.vrule,.kpi-cell')
-      .forEach(el=>{el.style.cssText = el.dataset._origCss || el.style.cssText;});
-  }
-
-  /* ---------- 通用工具 ---------- */
-  const fade = (el, opts={})=>animate(el,
-    {opacity:[0,1], y:[opts.y ?? 12, 0]},
-    {duration:opts.duration ?? .6, delay:opts.delay ?? 0,
-     easing:opts.easing ?? EASE_ENTRY_EXP});
-
-  /* ---------- recipe: hero · 封面索引 ----------
-     大编号一个个亮起 → 索引行最后落定 */
-  function rHero(slide, all){
-    const numRows = [...slide.querySelectorAll('.cover-row')];
-    const rest = all.filter(el=>!numRows.length || el !== numRows[0]);
-    /* 先入: chrome 240ms */
-    const chrome = slide.querySelector('.chrome-min');
-    if(chrome) animate(chrome, {opacity:[0,1]}, {duration:.24, easing:EASE_PROD});
-    /* 大编号 01/02/03 像点名一样依次亮 */
-    numRows.forEach((row, i)=>{
-      animate(row, {opacity:[0,1], x:[-12,0]},
-        {duration:.5, delay:.15 + i*.18, easing:EASE_ENTRY_EXP});
-    });
-    /* 索引底栏最后慢慢落定 */
-    const idx = slide.querySelector('[data-anim="line"]');
-    if(idx) fade(idx, {delay:.15 + numRows.length*.18 + .1, duration:.5, y:6});
-  }
-
-  /* ---------- recipe: progression · 1× → 10× → 1000× ----------
-     节点依次入场,每个节点的数字单独"递进生长"营造跃迁 */
-  function rProgression(slide, all){
-    const head = slide.querySelector('[data-anim="line"]');
-    if(head) fade(head, {duration:.6, y:10});
-
-    const nodes = [...slide.querySelectorAll('.tl-node')];
-    nodes.forEach((node, i)=>{
-      const base = .35 + i*.32;          /* 节点之间间隔大,营造时间感 */
-      /* 整个节点先轻微浮入 */
-      animate(node, {opacity:[0,1], y:[14, 0]},
-        {duration:.55, delay:base, easing:EASE_ENTRY_EXP});
-      /* 再让 multi(数字)从 .85 scale 弹到 1,延迟 100ms */
-      const multi = node.querySelector('.multi');
-      if(multi) animate(multi, {scale:[.92, 1], opacity:[0,1]},
-        {duration:.5, delay:base + .12, easing:EASE_ENTRY_EXP});
-    });
-
-    /* 底部 KPI 4 列最后落定,内部 60ms stagger */
-    const kpis = [...slide.querySelectorAll('.kpi-cell')];
-    kpis.forEach((cell, i)=>{
-      animate(cell, {opacity:[0,1], y:[8, 0]},
-        {duration:.4, delay:1.4 + i*.07, easing:EASE_PROD});
-    });
-  }
-
-  /* ---------- recipe: statement · 大宣言 ----------
-     左半屏标题逐行落下,右半屏 leaked 信息晚 600ms 进 */
-  function rStatement(slide, all){
-    const halves = [...slide.querySelectorAll('.half')];
-    if(halves.length === 2){
-      animate(halves[0], {opacity:[0,1], y:[18,0]},
-        {duration:.7, delay:0, easing:EASE_ENTRY_EXP});
-      animate(halves[1], {opacity:[0,1], y:[18,0]},
-        {duration:.7, delay:.6, easing:EASE_ENTRY_EXP});
-    } else {
-      /* P9 Index Card — 三行像盖章一样依次落 */
-      const head = slide.querySelector('[data-anim="line"]');
-      if(head) fade(head, {duration:.5, y:6});
-      const blocks = all.filter(el=>el !== head);
-      blocks.forEach((el, i)=>{
-        animate(el, {opacity:[0,1], y:[20,0]},
-          {duration:.55, delay:.25 + i*.18, easing:EASE_ENTRY_EXP});
-      });
-    }
-  }
-
-  /* ---------- recipe: grid-reveal · 五个定义 ----------
-     卡片按 nb-corner 序号 01→02→03→04→05→Σ 依次揭示 */
-  function rGridReveal(slide, all){
-    const head = slide.querySelector('[data-anim="line"]');
-    if(head) fade(head, {duration:.6, y:10});
-    const cards = [...slide.querySelectorAll('.sub-card')];
-    cards.forEach((card, i)=>{
-      animate(card, {opacity:[0,1], y:[20,0], scale:[.96, 1]},
-        {duration:.5, delay:.3 + i*.09, easing:EASE_ENTRY_EXP});
-    });
-  }
-
-  /* ---------- recipe: stack-build · 三层架构 ----------
-     中间 thin 先入 → 上层 fat skills 从顶推下 → 下层 application 从底推上 */
-  function rStackBuild(slide, all){
-    const head = slide.querySelector('[data-anim="line"]');
-    if(head) fade(head, {duration:.6, y:10});
-
-    const blocks = [...slide.querySelectorAll('.stack-block')];
-    /* 先入: 中间薄层(LAYER 02) */
-    if(blocks[1]) animate(blocks[1], {opacity:[0,1], scaleY:[.85, 1]},
-      {duration:.55, delay:.3, easing:EASE_ENTRY_EXP});
-    /* 上推下: LAYER 01 fat skills 从顶部 push down */
-    if(blocks[0]) animate(blocks[0], {opacity:[0,1], y:[-22, 0]},
-      {duration:.6, delay:.6, easing:EASE_ENTRY_EXP});
-    /* 下推上: LAYER 03 application 从底部 push up */
-    if(blocks[2]) animate(blocks[2], {opacity:[0,1], y:[22, 0]},
-      {duration:.6, delay:.6, easing:EASE_ENTRY_EXP});
-
-    const foot = slide.querySelector('.t-meta');
-    if(foot) animate(foot, {opacity:[0,1]}, {duration:.3, delay:1.3, easing:EASE_PROD});
-  }
-
-  /* ---------- recipe: measure-up · YC KPI 塔 ----------
-     塔从底部 scaleY 0→1 生长 + 数字最后弹入 */
-  function rMeasureUp(slide, all){
-    const head = slide.querySelector('[data-anim="line"]');
-    if(head) fade(head, {duration:.6, y:10});
-
-    const towers = [...slide.querySelectorAll('.bar-tower')];
-    towers.forEach((tower, i)=>{
-      const block = tower.querySelector('.body-block');
-      if(block){
-        block.style.transformOrigin = 'bottom center';
-        animate(block, {opacity:[0,1], scaleY:[.05, 1]},
-          {duration:.7, delay:.35 + i*.12, easing:EASE_ENTRY_EXP});
-      }
-      /* cap (顶部图标) 等柱体长好后弹入 */
-      const cap = tower.querySelector('.cap');
-      if(cap) animate(cap, {opacity:[0,1], y:[-8, 0]},
-        {duration:.4, delay:.85 + i*.12, easing:EASE_PROD});
-    });
-  }
-
-  /* ---------- recipe: bar-grow · 90% 价值分布 ----------
-     标题先入 → hairline 从中点向两侧 stroke draw → bar 依次 width 0→target → 数值 fade in */
-  function rBarGrow(slide, all){
-    const head = slide.querySelector('[data-anim="line"]');
-    if(head) fade(head, {duration:.6, y:10});
-
-    /* 中部 hairline:从 100% width 0 拉到 100% (transformOrigin: center) */
-    const midRow = slide.querySelector('[data-anim="up"]');
-    if(midRow){
-      const midLabel = midRow.querySelector('.t-cat');
-      const midLine = midRow.querySelector('div[style*="height:1px"]');
-      if(midLabel) animate(midLabel, {opacity:[0,1], x:[-8,0]},
-        {duration:.4, delay:.4, easing:EASE_PROD});
-      if(midLine){
-        midLine.style.transformOrigin = 'center';
-        animate(midLine, {opacity:[0,1], scaleX:[0, 1]},
-          {duration:.55, delay:.5, easing:EASE_ENTRY_EXP});
-      }
-    }
-
-    /* bar 行依次 width 增长 */
-    const fills = [...slide.querySelectorAll('.row-fill')];
-    const labels = [...slide.querySelectorAll('.row-lbl')];
-    const values = [...slide.querySelectorAll('.row-val')];
-    fills.forEach((fill, i)=>{
-      const target = fill.style.width;
-      fill.style.width = '0%';
-      if(labels[i]) animate(labels[i], {opacity:[0,1], x:[-12,0]},
-        {duration:.4, delay:.85 + i*.14, easing:EASE_PROD});
-      animate(fill, {width:['0%', target]},
-        {duration:.65, delay:.95 + i*.14, easing:EASE_ENTRY_EXP});
-      if(values[i]) animate(values[i], {opacity:[0,1]},
-        {duration:.3, delay:1.5 + i*.14, easing:EASE_PROD});
-    });
-  }
-
-  /* ---------- recipe: duo-mirror · Latent vs Deterministic ----------
-     左 80ms 入,vrule 从中心 scaleY 0→1,右 240ms 入 */
-  function rDuoMirror(slide, all){
-    const head = slide.querySelector('[data-anim="line"]');
-    if(head) fade(head, {duration:.6, y:10});
-
-    const cols = [...slide.querySelectorAll('.duo-compare .col')];
-    const vrule = slide.querySelector('.duo-compare .vrule');
-    if(cols[0]) animate(cols[0], {opacity:[0,1], x:[-24, 0]},
-      {duration:.65, delay:.4, easing:EASE_ENTRY_EXP});
-    if(vrule){
-      vrule.style.transformOrigin = 'center';
-      animate(vrule, {opacity:[0,1], scaleY:[0, 1]},
-        {duration:.55, delay:.55, easing:EASE_ENTRY_EXP});
-    }
-    if(cols[1]) animate(cols[1], {opacity:[0,1], x:[24, 0]},
-      {duration:.65, delay:.7, easing:EASE_ENTRY_EXP});
-
-    const foot = slide.querySelector('.t-meta');
-    if(foot) animate(foot, {opacity:[0,1]}, {duration:.3, delay:1.3, easing:EASE_PROD});
-  }
-
-  /* ---------- recipe: split-statement · 收尾 ----------
-     左黑半屏的 once / forever 错位入场;右白半屏 takeaway list 后跟 */
-  function rSplitStatement(slide, all){
-    const halves = [...slide.querySelectorAll('.half')];
-    /* 左黑半屏 — once 先入,forever 间隔 600ms */
-    if(halves[0]){
-      animate(halves[0], {opacity:[0,1]}, {duration:.4, easing:EASE_PROD});
-      const kpis = halves[0].querySelectorAll('.kpi-thin');
-      kpis.forEach((k, i)=>{
-        animate(k, {opacity:[0,1], y:[24,0]},
-          {duration:.7, delay:.25 + i*.55, easing:EASE_ENTRY_EXP});
-      });
-    }
-    /* 右白半屏 — list 三条依次入,在左侧 once 出现后开始 */
-    if(halves[1]){
-      animate(halves[1], {opacity:[0,1]}, {duration:.4, delay:.3, easing:EASE_PROD});
-      const items = halves[1].querySelectorAll('.takeaway-list li');
-      items.forEach((li, i)=>{
-        animate(li, {opacity:[0,1], x:[20, 0]},
-          {duration:.45, delay:1.0 + i*.12, easing:EASE_ENTRY_EXP});
-      });
-    }
-  }
-
-  /* ---------- recipe: timeline-walk · P11 横向 evolution ----------
-     标题先入 → 横轴虚线 scaleX 拉开(伪) → 5 个 dot 按年代依次 scale 入 → label 跟随 */
-  function rTimelineWalk(slide, all){
-    const head = slide.querySelector('[data-anim="line"]');
-    if(head) fade(head, {duration:.55, y:10});
-
-    const tl = slide.querySelector('.timeline-h');
-    if(tl) animate(tl, {opacity:[0,1]}, {duration:.4, delay:.35, easing:EASE_PROD});
-
-    const nodes = [...slide.querySelectorAll('.timeline-h .th-node')];
-    nodes.forEach((node, i)=>{
-      const base = .55 + i*.18;
-      const dot = node.querySelector('.dot');
-      const label = node.querySelector('.label');
-      if(dot){
-        dot.style.transformOrigin='center';
-        animate(dot, {opacity:[0,1], scale:[.2, 1]},
-          {duration:.45, delay:base, easing:EASE_ENTRY_EXP});
-      }
-      if(label){
-        const fromY = node.classList.contains('up') ? 8 : -8;
-        /* 保留 CSS 的水平居中 translateX(-50%),避免动效覆盖后 label 与 dot 错位 */
-        animate(label, {opacity:[0,1], transform:[`translate(-50%, ${fromY}px)`, 'translate(-50%, 0px)']},
-          {duration:.5, delay:base + .12, easing:EASE_ENTRY_EXP});
-      }
-    });
-
-    const foot = slide.querySelector('.t-meta');
-    if(foot) animate(foot, {opacity:[0,1]}, {duration:.3, delay:1.7, easing:EASE_PROD});
-  }
-
-  /* ---------- recipe: manifesto · P12 Form & Found ----------
-     副标先入 → 大字两段错峰落 → 底部 ink 通栏条从下推上 */
-  function rManifesto(slide, all){
-    const head = slide.querySelector('[data-anim="line"]');
-    if(head){
-      const cat = head.querySelector('.t-cat');
-      const title = head.querySelector('div:nth-child(2)');
-      if(cat) animate(cat, {opacity:[0,1], x:[-10,0]},
-        {duration:.4, delay:.1, easing:EASE_PROD});
-      if(title) animate(title, {opacity:[0,1], y:[26, 0]},
-        {duration:.85, delay:.3, easing:EASE_ENTRY_EXP});
-    }
-    /* 底部 ink 条从下推入 */
-    const foot = [...slide.querySelectorAll('[data-anim="up"]')];
-    foot.forEach((el, i)=>{
-      animate(el, {opacity:[0,1], y:[40, 0]},
-        {duration:.75, delay:.85 + i*.12, easing:EASE_ENTRY_EXP});
-    });
-  }
-
-  /* ---------- recipe: three-forces · P13 ----------
-     左 ink hero 先入 → 右 3 张卡按 1/2/3 依次从右滑入 + 每张大数字单独弹入 */
-  function rThreeForces(slide, all){
-    const head = slide.querySelector('[data-anim="line"]');
-    if(head) fade(head, {duration:.5, y:8});
-
-    const grid = slide.querySelector('[data-anim="up"]');
-    if(grid) animate(grid, {opacity:[0,1]}, {duration:.3, delay:.3, easing:EASE_PROD});
-
-    const heroBlock = grid?.querySelector(':scope > div:first-child');
-    if(heroBlock) animate(heroBlock, {opacity:[0,1], x:[-26, 0]},
-      {duration:.6, delay:.4, easing:EASE_ENTRY_EXP});
-
-    const cards = grid ? [...grid.querySelectorAll(':scope > div:nth-child(2) > .card-fill')] : [];
-    cards.forEach((card, i)=>{
-      const base = .6 + i*.18;
-      animate(card, {opacity:[0,1], x:[28, 0]},
-        {duration:.6, delay:base, easing:EASE_ENTRY_EXP});
-      const num = card.querySelector(':scope > div:first-child');
-      if(num) animate(num, {opacity:[0,1], scale:[.7, 1]},
-        {duration:.5, delay:base + .15, easing:EASE_ENTRY_EXP});
-    });
-  }
-
-  /* ---------- recipe: loop-form · P14 自学闭环 ----------
-     左 4 步像台阶依次入 → 右环图节点按时钟顺序入 → 中心 improves scale 入 */
-  function rLoopForm(slide, all){
-    const head = slide.querySelector('[data-anim="line"]');
-    if(head) fade(head, {duration:.55, y:10});
-
-    const grid = slide.querySelector('[data-anim="up"]');
-    if(grid) animate(grid, {opacity:[0,1]}, {duration:.3, delay:.35, easing:EASE_PROD});
-
-    /* 左侧 4 步台阶,每步从左滑入 */
-    const steps = grid ? [...grid.querySelectorAll(':scope > div:first-child > div')] : [];
-    steps.forEach((step, i)=>{
-      animate(step, {opacity:[0,1], x:[-18, 0]},
-        {duration:.5, delay:.5 + i*.14, easing:EASE_ENTRY_EXP});
-    });
-
-    /* 右侧 SVG 节点 (4 个 circle + label) 按 01→04 顺序入 */
-    const svg = grid?.querySelector('svg');
-    if(svg){
-      const ring = svg.querySelector('circle:first-of-type');
-      if(ring) animate(ring, {opacity:[0,.25]}, {duration:.5, delay:.6, easing:EASE_PROD});
-
-      const nodeCircles = [...svg.querySelectorAll('circle')].slice(1);
-      nodeCircles.forEach((c, i)=>{
-        c.style.transformOrigin = `${c.getAttribute('cx')}px ${c.getAttribute('cy')}px`;
-        animate(c, {opacity:[0,1], scale:[.4, 1]},
-          {duration:.45, delay:.7 + i*.16, easing:EASE_ENTRY_EXP});
-      });
-
-      const arrows = [...svg.querySelectorAll('path[marker-end]')];
-      arrows.forEach((p, i)=>{
-        animate(p, {opacity:[0,1]},
-          {duration:.4, delay:.85 + i*.16, easing:EASE_PROD});
-      });
-
-      const center = [...svg.querySelectorAll('text')].slice(-2);
-      center.forEach((t, i)=>{
-        animate(t, {opacity:[0,1], scale:[.7, 1]},
-          {duration:.5, delay:1.55 + i*.1, easing:EASE_ENTRY_EXP});
-      });
-    }
-  }
-
-  /* ---------- recipe: matrix-fill · P15 skill 矩阵 ----------
-     标题入 → 12 张卡按对角线波 (i+j) 扫入 → 底部 20,000 大数字最后 fade 入 */
-  function rMatrixFill(slide, all){
-    const head = slide.querySelector('[data-anim="line"]');
-    if(head) fade(head, {duration:.55, y:10});
-
-    const matrix = slide.querySelector('[data-anim="up"]');
-    if(!matrix) return;
-    animate(matrix, {opacity:[0,1]}, {duration:.3, delay:.35, easing:EASE_PROD});
-
-    const cards = [...matrix.children];
-    const cols = 6;
-    cards.forEach((card, i)=>{
-      const row = Math.floor(i/cols), col = i%cols;
-      const wave = (row + col) * .055;
-      animate(card, {opacity:[0,1], y:[14, 0], scale:[.92, 1]},
-        {duration:.42, delay:.5 + wave, easing:EASE_ENTRY_EXP});
-    });
-
-    /* 底部 20,000 区块 */
-    const foot = [...slide.querySelectorAll('[data-anim="up"]')][1];
-    if(foot){
-      animate(foot, {opacity:[0,1], y:[18, 0]},
-        {duration:.7, delay:1.4, easing:EASE_ENTRY_EXP});
-      const bigNum = foot.querySelector('div:nth-child(1) > div:nth-child(2)');
-      if(bigNum) animate(bigNum, {opacity:[0,1], scale:[.94, 1]},
-        {duration:.7, delay:1.55, easing:EASE_ENTRY_EXP});
-    }
-  }
-
-  /* ---------- recipe: field-notes · P16 散点观察 ----------
-     标题入 → 6 张卡按"散点"乱序延迟入,微小旋转复位 */
-  function rFieldNotes(slide, all){
-    const head = slide.querySelector('[data-anim="line"]');
-    if(head) fade(head, {duration:.55, y:10});
-
-    const grid = slide.querySelector('[data-anim="up"]');
-    if(!grid) return;
-    animate(grid, {opacity:[0,1]}, {duration:.3, delay:.35, easing:EASE_PROD});
-
-    /* 散点顺序: 用一个稍微打乱的索引数组,营造"乱中有序"感 */
-    const order = [0, 3, 1, 4, 2, 5];
-    const cards = [...grid.children];
-    order.forEach((idx, i)=>{
-      const card = cards[idx];
-      if(!card) return;
-      animate(card, {opacity:[0,1], y:[18, 0], rotate:[(idx%2?-.6:.6), 0]},
-        {duration:.55, delay:.5 + i*.11, easing:EASE_ENTRY_EXP});
-    });
-  }
-
-  /* ---------- recipe: system-diagram · P17 三圆系统图 ----------
-     标题入 → SVG 三组图依次入 + 中间同心圆从外向内 scale 入 → 下方注释列依次入 */
-  function rSystemDiagram(slide, all){
-    const head = slide.querySelector('[data-anim="line"]');
-    if(head) fade(head, {duration:.55, y:10});
-
-    const stage = slide.querySelector('[data-anim="up"]');
-    if(!stage) return;
-    animate(stage, {opacity:[0,1]}, {duration:.3, delay:.35, easing:EASE_PROD});
-
-    const svgs = [...stage.querySelectorAll('svg')];
-    svgs.forEach((svg, i)=>{
-      const base = .55 + i*.22;
-      const circles = [...svg.querySelectorAll('circle')];
-      /* 中间是同心圆: 从外圈到内圈依次 scale 入 */
-      if(circles.length > 1){
-        circles.forEach((c, j)=>{
-          c.style.transformOrigin = `${c.getAttribute('cx')}px ${c.getAttribute('cy')}px`;
-          animate(c, {opacity:[0,1], scale:[.4, 1]},
-            {duration:.5, delay:base + j*.13, easing:EASE_ENTRY_EXP});
-        });
-      } else if(circles[0]){
-        circles[0].style.transformOrigin = `${circles[0].getAttribute('cx')}px ${circles[0].getAttribute('cy')}px`;
-        animate(circles[0], {opacity:[0,1], scale:[.4, 1]},
-          {duration:.5, delay:base, easing:EASE_ENTRY_EXP});
-      }
-      const labels = [...svg.querySelectorAll('text')];
-      labels.forEach((t, j)=>{
-        animate(t, {opacity:[0,1]},
-          {duration:.4, delay:base + .25 + j*.06, easing:EASE_PROD});
-      });
-    });
-
-    /* 下方注释列 */
-    const cols = [...stage.querySelectorAll(':scope > div:last-child > div')];
-    cols.forEach((col, i)=>{
-      animate(col, {opacity:[0,1], y:[12, 0]},
-        {duration:.45, delay:1.3 + i*.1, easing:EASE_ENTRY_EXP});
-    });
-  }
-
-  /* ---------- recipe: why-now · P18 三列 + 巨大底数 ----------
-     标题入 → 三列文本入 → 三个底部巨数 01/02/03 错峰 scale 落定 */
-  function rWhyNow(slide, all){
-    const head = slide.querySelector('[data-anim="line"]');
-    if(head) fade(head, {duration:.55, y:10});
-
-    const grid = slide.querySelector('[data-anim="up"]');
-    if(!grid) return;
-    animate(grid, {opacity:[0,1]}, {duration:.3, delay:.35, easing:EASE_PROD});
-
-    const cols = [...grid.children];
-    cols.forEach((col, i)=>{
-      const base = .5 + i*.16;
-      const body = col.querySelector(':scope > div:not(:last-child)');
-      const big = col.querySelector(':scope > div:last-child');
-      if(body) animate(body, {opacity:[0,1], y:[14, 0]},
-        {duration:.55, delay:base, easing:EASE_ENTRY_EXP});
-      if(big) animate(big, {opacity:[0,1], scale:[.7, 1]},
-        {duration:.7, delay:base + .35, easing:EASE_ENTRY_EXP});
-    });
-  }
-
-  /* ---------- recipe: four-cards · P19 4 列卡片 ----------
-     顶部红线 scaleX 0→1 → 标题入 → 4 卡按 01-04 依次入 */
-  function rFourCards(slide, all){
-    /* 顶部红线 */
-    const topRule = slide.querySelector('[data-anim="line"] > div:first-child');
-    if(topRule){
-      topRule.style.transformOrigin = 'left center';
-      animate(topRule, {opacity:[0,1], scaleX:[0, 1]},
-        {duration:.5, delay:.1, easing:EASE_ENTRY_EXP});
-    }
-
-    const head = slide.querySelector('[data-anim="line"]');
-    if(head){
-      const title = head.querySelector(':scope > div:nth-child(2)');
-      if(title) animate(title, {opacity:[0,1], y:[14, 0]},
-        {duration:.55, delay:.4, easing:EASE_ENTRY_EXP});
-    }
-
-    const grid = slide.querySelector('[data-anim="up"]');
-    if(!grid) return;
-    animate(grid, {opacity:[0,1]}, {duration:.3, delay:.55, easing:EASE_PROD});
-
-    const cards = [...grid.children];
-    cards.forEach((card, i)=>{
-      animate(card, {opacity:[0,1], y:[18, 0]},
-        {duration:.55, delay:.7 + i*.13, easing:EASE_ENTRY_EXP});
-    });
-  }
-
-  /* ============ P20 · Stacked KPI Ledger · 4 行账单逐行点亮 + 行间发丝从左画 ============ */
-  function rStackedLedger(slide, all){
-    const ledger = slide.querySelector('[data-anim="ledger"]');
-    if(!ledger) return;
-    animate(ledger, {opacity:[0,1]}, {duration:.3, delay:.1, easing:EASE_PROD});
-
-    const rows = [...ledger.querySelectorAll('.ledger-row')];
-    rows.forEach((row, i)=>{
-      const base = .25 + i*.18;
-      const num   = row.querySelector('.ledger-num');
-      const label = row.querySelector('.ledger-label');
-      const icon  = row.querySelector('.ledger-icon');
-      if(num)   animate(num,   {opacity:[0,1], y:[20, 0]},   {duration:.7,  delay:base,        easing:EASE_ENTRY_EXP});
-      if(label) animate(label, {opacity:[0,1], x:[-12, 0]},  {duration:.55, delay:base + .12, easing:EASE_ENTRY_EXP});
-      if(icon)  animate(icon,  {opacity:[0,1], scale:[.6,1]},{duration:.55, delay:base + .22, easing:EASE_ENTRY_EXP});
-    });
-  }
-
-  /* ============ P21 · Tech Spec Sheet · 标题分行 / KPI 顶线画出 + count 风感 / 竖线弹起 / 底巨数 ============ */
-  function rTechSpec(slide, all){
-    const head = slide.querySelector('[data-anim="line"]');
-    if(head) fade(head, {duration:.5, y:8});
-
-    const main = slide.querySelector('[data-anim="up"]');
-    if(main){
-      animate(main, {opacity:[0,1]}, {duration:.3, delay:.25, easing:EASE_PROD});
-
-      /* 左大标题分行 */
-      const titleLines = main.querySelector(':scope > div:first-child > div:first-child');
-      if(titleLines){
-        animate(titleLines, {opacity:[0,1], y:[18, 0]}, {duration:.7, delay:.35, easing:EASE_ENTRY_EXP});
-      }
-      const titleNote = main.querySelector(':scope > div:first-child > div:nth-child(2)');
-      if(titleNote){
-        animate(titleNote, {opacity:[0,1], y:[10, 0]}, {duration:.5, delay:.95, easing:EASE_ENTRY_EXP});
-      }
-
-      /* 三 KPI · 顶线 scaleX + 数字 fade-up + 副文字 */
-      const kpis = [...main.querySelectorAll(':scope > div:not([data-anim]):not(:first-child)')];
-      kpis.forEach((kpi, i)=>{
-        const base = .55 + i*.18;
-        const topRule = kpi.querySelector(':scope > div:first-child');
-        if(topRule){
-          topRule.style.transformOrigin = 'left center';
-          animate(topRule, {scaleX:[0,1], opacity:[0,1]}, {duration:.5, delay:base, easing:EASE_ENTRY_EXP});
-        }
-        const num = kpi.querySelector('.kpi-num');
-        if(num) animate(num, {opacity:[0,1], y:[14, 0]}, {duration:.6, delay:base + .15, easing:EASE_ENTRY_EXP});
-        const otherKids = [...kpi.children].filter(el=>el !== topRule && el !== num);
-        otherKids.forEach((el, j)=>{
-          animate(el, {opacity:[0,1]}, {duration:.4, delay:base + .25 + j*.05, easing:EASE_PROD});
-        });
-      });
-
-    }
-
-    /* 底部 hero 区: 巨数 + goal + tags + 右下竖线 */
-    const hero = slide.querySelector('[data-anim="hero"]');
-    if(hero){
-      animate(hero, {opacity:[0,1]}, {duration:.3, delay:1.3, easing:EASE_PROD});
-      const bottomHero = hero.querySelector('.bottom-hero');
-      if(bottomHero) animate(bottomHero, {opacity:[0,1], y:[24, 0], scale:[.92, 1]}, {duration:.7, delay:1.4, easing:EASE_ENTRY_EXP});
-      const middle = hero.querySelector(':scope > div:nth-child(2)');
-      if(middle){
-        const kids = [...middle.children];
-        kids.forEach((el, i)=>{
-          if(el.style && el.style.background === 'var(--ink)'){
-            el.style.transformOrigin = 'left center';
-            animate(el, {scaleX:[0,1], opacity:[0,1]}, {duration:.5, delay:1.6 + i*.1, easing:EASE_ENTRY_EXP});
-          } else {
-            animate(el, {opacity:[0,1], y:[10, 0]}, {duration:.5, delay:1.55 + i*.1, easing:EASE_ENTRY_EXP});
-          }
-        });
-      }
-      /* 右下: 文字先入, 9 根竖线再从底部 scaleY 弹起 */
-      const right = hero.querySelector(':scope > div:nth-child(3)');
-      if(right){
-        const rightText = right.querySelector(':scope > div:last-child');
-        if(rightText) animate(rightText, {opacity:[0,1], y:[10, 0]}, {duration:.5, delay:1.85, easing:EASE_ENTRY_EXP});
-      }
-      const bars = slide.querySelectorAll('[data-anim="bars"] .vbar');
-      bars.forEach((bar, i)=>{
-        bar.style.transformOrigin = 'bottom';
-        animate(bar, {scaleY:[0,1], opacity:[0,1]}, {duration:.5, delay:2.0 + i*.04, easing:EASE_ENTRY_EXP});
-      });
-    }
-  }
-
-  /* ============ P22 · Image Hero · 图缓推 + 标题白块从左滑入 + 三 KPI 顶线画出 ============ */
-  function rImageHero(slide, all){
-    const img = slide.querySelector('[data-anim="img"] img');
-    if(img){
-      animate(img, {opacity:[0,1], scale:[1.06, 1]}, {duration:1.1, delay:.05, easing:EASE_ENTRY_EXP});
-    }
-
-    const titleBlock = slide.querySelector('[data-anim="title-block"]');
-    if(titleBlock){
-      titleBlock.style.transformOrigin = 'left center';
-      animate(titleBlock, {opacity:[0,1], scaleX:[0, 1]}, {duration:.7, delay:.45, easing:EASE_ENTRY_EXP});
-      const titleText = titleBlock.querySelector('div');
-      if(titleText) animate(titleText, {opacity:[0,1]}, {duration:.4, delay:.85, easing:EASE_PROD});
-    }
-
-    const kpiWrap = slide.querySelector('[data-anim="kpi"]');
-    if(kpiWrap){
-      animate(kpiWrap, {opacity:[0,1]}, {duration:.3, delay:.7, easing:EASE_PROD});
-
-      /* 段落 */
-      const para = kpiWrap.querySelector(':scope > div:first-child');
-      if(para) animate(para, {opacity:[0,1], y:[14, 0]}, {duration:.6, delay:.85, easing:EASE_ENTRY_EXP});
-
-      /* 三列 KPI · 顶线 scaleX + 数字升起 */
-      const cols = [...kpiWrap.querySelectorAll(':scope > div:nth-child(2) > div')];
-      cols.forEach((col, i)=>{
-        const base = 1.1 + i*.18;
-        const topRule = col.querySelector(':scope > div:first-child');
-        if(topRule){
-          topRule.style.transformOrigin = 'left center';
-          animate(topRule, {scaleX:[0,1], opacity:[0,1]}, {duration:.5, delay:base, easing:EASE_ENTRY_EXP});
-        }
-        const cat = col.querySelector('.t-meta');
-        if(cat) animate(cat, {opacity:[0,1]}, {duration:.4, delay:base + .15, easing:EASE_PROD});
-        const hero = col.querySelector('.kpi-hero');
-        if(hero) animate(hero, {opacity:[0,1], y:[18, 0]}, {duration:.7, delay:base + .25, easing:EASE_ENTRY_EXP});
-        const handled = new Set([topRule, cat, hero]);
-        [...col.children]
-          .filter(el => !handled.has(el))
-          .forEach((el, j)=>{
-            animate(el, {opacity:[0,1]}, {duration:.4, delay:base + .45 + j*.05, easing:EASE_PROD});
-          });
-      });
-    }
-  }
-
-  const RECIPES = {
-    'hero': rHero,
-    'progression': rProgression,
-    'statement': rStatement,
-    'grid-reveal': rGridReveal,
-    'stack-build': rStackBuild,
-    'measure-up': rMeasureUp,
-    'bar-grow': rBarGrow,
-    'duo-mirror': rDuoMirror,
-    'split-statement': rSplitStatement,
-    'timeline-walk': rTimelineWalk,
-    'manifesto': rManifesto,
-    'three-forces': rThreeForces,
-    'loop-form': rLoopForm,
-    'matrix-fill': rMatrixFill,
-    'field-notes': rFieldNotes,
-    'system-diagram': rSystemDiagram,
-    'why-now': rWhyNow,
-    'four-cards': rFourCards,
-    'stacked-ledger': rStackedLedger,
-    'tech-spec': rTechSpec,
-    'image-hero': rImageHero,
-  };
-
-  function revealStatic(slide){
-    resetAnims(slide);
-    document.getAnimations?.().forEach(a=>a.cancel());
-    slide.querySelectorAll('[data-anim],.row-fill,.tl-node,.stack-block,.bar-tower,.sub-card,.col,.vrule,.kpi-cell,.card-fill,.card-accent,.card-ink')
-      .forEach(el=>{
-        el.style.opacity='1';
-        el.style.transform='none';
-      });
-  }
-
-  function playSlide(i){
-    const slide = slides[i];
-    if(!slide) return;
-    lastIdx = i;
-
-    if(window.__lowPowerMode){
-      revealStatic(slide);
-      return;
-    }
-
-    resetAnims(slide);
-
-    /* 关键:[data-anim] 容器很多时候只是占位标记,真正的几何动画在子元素上.
-       默认强制 reveal 所有 [data-anim] 容器, recipe 想做块入场时用 motion 的 {opacity:[0,1]} 会自动覆盖 */
-    slide.querySelectorAll('[data-anim]').forEach(el=>{
-      el.style.opacity = '1';
-      el.style.transform = 'none';
-    });
-
-    const all = [...slide.querySelectorAll('[data-anim]')];
-    const recipe = slide.dataset.animate;
-    const fn = RECIPES[recipe];
-    if(fn){ fn(slide, all); return; }
-
-    /* fallback: 平凡 fade */
-    if(all.length) animate(all, {opacity:[0,1], y:[12,0]},
-      {duration:.6, delay:i=>i*.08, easing:EASE_ENTRY_EXP});
-  }
-
-  window.__playSlide = playSlide;
-  window.__pipeAdvance = ()=>false;  /* 当前 deck 不用 pipeline recipe */
-
-  playSlide(window.__currentSlideIndex || 0);
-}
-</script>
-
-<script>
-/* ============== ASCII 点阵呼吸场 · IKB 封面/封底专用 ==============
-   sin/cos 二维噪声场驱动字符显隐,营造工业仪表板的"涌动呼吸"质感.
-   纯 canvas 2D, mix-blend-mode:screen 让字符在 IKB 底色上自然发亮.
-   用法:在需要呼吸场的容器(.canvas-card 或 split .half.b-accent)内首位插入
-        <canvas class="ascii-bg" aria-hidden="true">,本脚本会自动扫描并启动. */
-(function(){
-  const canvases = [...document.querySelectorAll('canvas.ascii-bg')];
-  if(!canvases.length) return;
-
-  const PALETTE = '   ...:::---+++***◦◦••▢▣';
-  const CELL = 16;
-  const FONT_SIZE = 13;
-
-  function setup(c){
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const rect = c.getBoundingClientRect();
-    if(rect.width < 4 || rect.height < 4) return false;
-    c.width = Math.round(rect.width * dpr);
-    c.height = Math.round(rect.height * dpr);
-    c.__dpr = dpr;
-    c.__w = rect.width;
-    c.__h = rect.height;
-    const ctx = c.getContext('2d');
-    ctx.setTransform(dpr,0,0,dpr,0,0);
-    const mono = (getComputedStyle(document.documentElement).getPropertyValue('--mono') || 'JetBrains Mono, monospace').trim();
-    ctx.font = `500 ${FONT_SIZE}px ${mono}`;
-    ctx.textBaseline = 'top';
-    c.__ctx = ctx;
-    return true;
-  }
-
-  function draw(c, t){
-    if(!c.__ctx) return;
-    const ctx = c.__ctx, w = c.__w, h = c.__h;
-    ctx.clearRect(0, 0, w, h);
-    const cols = Math.ceil(w / CELL);
-    const rows = Math.ceil(h / CELL);
-    for(let r=0; r<rows; r++){
-      for(let cc=0; cc<cols; cc++){
-        const n = (
-          Math.sin(cc * 0.18 + t) +
-          Math.sin(r * 0.24 - t * 0.7) +
-          Math.sin((cc + r) * 0.12 + t * 0.45) +
-          Math.sin(Math.hypot(cc - cols * 0.5, r - rows * 0.5) * 0.16 - t * 0.55)
-        ) / 4; // [-1, 1]
-        const v = (n + 1) / 2; // [0, 1]
-        if(v < 0.22) continue;
-        const idx = Math.min(PALETTE.length - 1, Math.floor(v * PALETTE.length));
-        const ch = PALETTE[idx];
-        if(ch === ' ') continue;
-        const alpha = 0.08 + (v - 0.22) * 0.55;
-        ctx.fillStyle = `rgba(255,255,255,${alpha.toFixed(3)})`;
-        ctx.fillText(ch, cc * CELL, r * CELL);
-      }
-    }
-  }
-
-  function resizeAll(){ canvases.forEach(setup); }
-  let pending = null;
-  window.addEventListener('resize', ()=>{
-    if(window.__lowPowerMode) return;
-    if(pending) cancelAnimationFrame(pending);
-    pending = requestAnimationFrame(resizeAll);
-  }, {passive:true});
-
-  let t0 = performance.now();
-  let frame = 0, asciiRAF = 0, running = false;
-  function tick(now){
-    if(!running || window.__lowPowerMode){running=false;asciiRAF=0;return;}
-    const t = (now - t0) / 1000 * 0.55;
-    frame++;
-    canvases.forEach(c=>{
-      // 离屏 slide 降帧:每 4 帧渲染一次,在屏 slide 每帧渲染
-      const slide = c.closest('.slide');
-      const rect = slide ? slide.getBoundingClientRect() : null;
-      const onscreen = rect && rect.right > 0 && rect.left < window.innerWidth;
-      if(!onscreen && (frame & 3) !== 0) return;
-      draw(c, t);
-    });
-    asciiRAF = requestAnimationFrame(tick);
-  }
-  function start(){
-    if(running || window.__lowPowerMode) return;
-    resizeAll();
-    t0 = performance.now();
-    frame = 0;
-    running = true;
-    asciiRAF = requestAnimationFrame(tick);
-  }
-  function stop(){
-    running = false;
-    if(asciiRAF) cancelAnimationFrame(asciiRAF);
-    if(pending) cancelAnimationFrame(pending);
-    asciiRAF = 0;
-    pending = null;
-    canvases.forEach(c=>{
-      if(c.__ctx) c.__ctx.clearRect(0,0,c.__w || 0,c.__h || 0);
-    });
-  }
-  addEventListener('swiss-low-power-change', e=>{e.detail.on ? stop() : start();});
-  start();
-})();
-</script>
 </body>
 </html>
