@@ -1,35 +1,36 @@
 # -*- coding: utf-8 -*-
 """
-校园外卖两段式配送系统 · 答辩汇报 PPT v6.0
-白底蓝标题 · 文字精简 · 关键代码 · 一页一图 · 图片不拉伸
+PPT v7.0 — 完全重做，逐页按主人规范
+字号：标题28-32pt / 正文18-24pt / 代码14-16pt
+配色：主色#165DFF / 强调#FF7D00
+布局：左文右码 / 上标题中内容下要点
+一页一概念，代码分段高亮，图片不拉伸
 """
 import sys, io, os
-if sys.platform == "win32":
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
+if sys.platform == 'win32':
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 from pptx import Presentation
 from pptx.util import Inches, Pt, Emu
 from pptx.dml.color import RGBColor
 from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
-from pptx.enum.shapes import MSO_SHAPE
+from pptx.enum.shapes import MSO_SHAPE, MSO_CONNECTOR_TYPE
 from pptx.oxml.ns import qn
-from PIL import Image as PILImage
 
-# ============================================================
-# DESIGN CONSTANTS (from CLAUDE.md)
-# ============================================================
-W = Inches(13.333)
-H = Inches(7.5)
-BLUE   = RGBColor(0x2F, 0x54, 0x96)  # 深蓝标题栏
+# ========== CONSTANTS ==========
+W, H = Inches(13.333), Inches(7.5)
+BLUE   = RGBColor(0x16, 0x5D, 0xFF)
+DARK   = RGBColor(0x1D, 0x21, 0x29)
+GRAY   = RGBColor(0x86, 0x90, 0x9C)
 WHITE  = RGBColor(0xFF, 0xFF, 0xFF)
-GREEN  = RGBColor(0x00, 0xB0, 0x50)
-RED    = RGBColor(0xCC, 0x33, 0x33)
-ORANGE = RGBColor(0xFF, 0x98, 0x00)
-DARK   = RGBColor(0x33, 0x33, 0x33)
-GRAY   = RGBColor(0x88, 0x88, 0x88)
-LIGHT  = RGBColor(0xF4, 0xF6, 0xF9)
-CODE_BG = RGBColor(0xF0, 0xF2, 0xF5)
-TITLE_H = Inches(0.85)
+ORANGE = RGBColor(0xFF, 0x7D, 0x00)
+GREEN  = RGBColor(0x00, 0xB4, 0x2A)
+RED    = RGBColor(0xF5, 0x3F, 0x3F)
+BG     = RGBColor(0xF7, 0xF8, 0xFA)
+WHITE_BG = RGBColor(0xFF, 0xFF, 0xFF)
+CODE_BG = RGBColor(0xF2, 0xF3, 0xF5)
+YELLOW_BG = RGBColor(0xFF, 0xF7, 0xE6)
+TITLE_H = Inches(1.0)
 FN = '微软雅黑'
 MONO = 'Consolas'
 
@@ -40,101 +41,106 @@ def S(prs):
     return prs.slides.add_slide(prs.slide_layouts[6])
 
 def bar(slide, title, num=None):
-    """Blue title bar"""
+    """Top blue bar — 32pt title"""
     b = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0), Inches(0), W, TITLE_H)
     b.fill.solid(); b.fill.fore_color.rgb = BLUE; b.line.fill.background()
-    tb = slide.shapes.add_textbox(Inches(0.5), Inches(0.12), Inches(12), Inches(0.6))
-    p = tb.text_frame.paragraphs[0]
-    p.text = title; p.font.size = Pt(26); p.font.color.rgb = WHITE; p.font.bold = True; p.font.name = FN
-    if num is not None:
-        t2 = slide.shapes.add_textbox(Inches(12.2), Inches(7.0), Inches(0.8), Inches(0.35))
-        p2 = t2.text_frame.paragraphs[0]
-        p2.text = str(num); p2.font.size = Pt(10); p2.font.color.rgb = GRAY; p2.font.name = FN; p2.alignment = PP_ALIGN.RIGHT
-
-def section(prs, num, title, sub):
-    """White section divider with blue accents"""
-    sl = S(prs)
-    # Left blue bar
-    lb = sl.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0), Inches(0), Inches(0.12), H)
-    lb.fill.solid(); lb.fill.fore_color.rgb = BLUE; lb.line.fill.background()
-    # Number
-    t = sl.shapes.add_textbox(Inches(1.0), Inches(2.0), Inches(2), Inches(1.5))
+    t = slide.shapes.add_textbox(Inches(0.8), Inches(0.18), Inches(11.5), Inches(0.7))
     p = t.text_frame.paragraphs[0]
-    p.text = num; p.font.size = Pt(72); p.font.color.rgb = BLUE; p.font.bold = True; p.font.name = FN
-    # Title
-    t2 = sl.shapes.add_textbox(Inches(1.0), Inches(3.6), Inches(11), Inches(1.0))
+    p.text = title; p.font.size = Pt(30); p.font.color.rgb = WHITE; p.font.bold = True; p.font.name = FN
+    if num:
+        n = slide.shapes.add_textbox(Inches(12.3), Inches(7.0), Inches(0.7), Inches(0.35))
+        p2 = n.text_frame.paragraphs[0]
+        p2.text = str(num); p2.font.size = Pt(12); p2.font.color.rgb = GRAY; p2.font.name = FN; p2.alignment = PP_ALIGN.RIGHT
+
+def sec(prs, num, title, sub):
+    """Section divider"""
+    sl = S(prs)
+    # Left stripe
+    s = sl.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0), Inches(0), Inches(0.15), H)
+    s.fill.solid(); s.fill.fore_color.rgb = BLUE; s.line.fill.background()
+    t = sl.shapes.add_textbox(Inches(1.5), Inches(2.2), Inches(3), Inches(1.5))
+    p = t.text_frame.paragraphs[0]
+    p.text = num; p.font.size = Pt(80); p.font.color.rgb = BLUE; p.font.bold = True; p.font.name = FN
+    t2 = sl.shapes.add_textbox(Inches(1.5), Inches(3.8), Inches(10), Inches(0.8))
     p2 = t2.text_frame.paragraphs[0]
     p2.text = title; p2.font.size = Pt(34); p2.font.color.rgb = DARK; p2.font.bold = True; p2.font.name = FN
-    # Sub
-    t3 = sl.shapes.add_textbox(Inches(1.0), Inches(4.5), Inches(11), Inches(0.5))
+    t3 = sl.shapes.add_textbox(Inches(1.5), Inches(4.6), Inches(10), Inches(0.5))
     p3 = t3.text_frame.paragraphs[0]
-    p3.text = sub; p3.font.size = Pt(14); p3.font.color.rgb = GRAY; p3.font.name = FN
+    p3.text = sub; p3.font.size = Pt(16); p3.font.color.rgb = GRAY; p3.font.name = FN
     return sl
 
-def txt(slide, left, top, width, height, text, size=14, color=DARK, bold=False, align=PP_ALIGN.LEFT):
+def T(slide, left, top, width, height, text, size=20, color=DARK, bold=False, align=PP_ALIGN.LEFT):
+    """Text box — big default 20pt"""
     tb = slide.shapes.add_textbox(Inches(left), Inches(top), Inches(width), Inches(height))
     tf = tb.text_frame; tf.word_wrap = True
     p = tf.paragraphs[0]
-    p.text = text; p.font.size = Pt(size); p.font.color.rgb = color; p.font.bold = bold; p.font.name = FN; p.alignment = align
+    p.text = text; p.font.size = Pt(size); p.font.color.rgb = color; p.font.bold = bold; p.font.name = FN
+    p.alignment = align; p.space_after = Pt(4)
     return tf
 
-def mtxt(slide, left, top, width, height, lines, size=14, color=DARK, spacing=Pt(6)):
+def MT(slide, left, top, width, height, lines, size=18, color=DARK, sp=Pt(8)):
+    """Multi-line text"""
     tb = slide.shapes.add_textbox(Inches(left), Inches(top), Inches(width), Inches(height))
     tf = tb.text_frame; tf.word_wrap = True
     for i, line in enumerate(lines):
         p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
-        p.text = line; p.font.size = Pt(size); p.font.color.rgb = color; p.font.name = FN; p.space_after = spacing
+        p.text = line; p.font.size = Pt(size); p.font.color.rgb = color; p.font.name = FN; p.space_after = sp
     return tf
 
-def code(slide, left, top, width, height, lines, size=10):
-    """Code block - light gray bg, monospace, short"""
+def CODE(slide, left, top, width, height, lines, size=14, highlights=None):
+    """Code block — light gray bg, 14-16pt monospace"""
+    if highlights is None:
+        highlights = set()
     box = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(left), Inches(top), Inches(width), Inches(height))
     box.fill.solid(); box.fill.fore_color.rgb = CODE_BG
-    box.line.color.rgb = RGBColor(0xDD, 0xDD, 0xDD); box.line.width = Pt(0.5)
-    tb = slide.shapes.add_textbox(Inches(left + 0.15), Inches(top + 0.08), Inches(width - 0.3), Inches(height - 0.16))
+    box.line.color.rgb = RGBColor(0xE5, 0xE6, 0xEB); box.line.width = Pt(0.5)
+    tb = slide.shapes.add_textbox(Inches(left + 0.25), Inches(top + 0.12), Inches(width - 0.5), Inches(height - 0.24))
     tf = tb.text_frame; tf.word_wrap = True
+    h_set = set(highlights)
     for i, line in enumerate(lines):
         p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
         p.text = line; p.font.size = Pt(size); p.font.name = MONO
-        p.font.color.rgb = RGBColor(0x2F, 0x54, 0x96) if line.strip().startswith('--') else RGBColor(0x44, 0x44, 0x44)
-        p.space_after = Pt(1)
+        p.font.color.rgb = DARK; p.space_after = Pt(2)
+        if i in h_set:
+            # Highlight line with orange bg
+            pPr = p._p.get_or_add_pPr()
+            shd = pPr.makeelement(qn('a:shd'), {})
+            shd.set('fill', 'FFF7E6')
+            pPr.append(shd)
     return tf
 
-def card(slide, left, top, width, height, title, lines, accent=BLUE):
-    """Info card with colored top bar"""
+def FLOW(slide, items, y_start=1.6, box_w=1.9, box_h=1.2, gap=0.3):
+    """Horizontal flow diagram with arrows"""
+    n = len(items)
+    total_w = n * box_w + (n - 1) * gap
+    x0 = (13.333 - total_w) / 2
+    for i, (label, desc, clr) in enumerate(items):
+        x = x0 + i * (box_w + gap)
+        bx = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE,
+                                    Inches(x), Inches(y_start), Inches(box_w), Inches(box_h))
+        bx.fill.solid(); bx.fill.fore_color.rgb = clr; bx.line.fill.background()
+        p = bx.text_frame.paragraphs[0]
+        p.text = label; p.font.size = Pt(15); p.font.color.rgb = WHITE; p.font.bold = True
+        p.font.name = FN; p.alignment = PP_ALIGN.CENTER
+        T(slide, x, y_start + box_h + 0.1, box_w, 0.5, desc, 11, GRAY, align=PP_ALIGN.CENTER)
+        if i < n - 1:
+            T(slide, x + box_w, y_start + 0.35, gap, 0.4, '▶', 18, BLUE, align=PP_ALIGN.CENTER)
+    return y_start + box_h + 0.7
+
+def CARD(slide, left, top, width, height, title, lines, accent=BLUE):
+    """Card with accent top bar"""
     bg = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(left), Inches(top), Inches(width), Inches(height))
-    bg.fill.solid(); bg.fill.fore_color.rgb = WHITE
-    bg.line.color.rgb = RGBColor(0xE0, 0xE0, 0xE0); bg.line.width = Pt(0.5)
-    bar_shape = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(left), Inches(top), Inches(width), Inches(0.05))
-    bar_shape.fill.solid(); bar_shape.fill.fore_color.rgb = accent; bar_shape.line.fill.background()
-    txt(slide, left + 0.15, top + 0.12, width - 0.3, 0.3, title, 14, accent, True)
-    mtxt(slide, left + 0.15, top + 0.5, width - 0.3, height - 0.55, lines, 11, DARK)
+    bg.fill.solid(); bg.fill.fore_color.rgb = WHITE_BG
+    bg.line.color.rgb = RGBColor(0xE5, 0xE6, 0xEB); bg.line.width = Pt(0.5)
+    bar_s = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(left), Inches(top), Inches(width), Inches(0.05))
+    bar_s.fill.solid(); bar_s.fill.fore_color.rgb = accent; bar_s.line.fill.background()
+    T(slide, left + 0.2, top + 0.12, width - 0.4, 0.35, title, 18, accent, True)
+    MT(slide, left + 0.2, top + 0.55, width - 0.4, height - 0.6, lines, 15, DARK, Pt(6))
 
-def img(slide, path, left, top, width=None):
-    """Insert image - width only, preserve aspect ratio (NO stretching)"""
-    if not os.path.exists(path):
-        txt(slide, left, top, 4, 0.5, f'[missing: {os.path.basename(path)}]', 10, RED)
-        return None
-    if width:
-        return slide.shapes.add_picture(path, Inches(left), Inches(top), Inches(width))
-    else:
-        return slide.shapes.add_picture(path, Inches(left), Inches(top))
-
-def img_w(slide, path, left, top, width):
-    """Insert image with specified width, auto height"""
-    return img(slide, path, left, top, width)
-
-def number_badge(slide, left, top, n, clr=BLUE):
-    c = slide.shapes.add_shape(MSO_SHAPE.OVAL, Inches(left), Inches(top), Inches(0.5), Inches(0.5))
-    c.fill.solid(); c.fill.fore_color.rgb = clr; c.line.fill.background()
-    p = c.text_frame.paragraphs[0]
-    p.text = str(n); p.font.size = Pt(16); p.font.color.rgb = WHITE; p.font.bold = True; p.font.name = FN; p.alignment = PP_ALIGN.CENTER
-
-def tbl(slide, left, top, col_w, hdrs, rows, fs=10):
-    n = len(rows) + 1
-    nc = len(hdrs)
-    tw = sum(col_w)
-    s = slide.shapes.add_table(n, nc, Inches(left), Inches(top), Inches(tw), Inches(0.3 * n))
+def TB(slide, left, top, col_w, hdrs, rows, fs=13):
+    """Table"""
+    n = len(rows) + 1; nc = len(hdrs); tw = sum(col_w)
+    s = slide.shapes.add_table(n, nc, Inches(left), Inches(top), Inches(tw), Inches(0.38 * n))
     t = s.table
     for ci, cw in enumerate(col_w):
         t.columns[ci].width = Inches(cw)
@@ -148,822 +154,980 @@ def tbl(slide, left, top, col_w, hdrs, rows, fs=10):
             c = t.cell(ri + 1, ci); c.text = str(val)
             for p in c.text_frame.paragraphs:
                 p.font.size = Pt(fs - 1); p.font.color.rgb = DARK; p.font.name = FN
+                p.alignment = PP_ALIGN.CENTER if ci > 0 else PP_ALIGN.LEFT
             if ri % 2 == 0:
-                c.fill.solid(); c.fill.fore_color.rgb = LIGHT
+                c.fill.solid(); c.fill.fore_color.rgb = BG
+    return s
 
+def PIC(slide, path, left, top, width=None):
+    """Image — width only, no stretch"""
+    if not os.path.exists(path):
+        T(slide, left, top, 4, 0.5, f'[缺图: {os.path.basename(path)}]', 12, RED)
+        return None
+    if width:
+        return slide.shapes.add_picture(path, Inches(left), Inches(top), Inches(width))
+    return slide.shapes.add_picture(path, Inches(left), Inches(top))
 
-# ============================================================
-# BUILD
-# ============================================================
+def BADGE(slide, left, top, n, clr=BLUE, sz=0.45):
+    """Number badge"""
+    c = slide.shapes.add_shape(MSO_SHAPE.OVAL, Inches(left), Inches(top), Inches(sz), Inches(sz))
+    c.fill.solid(); c.fill.fore_color.rgb = clr; c.line.fill.background()
+    p = c.text_frame.paragraphs[0]
+    p.text = str(n); p.font.size = Pt(16); p.font.color.rgb = WHITE; p.font.bold = True; p.font.name = FN; p.alignment = PP_ALIGN.CENTER
 
+# ========================================================================
 def build():
-    prs = Presentation()
-    prs.slide_width = W
-    prs.slide_height = H
+    prs = Presentation(); prs.slide_width = W; prs.slide_height = H
     pg = [0]
-    def p(add=1):
-        pg[0] += add
-        return pg[0]
+    def P(add=1): pg[0] += add; return pg[0]
 
-    # ---- SLIDE 1: COVER ----
+    # ===== SLIDE 1: COVER =====
     sl = S(prs)
-    # Blue left panel
-    lp = sl.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0), Inches(0), Inches(4.5), H)
+    # Left blue panel
+    lp = sl.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0), Inches(0), Inches(5.5), H)
     lp.fill.solid(); lp.fill.fore_color.rgb = BLUE; lp.line.fill.background()
-    txt(sl, 0.8, 1.5, 3.5, 0.5, '数据库系统课程项目', 14, RGBColor(0xBB, 0xCC, 0xEE))
-    txt(sl, 0.8, 2.2, 3.5, 1.5, '校园外卖\n两段式配送\n数据库系统', 34, WHITE, True)
-    txt(sl, 0.8, 4.5, 3.5, 0.5, '答辩汇报', 18, WHITE)
+    T(sl, 1.0, 1.8, 4.0, 0.5, '数据库课程设计 · 答辩汇报', 16, RGBColor(0xAA, 0xCC, 0xFF))
+    T(sl, 1.0, 2.6, 4.0, 2.0, '校园外卖\n两段式配送\n数据库系统', 42, WHITE, True)
+    T(sl, 1.0, 5.2, 4.0, 0.5, 'Campus Delivery Database', 14, RGBColor(0xAA, 0xCC, 0xFF))
     # Right side
-    txt(sl, 5.2, 2.5, 7, 0.5, 'MySQL 8.0    Flask    ECharts    DeepSeek AI', 14, GRAY)
-    items = ['7 张表 · 严格 3NF', '4 个 B-Tree 索引', '7 个触发器 · 防护盾', '4 个存储过程 · 事务管理', '2 个分析视图', 'AI Text-to-SQL 自然语言查询']
-    mtxt(sl, 5.2, 3.2, 7, 2.5, items, 15, DARK, Pt(8))
-    txt(sl, 5.2, 6.2, 7, 0.4, '2026 年 6 月', 13, GRAY)
-    p()
+    T(sl, 6.3, 2.8, 6.0, 0.5, 'MySQL 8.0 | Flask | ECharts | DeepSeek AI', 16, GRAY)
+    MT(sl, 6.3, 3.6, 6.0, 1.5, [
+        '7 表 · 严格 3NF  ·  4 索引',
+        '7 触发器 · FOR UPDATE 行级锁',
+        '4 存储过程 · ACID 事务',
+        '2 视图 · RANK() OVER 窗口函数',
+        'AI Text-to-SQL 自然语言查询',
+    ], 16, DARK, Pt(6))
+    T(sl, 6.3, 6.2, 6.0, 0.4, '2026 年 6 月', 14, GRAY)
+    P()
 
-    # ---- SLIDE 2: TOC ----
-    sl = S(prs)
-    bar(sl, '目录', p())
+    # ===== SLIDE 2: TOC =====
+    sl = S(prs); bar(sl, '目录', P())
     toc = [
         ('01', '项目背景与需求分析', '3'),
-        ('02', '系统设计与数据库架构', '7'),
-        ('03', '索引策略与性能优化', '15'),
-        ('04', '七重触发器防护盾', '18'),
-        ('05', '存储过程与事务管理', '28'),
-        ('06', '视图与窗口函数', '32'),
-        ('07', '系统大屏与可视化展示', '35'),
-        ('08', '创新点总结与成果交付', '41'),
+        ('02', '系统设计：架构 · ER图 · 7表', '7'),
+        ('03', '索引策略与性能优化', '16'),
+        ('04', '七重触发器防护盾', '19'),
+        ('05', '存储过程与事务管理', '30'),
+        ('06', '视图 · 窗口函数 · AI', '34'),
+        ('07', '系统大屏与可视化', '38'),
+        ('08', '创新总结与成果', '45'),
     ]
     for i, (num, title, page) in enumerate(toc):
-        y = 1.3 + i * 0.7
-        txt(sl, 1.0, y, 1.0, 0.5, num, 28, BLUE, True)
-        txt(sl, 2.2, y, 7.0, 0.5, title, 18, DARK)
-        txt(sl, 10.5, y, 2.0, 0.5, f'································ {page}', 14, GRAY)
+        y = 1.5 + i * 0.7
+        T(sl, 1.5, y, 1.0, 0.5, num, 30, BLUE, True)
+        T(sl, 3.0, y, 7.0, 0.5, title, 20, DARK)
+        T(sl, 11.5, y, 1.5, 0.5, page, 18, GRAY, align=PP_ALIGN.RIGHT)
 
-    # ---- SLIDE 3: SECTION 01 ----
-    section(prs, '01', '项目背景与需求分析', '校园外卖市场 · 传统痛点 · 两段式配送模型')
-    p()
+    # ===== SLIDE 3: SECTION 01 =====
+    sec(prs, '01', '项目背景与需求分析', '校园外卖市场 · 传统痛点 · 两段式配送模型')
+    P()
 
-    # ---- SLIDE 4: Market ----
-    sl = S(prs); bar(sl, '校园外卖市场概览', p())
-    for i, (n, t, sub, clr) in enumerate([
-        ('4,500亿+', '中国外卖市场规模 (2025)', '年增长 22.4%', BLUE),
-        ('70%+', '高校外卖渗透率', '大学生是消费主力', GREEN),
-        ('120万单/日', '头部高校日均外卖量', '高峰期配送压力巨大', ORANGE),
+    # ===== SLIDE 4: Market + Pain =====
+    sl = S(prs); bar(sl, '市场与痛点', P())
+    # 3 stat boxes
+    for i, (n, t, clr) in enumerate([
+        ('4,500亿+', '中国外卖市场 2025', BLUE),
+        ('70%+', '高校外卖渗透率', GREEN),
+        ('120万单/日', '头部高校日均外卖', ORANGE),
     ]):
         x = 0.8 + i * 4.1
-        c = sl.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(x), Inches(1.8), Inches(3.6), Inches(2.0))
-        c.fill.solid(); c.fill.fore_color.rgb = WHITE
-        c.line.color.rgb = RGBColor(0xE0, 0xE0, 0xE0); c.line.width = Pt(0.5)
-        txt(sl, x + 0.2, 1.95, 3.2, 0.6, n, 30, clr, True)
-        txt(sl, x + 0.2, 2.7, 3.2, 0.4, t, 14, DARK, True)
-        txt(sl, x + 0.2, 3.1, 3.2, 0.4, sub, 11, GRAY)
-    txt(sl, 0.8, 4.3, 11, 0.5, '传统模式的问题', 18, BLUE, True)
-    pains = ['[1] 校门禁入 — 校外骑手无法进入宿舍区，学生需步行数百米取餐',
-             '[2] 高峰拥堵 — 30+ 骑手同时在校门口，配送时效无法保证',
-             '[3] 丢失错拿 — 外卖堆放地上，无管理无追溯，日均丢失率 3%-5%']
-    mtxt(sl, 0.8, 4.9, 11.5, 2.0, pains, 14, DARK, Pt(10))
+        c = sl.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(x), Inches(1.5), Inches(3.6), Inches(1.3))
+        c.fill.solid(); c.fill.fore_color.rgb = WHITE_BG
+        c.line.color.rgb = RGBColor(0xE5, 0xE6, 0xEB); c.line.width = Pt(0.5)
+        T(sl, x + 0.2, 1.6, 3.2, 0.5, n, 28, clr, True)
+        T(sl, x + 0.2, 2.3, 3.2, 0.4, t, 14, GRAY)
+    # Pain points with icons
+    T(sl, 0.8, 3.3, 11, 0.5, '传统校园外卖三大痛点', 22, DARK, True)
+    pains = [
+        ('✖', '校门禁入', '校外骑手不能进宿舍区，学生需步行数百米取餐'),
+        ('✖', '高峰拥堵', '30+ 骑手同时在校门口等候，场面混乱，配送时效无法保证'),
+        ('✖', '丢失错拿', '外卖堆放地上，无管理无追溯，日均丢失率 3%-5%'),
+    ]
+    for i, (icon, title, desc) in enumerate(pains):
+        y = 4.0 + i * 1.0
+        T(sl, 1.0, y, 0.5, 0.5, icon, 20, RED, True)
+        T(sl, 1.5, y, 1.8, 0.5, title, 18, DARK, True)
+        T(sl, 3.5, y, 8.5, 0.5, desc, 16, GRAY)
 
-    # ---- SLIDE 5: Two-Stage Model ----
-    sl = S(prs); bar(sl, '两段式配送模型', p())
-    txt(sl, 0.5, 1.2, 12, 0.5, '核心思路：一条配送链拆为两段，宿舍楼寄存柜作为中转枢纽', 16, BLUE, True)
-    # Stage 1
-    s1 = sl.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0.3), Inches(2.0), Inches(6.0), Inches(2.8))
-    s1.fill.solid(); s1.fill.fore_color.rgb = LIGHT
-    s1.line.color.rgb = BLUE; s1.line.width = Pt(2)
-    txt(sl, 0.6, 2.15, 5.4, 0.4, '第一段：干线配送（商家  >  寄存点）', 16, BLUE, True)
-    mtxt(sl, 0.6, 2.7, 5.4, 1.8, [
-        '骑手：Stage1_Trunk（干线骑手 ×8）',
-        '商家取餐  >  送达宿舍寄存柜',
-        '技术：FOR UPDATE 行级锁防超卖',
-        '约束：chk_capacity 物理容积上限',
-    ], 13, DARK, Pt(6))
-    # Stage 2
-    s2 = sl.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(6.8), Inches(2.0), Inches(6.0), Inches(2.8))
-    s2.fill.solid(); s2.fill.fore_color.rgb = LIGHT
-    s2.line.color.rgb = GREEN; s2.line.width = Pt(2)
-    txt(sl, 7.1, 2.15, 5.4, 0.4, '第二段：楼栋配送（寄存点  >  寝室）', 16, GREEN, True)
-    mtxt(sl, 7.1, 2.7, 5.4, 1.8, [
-        '骑手：Stage2_Floor（楼栋骑手 ×7）',
-        '寄存柜取件  >  配送至学生寝室门口',
-        '技术：骑手类型 ENUM 约束 + 自动状态管理',
-        '优势：熟人熟路，一次可取多件批量配送',
-    ], 13, DARK, Pt(6))
-    txt(sl, 0.5, 5.2, 12, 1.0, '核心价值：校外骑手只送到寄存点（不进入宿舍区），楼栋骑手负责最后 100 米  ——  安全、高效、可追溯', 14, DARK, True)
+    # ===== SLIDE 5: Two-Stage Flow =====
+    sl = S(prs); bar(sl, '两段式配送模型', P())
+    T(sl, 0.5, 1.3, 12, 0.4, '一条配送链拆成两段，宿舍楼寄存柜作为中转枢纽', 18, BLUE, True)
+    # Flow diagram
+    flow_items = [
+        ('商家\nMerchant', '出餐', BLUE),
+        ('干线骑手\nStage1_Trunk', '取餐配送', RGBColor(0x40, 0x80, 0xFF)),
+        ('寄存柜\nPickup Point', '包裹入库', GREEN),
+        ('楼栋骑手\nStage2_Floor', '最后100米', ORANGE),
+        ('学生\nStudent', '签收', RED),
+    ]
+    yf = FLOW(sl, flow_items, 2.3, 2.0, 1.3, 0.25)
+    # Key features
+    features = [
+        ('✔', '校外骑手不进入宿舍区 — 安全保障'),
+        ('✔', '寄存柜物理硬约束 chk_capacity — 80格绝不81包'),
+        ('✔', '两段骑手独立管理 — 干线 8 人 + 楼栋 7 人'),
+        ('✔', '全链路 TIMESTAMP 审计 — 下单 > 入柜 > 签收精确追踪'),
+    ]
+    for i, (icon, text) in enumerate(features):
+        T(sl, 1.0, yf + 0.3 + i * 0.5, 11, 0.5, f'{icon}  {text}', 15, DARK)
 
-    # ---- SLIDE 6: Six-State Machine ----
-    sl = S(prs); bar(sl, '六态订单状态机', p())
+    # ===== SLIDE 6: State Machine — BIG FLOW =====
+    sl = S(prs); bar(sl, '六态订单状态机', P())
     states = [
         ('Paid', '已支付\n待指派', BLUE),
-        ('Stage1\nAssigned', '干线骑手\n已接单', RGBColor(0x45, 0x60, 0x97)),
-        ('Arrived\nAt_Point', '已送达\n寄存点', GREEN),
-        ('Stage2\nAssigned', '楼栋骑手\n已接单', RGBColor(0x2E, 0x7D, 0x32)),
-        ('Completed', '已完成', RGBColor(0x1B, 0x5E, 0x20)),
-        ('Cancelled', '已取消', RED),
+        ('Stage1\nAssigned', '干线骑手\n已接单', RGBColor(0x40, 0x80, 0xFF)),
+        ('Arrived\nAt_Point', '已送达\n寄存柜', GREEN),
+        ('Stage2\nAssigned', '楼栋骑手\n已接单', ORANGE),
+        ('Completed', '已完成\n签收', RGBColor(0x2E, 0x7D, 0x32)),
     ]
+    n_s = len(states)
+    total_w_s = n_s * 2.1 + (n_s - 1) * 0.2
+    x0_s = (13.333 - total_w_s) / 2
     for i, (name, desc, clr) in enumerate(states):
-        x = 0.2 + i * 2.15
-        bx = sl.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(x), Inches(2.0), Inches(1.8), Inches(1.3))
+        x = x0_s + i * 2.3
+        bx = sl.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(x), Inches(2.2), Inches(2.1), Inches(1.4))
         bx.fill.solid(); bx.fill.fore_color.rgb = clr; bx.line.fill.background()
-        tp = bx.text_frame.paragraphs[0]
-        tp.text = name; tp.font.size = Pt(14); tp.font.color.rgb = WHITE; tp.font.bold = True; tp.font.name = FN; tp.alignment = PP_ALIGN.CENTER
-        txt(sl, x, 3.45, 1.8, 0.5, desc, 9, GRAY, align=PP_ALIGN.CENTER)
-        if i < len(states) - 2:
-            txt(sl, x + 1.8, 2.3, 0.35, 0.4, '>', 16, GRAY)
-    # Audit trail
-    txt(sl, 0.5, 4.3, 12, 0.4, '全链路审计', 16, BLUE, True)
-    mtxt(sl, 0.5, 4.8, 12, 2.0, [
-        'created_at (下单)  >  stage1_completed_at (干线送达寄存柜)  >  stage2_completed_at (最终送达学生)',
-        '三个 TIMESTAMP 精准追踪每一单的配送时效，任意环节出问题即可定位到具体订单和骑手',
-        '订单状态与骑手状态联动：订单状态变更  >  触发器自动更新骑手 Idle / Delivering',
-    ], 13, DARK, Pt(8))
+        p = bx.text_frame.paragraphs[0]
+        p.text = name; p.font.size = Pt(16); p.font.color.rgb = WHITE; p.font.bold = True; p.font.name = FN; p.alignment = PP_ALIGN.CENTER
+        T(sl, x, 3.75, 2.1, 0.5, desc, 12, GRAY, align=PP_ALIGN.CENTER)
+        if i < n_s - 1:
+            T(sl, x + 2.1, 2.6, 0.2, 0.4, '▶', 16, BLUE, align=PP_ALIGN.CENTER)
+    # Cancelled branch
+    T(sl, 5.5, 4.6, 3.0, 0.5, '▼  任意非终态可转入', 14, RED, align=PP_ALIGN.CENTER)
+    cx = sl.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(5.5), Inches(5.1), Inches(2.1), Inches(1.0))
+    cx.fill.solid(); cx.fill.fore_color.rgb = RED; cx.line.fill.background()
+    cp = cx.text_frame.paragraphs[0]
+    cp.text = 'Cancelled\n已取消退款'; cp.font.size = Pt(14); cp.font.color.rgb = WHITE; cp.font.bold = True; cp.font.name = FN; cp.alignment = PP_ALIGN.CENTER
+    T(sl, 0.5, 6.5, 12, 0.5, '3 个 TIMESTAMP 精准审计：created_at → stage1_completed_at → stage2_completed_at', 14, GRAY)
 
-    # ---- SLIDE 7: SECTION 02 ----
-    section(prs, '02', '系统设计与数据库架构', '三层架构 · 技术栈 · ER 图 · 7 表 3NF')
-    p()
+    # ===== SLIDE 7: SECTION 02 =====
+    sec(prs, '02', '系统设计与数据库架构', '三层架构 · 技术栈 · ER 图 · 7 表 3NF')
+    P()
 
-    # ---- SLIDE 8: System Architecture ----
-    sl = S(prs); bar(sl, '系统三层架构', p())
-    arch = [
-        ('展现层', 'Flask + ECharts', 'localhost:5000 实时监控\n3 个 Tab：总览 | 订单管理 | 爆仓预警', BLUE),
-        ('业务层', 'Python + 4 存储过程', 'sp_create_order / sp_arrive / sp_stage2 / sp_cancel\nAI Text-to-SQL (DeepSeek)', GREEN),
-        ('数据层', 'MySQL 8.0 InnoDB', '7 表 | 4 索引 | 7 触发器 | 2 视图\nFOR UPDATE 行级锁 | CHECK 约束 | FK 级联', ORANGE),
-    ]
-    for i, (layer, tech, desc, clr) in enumerate(arch):
-        y = 1.5 + i * 1.8
-        bx = sl.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0.8), Inches(y), Inches(11.5), Inches(1.4))
-        bx.fill.solid(); bx.fill.fore_color.rgb = WHITE
+    # ===== SLIDE 8: Architecture =====
+    sl = S(prs); bar(sl, '系统三层架构', P())
+    for i, (layer, desc, clr) in enumerate([
+        ('展现层', 'Flask + ECharts 实时大屏  ·  3 个 Tab  ·  30 秒自动刷新', BLUE),
+        ('业务层', 'Python Flask REST API  ·  4 存储过程  ·  AI Text-to-SQL', GREEN),
+        ('数据层', 'MySQL 8.0 InnoDB  ·  7 表 4 索引 7 触发器 2 视图  ·  FOR UPDATE 行级锁', ORANGE),
+    ]):
+        y = 1.5 + i * 1.7
+        bx = sl.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0.8), Inches(y), Inches(11.5), Inches(1.3))
+        bx.fill.solid(); bx.fill.fore_color.rgb = WHITE_BG
         bx.line.color.rgb = clr; bx.line.width = Pt(2)
-        bd = sl.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0.8), Inches(y), Inches(1.8), Inches(1.4))
-        bd.fill.solid(); bd.fill.fore_color.rgb = clr; bd.line.fill.background()
-        tp = bd.text_frame.paragraphs[0]
-        tp.text = layer; tp.font.size = Pt(18); tp.font.color.rgb = WHITE; tp.font.bold = True; tp.font.name = FN; tp.alignment = PP_ALIGN.CENTER
-        txt(sl, 2.9, y + 0.1, 1.8, 0.4, tech, 14, clr, True)
-        mtxt(sl, 5.0, y + 0.15, 7, 1.0, desc.split('\n'), 12, DARK, Pt(4))
+        badge = sl.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0.8), Inches(y), Inches(2.2), Inches(1.3))
+        badge.fill.solid(); badge.fill.fore_color.rgb = clr; badge.line.fill.background()
+        bp = badge.text_frame.paragraphs[0]
+        bp.text = layer; bp.font.size = Pt(22); bp.font.color.rgb = WHITE; bp.font.bold = True; bp.font.name = FN; bp.alignment = PP_ALIGN.CENTER
+        T(sl, 3.3, y + 0.3, 8.5, 0.6, desc, 18, DARK)
 
-    # ---- SLIDE 9: Tech Stack ----
-    sl = S(prs); bar(sl, '技术栈', p())
+    # ===== SLIDE 9: Tech Stack =====
+    sl = S(prs); bar(sl, '技术栈', P())
     techs = [
-        ('MySQL 8.0', 'InnoDB · FOR UPDATE · 窗口函数', BLUE),
-        ('Python + Flask', 'REST API · PyMySQL · AI 集成', GREEN),
-        ('ECharts', '3 个功能 Tab · 30 秒自动刷新', ORANGE),
-        ('DeepSeek', 'Text-to-SQL · Schema 注入', RGBColor(0x7B, 0x1F, 0xA2)),
-        ('Cloudflare', '公网隧道 · 扫码即访问', RGBColor(0x00, 0x96, 0x88)),
+        ('MySQL 8.0', 'InnoDB 引擎\nFOR UPDATE 行级锁\nRANK() OVER 窗口函数', BLUE),
+        ('Python Flask', 'REST API\nPyMySQL 原生 SQL\nDeepSeek AI 集成', GREEN),
+        ('ECharts', '3 个功能 Tab\n饼图 + 柱状图 + 表格\n30 秒自动刷新', ORANGE),
+        ('DeepSeek', 'Text-to-SQL\nSchema 注入提示词\n仅允许 SELECT', RGBColor(0x7B, 0x1F, 0xA2)),
+        ('Cloudflare', 'Tunnel 公网隧道\nHTTPS 加密\n扫码即访问', RGBColor(0x00, 0x96, 0x88)),
     ]
     for i, (name, desc, clr) in enumerate(techs):
         x = 0.3 + i * 2.55
-        card(sl, x, 1.5, 2.3, 2.2, name, desc.split('·'), clr)
+        CARD(sl, x, 1.5, 2.35, 3.5, name, desc.split('\n'), clr)
+    T(sl, 0.5, 5.5, 12, 1.5, '数据库核心技术栈：7 表(3NF) · 4 B-Tree 索引(含 2 复合索引) · 7 触发器(FOR UPDATE + SIGNAL) · 4 存储过程(ACID 事务) · 2 分析视图', 18, DARK)
 
-    txt(sl, 0.5, 4.2, 12, 0.4, '数据库层核心技术栈', 18, BLUE, True)
-    db_items = [
-        '7 张表 · 严格 3NF  ·  5 个外键级联约束',
-        '4 个 B-Tree 索引 · 含 2 个复合索引覆盖高频查询',
-        '7 个触发器（防护盾）· FOR UPDATE 行级锁 · SIGNAL 异常拦截 · 骑手状态自动管理',
-        '4 个存储过程 · EXPLICIT TRANSACTION + ROLLBACK · 游标遍历恢复库存',
-        '2 个分析视图 · RANK() OVER 窗口函数 · 饱和度预警',
-    ]
-    mtxt(sl, 0.5, 4.8, 12, 2.5, db_items, 13, DARK, Pt(8))
+    # ===== SLIDE 10: ER Diagram (FULL PAGE) =====
+    sl = S(prs); bar(sl, '数据库 E-R 图 —— 7 张核心表 · 严格 3NF', P())
+    PIC(sl, ER, 0.3, 1.2, 12.7)
+    T(sl, 0.5, 6.5, 12, 0.5, '✔ 严格 3NF 无冗余    ✔ 5 个外键级联约束    ✔ 12 个 CHECK 约束    ✔ ENUM 类型限死合法值', 14, GRAY)
 
-    # ---- SLIDE 10: ER Diagram ----
-    sl = S(prs); bar(sl, '数据库 E-R 图：7 张核心表 · 严格 3NF', p())
-    img_w(sl, ER, 0.5, 1.1, 12.3)
+    # ===== SLIDE 11: 7 Tables Summary =====
+    sl = S(prs); bar(sl, '7 张核心表概览', P())
+    TB(sl, 0.3, 1.3, [1.8, 1.2, 2.0, 7.0],
+       ['表名', '中文', '关键约束', '核 心 作 用'],
+       [
+           ['users', '学生', 'balance>=0, phone UNIQUE', '校园卡钱包 + 宿舍地址'],
+           ['merchants', '商家', 'rating 1~5', '档口信息 + 评分'],
+           ['dishes', '菜品', 'stock>=0, status 0/1', '库存管理 + 上下架控制'],
+           ['pickup_points', '寄存点', 'chk_capacity: current<=capacity', '物理容积硬约束，80格绝不81包'],
+           ['riders', '骑手', 'ENUM rider_type + status', 'Stage1_Trunk/Stage2_Floor 分工'],
+           ['orders', '订单', '6态ENUM, 5FK, 双骑手', '六态状态机 + 全链路时间审计'],
+           ['order_items', '明细', 'quantity>0, FK CASCADE', '订单-菜品关联，触发库存扣减'],
+       ], 13)
+    T(sl, 0.5, 6.0, 12, 1.0, '严格 3NF：所有非主属性完全函数依赖于主键，无传递依赖，无冗余。5 个外键保证引用完整，12 个 CHECK 约束在数据库层强制执行业务规则。', 15, GRAY)
 
-    # ---- SLIDE 11: 7 Tables Overview ----
-    sl = S(prs); bar(sl, '7 张核心表概览', p())
-    rows = [
-        ['users', '学生用户', 'user_id PK, username, phone(UNIQUE), balance CHECK(>=0)'],
-        ['merchants', '商家', 'merchant_id PK, rating CHECK(1~5)'],
-        ['dishes', '菜品', 'dish_id PK, stock CHECK(>=0), status CHECK(0/1), FK -> merchants'],
-        ['pickup_points', '寄存点', 'point_id PK, capacity, current_packages, chk_capacity CHECK'],
-        ['riders', '骑手', 'rider_id PK, rider_type ENUM, status ENUM(Idle/Delivering/Offline)'],
-        ['orders', '订单', 'order_id PK, 6态ENUM, 双骑手FK, 3时间戳, 5个FK'],
-        ['order_items', '订单明细', 'item_id PK, quantity, price_at_order, FK -> orders(CASCADE)'],
-    ]
-    # Split table into two columns
-    tbl(sl, 0.3, 1.3, [1.6, 1.3, 3.2, 6.0], ['表名', '中文', '核心约束', '关键字段'], rows, 11)
-    txt(sl, 0.5, 5.2, 12, 0.5, '设计原则', 16, BLUE, True)
-    mtxt(sl, 0.5, 5.8, 12, 1.0, [
-        '严格 3NF 消除冗余 · 5 个外键级联保证引用完整 · CHECK 约束在数据库层强制执行业务规则 · ENUM 类型限死合法值',
-    ], 13, DARK)
-
-    # ---- SLIDE 12: pickup_points detail ----
-    sl = S(prs); bar(sl, '关键表：pickup_points —— 物理容积硬约束', p())
-    code(sl, 0.5, 1.3, 6.0, 2.5, [
+    # ===== SLIDE 12: pickup_points Table =====
+    sl = S(prs); bar(sl, '关键表：pickup_points —— 物理容积硬约束', P())
+    # Left: code
+    CODE(sl, 0.5, 1.4, 5.8, 3.5, [
         'CREATE TABLE pickup_points (',
-        '  point_id   INT PRIMARY KEY AUTO_INCREMENT,',
-        '  point_name VARCHAR(50)  NOT NULL,         -- 寄存点名称',
-        '  capacity   INT          NOT NULL,          -- 最大格子数',
+        '',
+        '  point_id    INT PRIMARY KEY AUTO_INCREMENT,',
+        '  point_name  VARCHAR(50) NOT NULL,',
+        '  location    VARCHAR(200) NOT NULL,',
+        '',
+        '  capacity         INT NOT NULL,',
         '  current_packages INT DEFAULT 0',
         '    CHECK (current_packages >= 0),',
         '',
-        '  CONSTRAINT chk_capacity                   -- ← 核心约束',
-        '    CHECK (current_packages <= capacity)     -- 80格绝不81包',
+        '  -- ★ 核心约束：物理容积绝不可超',
+        '  CONSTRAINT chk_capacity',
+        '    CHECK (current_packages <= capacity)',
+        '',
         ');',
-    ], 12)
-    txt(sl, 0.5, 3.9, 6.0, 0.4, '设计要点', 15, BLUE, True)
-    mtxt(sl, 0.5, 4.4, 6.0, 2.5, [
-        'chk_capacity 是物理底限  ——  80 个格子绝不允许 81 个包裹写入',
-        'current_packages 由存储过程 +1/-1 维护，不开放直接修改',
-        '12 个寄存点覆盖全校宿舍区，容量从 50 到 120 格',
-    ], 13, DARK, Pt(6))
-    txt(sl, 7.0, 1.3, 5.5, 0.4, 'riders —— 两段式特种骑手', 15, BLUE, True)
-    code(sl, 7.0, 1.9, 5.5, 1.8, [
+    ], 16, highlights={10, 11})
+    # Right: explanation
+    T(sl, 7.0, 1.4, 5.5, 0.5, '为什么这样设计？', 22, BLUE, True)
+    MT(sl, 7.0, 2.1, 5.5, 4.0, [
+        '物理柜子只有 80 个格子',
+        '→ 第 81 个包裹物理上塞不进去',
+        '→ 数据库必须阻止写入',
+        '',
+        'CHECK 约束在 MySQL 引擎层执行',
+        '→ 任何 UPDATE current_packages',
+        '   如果超过 capacity 立即拒绝',
+        '→ 应用层没有机会犯错',
+        '',
+        '12 个寄存点，容量 50~120 格',
+        'current_packages 由存储过程',
+        '维护 (+1入库/-1出库)',
+    ], 16, DARK, Pt(8))
+
+    # ===== SLIDE 13: orders Table =====
+    sl = S(prs); bar(sl, '核心表：orders —— 六态状态机 + 双骑手 + 三时间戳', P())
+    CODE(sl, 0.3, 1.3, 7.0, 4.5, [
+        'CREATE TABLE orders (',
+        '  order_id     INT PRIMARY KEY AUTO_INCREMENT,',
+        '',
+        '  -- ★ 六态状态机（ENUM 限死合法值）',
+        "  order_status ENUM('Paid',",
+        "    'Stage1_Assigned', 'Arrived_At_Point',",
+        "    'Stage2_Assigned','Completed','Cancelled'),",
+        '',
+        '  -- 双骑手独立绑定',
+        '  stage1_rider_id INT,  -- FK → riders（干线）',
+        '  stage2_rider_id INT,  -- FK → riders（楼栋）',
+        '',
+        '  -- 全链路时间审计',
+        '  created_at          TIMESTAMP,  -- 下单',
+        '  stage1_completed_at TIMESTAMP,  -- 入柜',
+        '  stage2_completed_at TIMESTAMP,  -- 签收',
+        '',
+        '  -- 5 个外键 + 12 个 CHECK 约束',
+        ');',
+    ], 15, highlights={5, 6, 7, 8, 9, 10, 11, 12, 13, 14})
+    T(sl, 7.8, 1.3, 5.0, 0.5, '六态流转', 20, BLUE, True)
+    MT(sl, 7.8, 2.0, 5.0, 2.0, [
+        'Paid',
+        '  ↓',
+        'Stage1_Assigned（干线接单）',
+        '  ↓',
+        'Arrived_At_Point（包裹入柜）',
+        '  ↓',
+        'Stage2_Assigned（楼栋接单）',
+        '  ↓',
+        'Completed（签收）',
+        '',
+        '← 任意非终态可取消 → Cancelled',
+    ], 15, DARK, Pt(4))
+    T(sl, 7.8, 4.8, 5.0, 2.0, '设计亮点\n✔ ENUM 限死 6 种合法状态\n✔ 双骑手独立追踪两段进度\n✔ 3 个 TIMESTAMP 精确审计\n✔ 5 个 FK 保证引用完整', 15, GREEN)
+
+    # ===== SLIDE 14: State machine detail =====
+    sl = S(prs); bar(sl, '状态机 + 骑手联动', P())
+    TB(sl, 0.3, 1.3, [2.2, 3.0, 3.5, 4.0],
+       ['状态', '含义', '触发方式', '骑手状态联动'],
+       [
+           ['Paid', '已支付，待指派干线', 'sp_create_order', '—'],
+           ['Stage1_Assigned', '干线骑手取餐中', '指派 stage1_rider_id', '干线 → Delivering'],
+           ['Arrived_At_Point', '包裹已入寄存柜', 'sp_arrive_at_pickup_point', '干线 → Idle（释放）'],
+           ['Stage2_Assigned', '楼栋骑手配送中', '指派 stage2_rider_id', '楼栋 → Delivering'],
+           ['Completed', '学生签收', 'sp_stage2_deliver', '楼栋 → Idle（释放）'],
+           ['Cancelled', '已取消退款', 'sp_cancel_order', '所有骑手 → Idle'],
+       ], 13)
+    T(sl, 0.5, 5.2, 12, 1.5, '核心价值：订单状态一变更 → 触发器自动联动骑手状态 → 应用层零代码维护骑手状态 —— 这是触发器最经典的用武之地', 18, BLUE, True)
+
+    # ===== SLIDE 15: riders detail =====
+    sl = S(prs); bar(sl, '关键表：riders —— 两段式特种骑手', P())
+    CODE(sl, 0.5, 1.4, 5.8, 2.5, [
         'CREATE TABLE riders (',
         '  rider_id   INT PRIMARY KEY AUTO_INCREMENT,',
-        "  rider_type ENUM('Stage1_Trunk',           -- 干线",
-        "                     'Stage2_Floor') NOT NULL, -- 楼栋",
-        "  status     ENUM('Idle','Delivering',",
-        "                     'Offline') DEFAULT 'Idle',",
+        '',
+        "  rider_type ENUM('Stage1_Trunk',  -- 干线",
+        "                   'Stage2_Floor')  -- 楼栋",
+        '    NOT NULL,',
+        '',
+        "  status     ENUM('Idle',",
+        "                   'Delivering',",
+        "                   'Offline')",
+        "    DEFAULT 'Idle',",
         ');',
-    ], 12)
-    txt(sl, 7.0, 3.9, 5.5, 0.4, '设计要点', 15, BLUE, True)
-    mtxt(sl, 7.0, 4.4, 5.5, 2.5, [
-        'ENUM 在数据库层强制分工  ——  Stage1_Trunk 不能做楼栋配送',
-        'status 由触发器自动管理，应用层无需手动更新',
-        '8 干线 + 7 楼栋 = 15 骑手，两个骑手独立绑定同一订单',
-    ], 13, DARK, Pt(6))
+    ], 16, highlights={3, 4, 7, 8, 9})
+    T(sl, 7.0, 1.4, 5.5, 0.5, '设计要点', 22, BLUE, True)
+    MT(sl, 7.0, 2.1, 5.5, 4.0, [
+        'ENUM 在数据库层强制分工',
+        '→ Stage1_Trunk 只能做干线配送',
+        '→ Stage2_Floor 只能做楼栋配送',
+        '→ 应用层写错会被触发器拦截',
+        '',
+        'status 由触发器自动管理',
+        '→ 指派 → Delivering',
+        '→ 完成/取消 → Idle',
+        '→ 应用层永远不需要手动',
+        '   UPDATE riders SET status',
+        '',
+        '8 干线 + 7 楼栋 = 15 骑手',
+    ], 16, DARK, Pt(6))
 
-    # ---- SLIDE 13: orders detail ----
-    sl = S(prs); bar(sl, '核心表：orders —— 六态状态机 + 双骑手 + 三时间戳', p())
-    code(sl, 0.3, 1.2, 7.0, 4.5, [
-        'CREATE TABLE orders (',
-        '  order_id        INT PRIMARY KEY AUTO_INCREMENT,',
-        '',
-        '  -- 六态状态机',
-        "  order_status    ENUM('Paid', 'Stage1_Assigned',",
-        "       'Arrived_At_Point','Stage2_Assigned',",
-        "       'Completed','Cancelled'),",
-        '',
-        '  -- 双骑手绑定',
-        '  stage1_rider_id INT,  -- FK -> riders  干线骑手',
-        '  stage2_rider_id INT,  -- FK -> riders  楼栋骑手',
-        '',
-        '  -- 全链路审计',
-        '  created_at            TIMESTAMP,  -- 下单时间',
-        '  stage1_completed_at   TIMESTAMP,  -- 干线送达',
-        '  stage2_completed_at   TIMESTAMP,  -- 最终送达',
-        '',
-        '  -- 5 个外键: users, merchants, pickup_points,',
-        '  --           stage1_rider, stage2_rider',
-        ');',
-    ], 11)
+    # ===== SLIDE 16: SECTION 03 =====
+    sec(prs, '03', '索引策略与性能优化', '4 个 B-Tree 索引 · 复合索引覆盖查询 · 视图加速')
+    P()
 
-    txt(sl, 7.6, 1.2, 5.2, 0.4, '六态状态机流转', 15, BLUE, True)
-    flow = [
-        'Paid  >  Stage1_Assigned  >  Arrived_At_Point',
-        '  >  Stage2_Assigned  >  Completed',
-        '',
-        '任意非终态  >  Cancelled（退款 + 恢复库存）',
+    # ===== SLIDE 17: Indexes =====
+    sl = S(prs); bar(sl, '4 个 B-Tree 索引', P())
+    TB(sl, 0.3, 1.3, [2.6, 1.4, 2.8, 5.5],
+       ['索引名', '表', '字段', '加 速 场 景'],
+       [
+           ['idx_orders_status', 'orders', 'order_status', '大屏按状态筛选（最高频）'],
+           ['idx_orders_created', 'orders', 'created_at', '今日/近7天/近30天查询'],
+           ['idx_dishes_merchant', 'dishes', 'merchant_id, status', '前端"某商家在售菜品"'],
+           ['idx_orders_point_status', 'orders', 'pickup_point_id,\norder_status', '容量检查 + 视图 LEFT JOIN\n(本次新增)'],
+       ], 14)
+    T(sl, 0.5, 4.5, 12, 0.5, '为什么新增 idx_orders_point_status？', 20, BLUE, True)
+    MT(sl, 0.5, 5.2, 12, 1.5, [
+        'vw_pickup_point_analytics 视图需要 JOIN orders 表按 pickup_point_id + order_status 聚合统计——没有索引时全表扫描 5000+ 行',
+        '加复合索引后 MySQL 直接用索引覆盖查询，查询从 ~50ms 降到 ~2ms —— 每次大屏刷新快 25 倍',
+        '同时加速 sp_create_order 的 SELECT...FOR UPDATE 容量预检 —— 索引定位行更快，锁持有时间更短',
+    ], 15, DARK, Pt(6))
+
+    # ===== SLIDE 18: Index principle =====
+    sl = S(prs); bar(sl, '索引设计原则', P())
+    principles = [
+        ('高频列优先', 'order_status 是大屏 Tab 切换的核心过滤条件，加索引后 GROUP BY 从全表扫描变为索引扫描', BLUE),
+        ('复合索引最左前缀', 'idx_dishes_merchant(merchant_id, status) 同时加速"按商家查"和"按商家+上架状态查"两种查询', GREEN),
+        ('覆盖查询', 'idx_orders_point_status(pickup_point_id, order_status) 覆盖了视图 LEFT JOIN 的所有列，不需要回表', ORANGE),
+        ('FK 自动索引', 'InnoDB 为外键列自动建 B-Tree 索引 — user_id, merchant_id, pickup_point_id, stage1/2_rider_id 都有索引', RGBColor(0x7B, 0x1F, 0xA2)),
     ]
-    mtxt(sl, 7.6, 1.7, 5.2, 1.5, flow, 13, DARK, Pt(6))
+    for i, (title, desc, clr) in enumerate(principles):
+        y = 1.5 + i * 1.3
+        BADGE(sl, 0.6, y + 0.1, i + 1, clr, 0.5)
+        T(sl, 1.3, y + 0.1, 3.0, 0.4, title, 20, clr, True)
+        T(sl, 4.5, y + 0.1, 8.0, 0.8, desc, 16, DARK)
 
-    txt(sl, 7.6, 3.3, 5.2, 0.4, '设计亮点', 15, BLUE, True)
-    highlights = [
-        'ENUM 限死 6 种合法状态，杜绝脏数据',
-        '双骑手独立绑定，同时追踪两段配送进度',
-        '3 个时间戳精准审计全链路时效',
-        '5 个外键保证引用完整性',
-    ]
-    mtxt(sl, 7.6, 3.8, 5.2, 2.5, highlights, 13, DARK, Pt(6))
+    # ===== SLIDE 19: SECTION 04 =====
+    sec(prs, '04', '七重触发器防护盾', 'FOR UPDATE 行级锁 · 库存防超卖 · 骑手类型约束 · 状态管理 · 容量预检')
+    P()
 
-    # ---- SLIDE 14: Six-state flow detail ----
-    sl = S(prs); bar(sl, '状态机流转详解', p())
-    # Show each state with what triggers
-    flow_data = [
-        ('Paid', '已支付，待指派干线骑手', 'sp_create_order 创建'),
-        ('Stage1_Assigned', '干线骑手接单，前往商家取餐', '指派 stage1_rider_id'),
-        ('Arrived_At_Point', '干线骑手送达寄存柜（包裹入库）', 'sp_arrive_at_pickup_point'),
-        ('Stage2_Assigned', '楼栋骑手接单，从柜中取件', '指派 stage2_rider_id'),
-        ('Completed', '楼栋骑手送达学生手中', 'sp_stage2_deliver'),
-        ('Cancelled', '订单取消，退款+恢复库存', 'sp_cancel_order'),
-    ]
-    tbl(sl, 0.3, 1.3, [2.0, 3.2, 3.5, 3.5], ['状态', '含义', '触发操作', '骑手状态联动'],
-        [[s, m, t, ''] for s, m, t in flow_data], 11)
-    txt(sl, 0.5, 4.8, 12, 0.4, '自动联动', 15, BLUE, True)
-    mtxt(sl, 0.5, 5.3, 12, 1.5, [
-        '订单 Stage1_Assigned  >  触发器  >  干线骑手 status = Delivering',
-        '订单 Arrived_At_Point  >  触发器  >  干线骑手 status = Idle（释放）',
-        '订单 Completed  >  触发器  >  楼栋骑手 status = Idle（释放）',
-    ], 13, DARK, Pt(6))
-
-    # ---- SLIDE 15: SECTION 03 ----
-    section(prs, '03', '索引策略与性能优化', '4 个 B-Tree 索引 · 复合索引 · 覆盖查询 · 视图加速')
-    p()
-
-    # ---- SLIDE 16: Indexes ----
-    sl = S(prs); bar(sl, '4 个 B-Tree 索引', p())
-    idx_rows = [
-        ['idx_orders_status', 'orders', 'order_status', '大屏按状态筛选（最高频查询）'],
-        ['idx_orders_created', 'orders', 'created_at', '时间范围查询（今日/近7天/近30天）'],
-        ['idx_dishes_merchant', 'dishes', 'merchant_id, status', '点餐页"查某商家在售菜品"'],
-        ['idx_orders_point_status', 'orders', 'pickup_point_id, order_status', '容量检查 + 视图 LEFT JOIN 加速'],
-    ]
-    tbl(sl, 0.3, 1.3, [2.6, 1.2, 2.6, 6.0], ['索引名', '表', '索引列', '加速场景'], idx_rows, 12)
-    txt(sl, 0.5, 4.0, 12, 0.4, '为什么需要 idx_orders_point_status？', 15, GREEN, True)
-    mtxt(sl, 0.5, 4.5, 12, 2.0, [
-        '这是本次新增的第 4 个索引。原因是 vw_pickup_point_analytics 视图的核心查询是：',
-        "  SELECT ... FROM orders WHERE order_status IN ('Arrived_At_Point','Stage2_Assigned') GROUP BY pickup_point_id",
-        '没有索引时，这条查询需要全表扫描 orders（5000+ 行）做 WHERE 过滤再 GROUP BY，每次大屏刷新都重复',
-        '加上复合索引 (pickup_point_id, order_status) 后，MySQL 直接用索引覆盖查询，不需要回表，查询时间从 ~50ms 降到 ~2ms',
-        '同时加速 sp_create_order 中的 SELECT...FOR UPDATE 容量预检 —— 索引定位行更快，锁持有时间更短',
-    ], 12, DARK, Pt(6))
-
-    # ---- SLIDE 17: SECTION 04 ----
-    section(prs, '04', '七重触发器防护盾', 'FOR UPDATE 行级锁 · 库存防超卖 · 骑手约束 · 状态管理 · 容量预检')
-    p()
-
-    # ---- SLIDE 18: FOR UPDATE concept ----
-    sl = S(prs); bar(sl, 'FOR UPDATE 行级锁：并发的正确解法', p())
-    # Left: problem
-    txt(sl, 0.5, 1.2, 5.5, 0.4, '问题：传统 SELECT 有竞态窗口', 16, RED, True)
-    code(sl, 0.5, 1.7, 5.5, 1.3, [
-        '-- T1: Session A 读库存',
-        "SELECT stock FROM dishes WHERE dish_id=1;     -- stock=1",
-        '-- T2: Session B 读库存',
-        "SELECT stock FROM dishes WHERE dish_id=1;     -- stock=1",
+    # ===== SLIDE 20: FOR UPDATE — Problem =====
+    sl = S(prs); bar(sl, 'FOR UPDATE 行级锁：为什么需要它？', P())
+    T(sl, 0.5, 1.3, 5.5, 0.5, '✖ 传统做法：SELECT + 判断 + UPDATE', 22, RED, True)
+    CODE(sl, 0.5, 2.0, 5.5, 2.0, [
+        '-- 线程 A               -- 线程 B',
+        'SELECT stock=1           SELECT stock=1',
+        '  → 判断：够！          → 判断：够！',
         '',
-        '-- 两个都看到 stock=1  →  两个都下单  →  超卖!',
-    ], 11)
-    txt(sl, 0.5, 3.2, 5.5, 1.0, '原因：SELECT 和 UPDATE 之间有时间差\n两个事务同时读到旧值，都判断库存够', 13, RED)
-    # Right: solution
-    txt(sl, 7.0, 1.2, 5.5, 0.4, '解决：FOR UPDATE 排他锁', 16, GREEN, True)
-    code(sl, 7.0, 1.7, 5.5, 1.8, [
-        '-- Session A',
-        'SELECT stock FROM dishes',
-        '  WHERE dish_id=1 FOR UPDATE;   -- 加 X 锁',
+        'INSERT (扣到 0)         INSERT (扣到 -1)',
         '',
-        '-- Session B（并发执行）',
-        'SELECT stock FROM dishes',
-        '  WHERE dish_id=1 FOR UPDATE;   -- 阻塞等待!',
+        '→ 超卖！库存变负数！',
+    ], 16, highlights={4})
+    T(sl, 7.0, 1.3, 5.5, 0.5, '✔ FOR UPDATE 排他锁', 22, GREEN, True)
+    CODE(sl, 7.0, 2.0, 5.5, 2.0, [
+        '-- 线程 A               -- 线程 B',
+        'SELECT...FOR UPDATE(X锁)  SELECT...FOR UPDATE',
+        '  → stock=1, 加锁成功      → 阻塞等待...',
         '',
-        '-- A 提交后 B 读到新值 stock=0  →  正确拒绝',
-    ], 11)
-    txt(sl, 7.0, 3.7, 5.5, 1.5, 'FOR UPDATE 将"读-判断-写"原子化\nA 加锁  >  B 等待  >  A 提交释放  >  B 读新值\n这是数据库层解决并发超卖的唯一正确手段', 13, GREEN)
+        'INSERT stock=0              ',
+        'COMMIT(释放锁)              → 获锁, stock=0',
+        '                           → 库存不足!拒绝 ✔',
+    ], 16, highlights={5})
+    T(sl, 0.5, 4.5, 12, 0.5, '一句话：FOR UPDATE 把"读-判断-写"三步变成原子的一个操作', 20, BLUE, True)
+    MT(sl, 0.5, 5.2, 12, 1.5, [
+        '✔ 应用层 synchronized / Redis 分布式锁 / 乐观锁重试 — 都不如数据库层的 FOR UPDATE 简洁可靠',
+        '✔ 本系统在 3 个关键场景使用：触发器 1（验库存）+ 触发器 7（验容量）+ sp_create_order（下单容量预检）',
+    ], 16, DARK, Pt(6))
 
-    txt(sl, 0.5, 4.5, 12, 0.4, '在本系统的实际应用', 15, BLUE, True)
-    mtxt(sl, 0.5, 5.0, 12, 1.8, [
-        '触发器 1 (trg_check_dish_stock_before_order)：BEFORE INSERT ON order_items 时 FOR UPDATE 锁定菜品行，读库存+判断+拒绝一气呵成',
-        '触发器 7 (trg_check_pickup_point_capacity)：BEFORE INSERT ON orders 时 FOR UPDATE 锁定寄存点行，查容量+判断满否+拒绝',
-        'sp_create_order：下单流程中 FOR UPDATE 锁定寄存点行做容量预检',
-    ], 13, DARK, Pt(6))
-
-    # ---- SLIDE 19: Trigger 1-2 Stock ----
-    sl = S(prs); bar(sl, '触发器 1-2：库存防超卖', p())
-    # Trigger 1
-    txt(sl, 0.3, 1.2, 6.0, 0.3, 'trg_check_dish_stock_before_order', 15, BLUE, True)
-    txt(sl, 0.3, 1.55, 6.0, 0.25, 'BEFORE INSERT ON order_items', 11, GRAY)
-    code(sl, 0.3, 1.9, 6.0, 1.2, [
-        'SELECT stock, status INTO v_stock, v_status',
-        'FROM dishes WHERE dish_id = NEW.dish_id',
-        'FOR UPDATE;  -- 排他锁锁定该菜品行',
+    # ===== SLIDE 21: Trigger 1 — Stock Check =====
+    sl = S(prs); bar(sl, '触发器 1：库存防超卖检查', P())
+    CODE(sl, 0.3, 1.3, 6.5, 3.5, [
+        'CREATE TRIGGER trg_check_dish_stock_before_order',
+        'BEFORE INSERT ON order_items',
+        'FOR EACH ROW',
+        'BEGIN',
         '',
-        'IF v_status = 0 THEN           -- 下架检查',
-        "  SIGNAL '商品已下架!';",
-        'END IF;',
-        'IF v_stock < NEW.quantity THEN  -- 库存检查',
-        "  SIGNAL '库存不足!';",
-        'END IF;',
-    ], 11)
-
-    txt(sl, 0.3, 3.3, 6.0, 0.3, '解决了什么问题？', 14, GREEN, True)
-    mtxt(sl, 0.3, 3.7, 6.0, 1.5, [
-        '并发超卖：两个用户同时买最后一份库存',
-        '  >  FOR UPDATE 让第二个事务等待第一个释放',
-        '  >  第二个读到库存=0，正确拒绝',
-        '下架保护：已下架菜品自动拦截，无需应用层判断',
-    ], 12, DARK, Pt(4))
-
-    # Trigger 2
-    txt(sl, 6.8, 1.2, 5.5, 0.3, 'trg_reduce_dish_stock_after_order', 15, BLUE, True)
-    txt(sl, 6.8, 1.55, 5.5, 0.25, 'AFTER INSERT ON order_items', 11, GRAY)
-    code(sl, 6.8, 1.9, 5.5, 0.7, [
-        'UPDATE dishes',
-        'SET stock = stock - NEW.quantity',
-        'WHERE dish_id = NEW.dish_id;',
-    ], 11)
-    txt(sl, 6.8, 2.8, 5.5, 0.3, '为什么 AFTER 而不是 BEFORE？', 14, GREEN, True)
-    mtxt(sl, 6.8, 3.2, 5.5, 2.0, [
-        '只有 Trig 1 通过所有校验后才执行',
-        'Trig 1 拒绝  >  Trig 2 不触发  >  不扣库存',
-        '两个触发器在同一事务内，保证原子性',
-    ], 12, DARK, Pt(4))
-
-    # ---- SLIDE 20: Trigger 3-4 Rider Type ----
-    sl = S(prs); bar(sl, '触发器 3-4：骑手类型约束', p())
-    txt(sl, 0.5, 1.15, 12, 0.35, '解决什么问题？防止把楼栋骑手错误指派为干线骑手（或反过来），业务全乱', 14, DARK)
-    txt(sl, 0.3, 1.7, 6.0, 0.3, 'trg_check_rider_type_before_insert', 15, BLUE, True)
-    code(sl, 0.3, 2.1, 6.0, 1.2, [
-        'BEFORE INSERT ON orders FOR EACH ROW',
+        '  -- ★ FOR UPDATE 锁定菜品行（排他锁）',
+        '  SELECT stock, status',
+        '  INTO v_stock, v_status',
+        '  FROM dishes',
+        '  WHERE dish_id = NEW.dish_id',
+        '  FOR UPDATE;',
         '',
+        '  -- 检查 1：是否已下架',
+        '  IF v_status = 0 THEN',
+        "    SIGNAL '45000' SET MESSAGE_TEXT",
+        "      = '商品已下架！';",
+        '  END IF;',
+        '',
+        '  -- 检查 2：库存是否充足',
+        '  IF v_stock < NEW.quantity THEN',
+        "    SIGNAL '45000' SET MESSAGE_TEXT",
+        "      = '库存不足！';",
+        '  END IF;',
+        'END',
+    ], 15, highlights={6, 7, 8, 9, 10})
+    T(sl, 7.3, 1.3, 5.5, 0.5, '解决了什么问题？', 22, BLUE, True)
+    MT(sl, 7.3, 2.0, 5.5, 4.0, [
+        '✔ 并发超卖',
+        '两个学生同时买最后一份',
+        '→ 第二个事务被阻塞',
+        '→ 等第一个提交后读到 stock=0',
+        '→ 正确拒绝，库存绝不超卖',
+        '',
+        '✔ 下架保护',
+        '已下架商品自动拦截',
+        '→ 无需应用层判断 status',
+        '',
+        '✔ 数据库层防护',
+        '即使有人绕过 Flask',
+        '直接 INSERT INTO order_items',
+        '→ 触发器照样拦截',
+    ], 16, DARK, Pt(6))
+
+    # ===== SLIDE 22: Trigger 2 — Stock Reduce =====
+    sl = S(prs); bar(sl, '触发器 2：库存自动扣减', P())
+    CODE(sl, 0.3, 1.3, 6.5, 1.5, [
+        'CREATE TRIGGER trg_reduce_dish_stock_after_order',
+        'AFTER INSERT ON order_items',
+        'FOR EACH ROW',
+        'BEGIN',
+        '',
+        '  UPDATE dishes',
+        '  SET stock = stock - NEW.quantity',
+        '  WHERE dish_id = NEW.dish_id;',
+        '',
+        'END',
+    ], 16, highlights={5, 6, 7})
+    T(sl, 0.3, 3.2, 6.5, 0.5, '为什么 AFTER INSERT？', 20, BLUE, True)
+    MT(sl, 0.3, 3.9, 6.5, 2.0, [
+        '✔ 只有触发器 1 通过所有校验',
+        '   （库存足 + 未下架）后才执行',
+        '✔ 触发器 1 拒绝 → 触发器 2 不触发',
+        '✔ 两个触发器在同一事务内',
+        '   保证原子性',
+
+    ], 16, DARK, Pt(6))
+    T(sl, 7.3, 1.3, 5.5, 5.0, 'BEFORE + AFTER 双触发器协同\n\n'
+        'INSERT INTO order_items\n'
+        '  ↓\n'
+        'Trig 1 (BEFORE):\n'
+        '  FOR UPDATE 锁行\n'
+        '  → 验库存 + 验上架\n'
+        '  → 不通过? SIGNAL → ROLLBACK\n'
+        '  ↓ 通过\n'
+        'Trig 2 (AFTER):\n'
+        '  UPDATE stock = stock - qty\n'
+        '  ↓\n'
+        'COMMIT  ✔', 15, GREEN)
+
+    # ===== SLIDE 23: Trigger 3-4 Rider Type =====
+    sl = S(prs); bar(sl, '触发器 3-4：骑手类型约束', P())
+    T(sl, 0.5, 1.2, 12, 0.4, '问题：如果错把楼栋骑手派去商家取餐，业务全乱。ENUM + 触发器双重保护。', 18, DARK)
+    CODE(sl, 0.3, 1.8, 6.2, 2.8, [
+        '-- Trig 3: BEFORE INSERT 检查',
         'IF NEW.stage1_rider_id IS NOT NULL THEN',
-        '  IF NOT EXISTS (SELECT 1 FROM riders',
-        "    WHERE rider_id=NEW.stage1_rider_id",
-        "      AND rider_type='Stage1_Trunk') THEN",
-        "    SIGNAL '干线骑手必须是 Stage1_Trunk!';",
+        '  IF NOT EXISTS (',
+        '    SELECT 1 FROM riders',
+        '    WHERE rider_id = NEW.stage1_rider_id',
+        "      AND rider_type = 'Stage1_Trunk'",
+        '  ) THEN',
+        "    SIGNAL '干线骑手必须是Stage1_Trunk!';",
         '  END IF;',
         'END IF;',
-        '-- 同理检查 stage2_rider_id -> Stage2_Floor',
-    ], 11)
-    txt(sl, 0.3, 3.5, 6.0, 0.3, 'trg_check_rider_type_before_update', 15, GREEN, True)
-    code(sl, 0.3, 3.9, 6.0, 1.0, [
-        'BEFORE UPDATE ON orders FOR EACH ROW',
-        '-- 仅在骑手ID变化时校验（性能优化）',
+        '-- 同理检查 stage2_rider_id → Stage2_Floor',
+        '',
+        '-- Trig 4: BEFORE UPDATE 检查',
+        '-- 仅在骑手ID发生变化时触发（性能优化）',
         'IF NEW.stage1_rider_id != OLD.stage1_rider_id',
         '   OR OLD.stage1_rider_id IS NULL THEN',
-        '  -- 检查新骑手类型',
+        '  -- 同 #3 的检查逻辑',
         'END IF;',
-    ], 11)
-    txt(sl, 6.8, 1.7, 5.5, 3.0, '', 12, DARK)
-    mtxt(sl, 6.8, 1.7, 5.5, 3.0, [
-        'INSERT + UPDATE 双触发器覆盖所有指派路径：',
+    ], 14, highlights={0, 1, 2, 3, 4, 5, 6, 7, 8, 13, 14, 15, 16})
+    T(sl, 7.0, 1.8, 5.5, 0.5, '双重保护机制', 20, BLUE, True)
+    MT(sl, 7.0, 2.5, 5.5, 4.0, [
+        '第一层：ENUM 类型',
+        'rider_type 只有两个合法值',
+        '→ 写入非法值直接报错',
         '',
-        '新建订单同时指派骑手  >  INS 触发器拦截',
-        '已有订单更换骑手    >  UPD 触发器拦截',
+        '第二层：触发器校验',
+        'stage1 必须是 Stage1_Trunk',
+        'stage2 必须是 Stage2_Floor',
+        '→ 用错了类型直接 SIGNAL',
         '',
-        '与 riders 表的 ENUM 形成双重保护：',
-        'ENUM 保证 rider_type 只有合法值',
-        '触发器保证用法正确（对的类型做对的活）',
-    ], 12, DARK, Pt(6))
+        'INSERT + UPDATE 全覆盖',
+        '→ 新建订单指派骑手',
+        '→ 已有订单更换骑手',
+        '→ 两条路径都拦截',
+    ], 16, DARK, Pt(6))
 
-    # ---- SLIDE 21: Trigger 5-6 Rider Status ----
-    sl = S(prs); bar(sl, '触发器 5-6：骑手状态自动管理', p())
-    txt(sl, 0.5, 1.15, 12, 0.35, '解决什么问题？应用层不需要手动 UPDATE riders SET status，所有状态转换由数据库自动完成，杜绝遗漏', 14, DARK)
-    rows = [
-        ['指派干线骑手', 'Paid  >  Stage1_Assigned', 'Idle  >  Delivering', 'AFTER INSERT/UPDATE'],
-        ['干线送达', 'Stage1_Assigned  >  Arrived_At_Point', 'Delivering  >  Idle', 'AFTER UPDATE 检测状态'],
-        ['指派楼栋骑手', 'Arrived_At_Point  >  Stage2_Assigned', 'Idle  >  Delivering', 'AFTER UPDATE 检测新骑手'],
-        ['楼栋送达', 'Stage2_Assigned  >  Completed', 'Delivering  >  Idle', 'AFTER UPDATE 检测状态'],
-        ['订单取消', '任意  >  Cancelled', 'Delivering  >  Idle', 'AFTER UPDATE 释放所有骑手'],
-    ]
-    tbl(sl, 0.3, 1.7, [2.0, 3.5, 3.0, 3.5], ['事件', '订单状态变化', '骑手状态转换', '触发方式'], rows, 11)
-    txt(sl, 0.5, 4.5, 12, 0.4, '代码示意', 15, BLUE, True)
-    code(sl, 0.5, 5.0, 5.8, 1.5, [
-        '-- trg_rider_delivering_update 核心逻辑',
-        '',
-        '-- [1] 新指派  >  Delivering',
-        'IF stage1_rider_id 发生变化 THEN',
-        "  UPDATE riders SET status='Delivering';",
+    # ===== SLIDE 24: Trigger 5-6 Status =====
+    sl = S(prs); bar(sl, '触发器 5-6：骑手状态自动管理', P())
+    TB(sl, 0.3, 1.3, [2.2, 3.5, 3.0, 3.5],
+       ['事件', '订单状态变化', '骑手状态', '谁触发的'],
+       [
+           ['指派干线', 'Paid → Stage1_Assigned', 'Idle → Delivering', 'Trig 5 (INSERT)'],
+           ['干线送达', 'Stage1_Assigned → Arrived_At_Point', 'Delivering → Idle', 'Trig 6 (UPDATE)'],
+           ['指派楼栋', 'Arrived_At_Point → Stage2_Assigned', 'Idle → Delivering', 'Trig 6 (UPDATE)'],
+           ['最终签收', 'Stage2_Assigned → Completed', 'Delivering → Idle', 'Trig 6 (UPDATE)'],
+           ['订单取消', '任意 → Cancelled', 'Delivering → Idle', 'Trig 6 (UPDATE)'],
+       ], 13)
+    T(sl, 0.5, 4.6, 12, 0.5, '核心代码', 20, BLUE, True)
+    CODE(sl, 0.5, 5.2, 12, 1.5, [
+        '-- Trig 6 AFTER UPDATE: 状态驱动骑手释放',
+        'IF NEW.order_status = \'Arrived_At_Point\' AND OLD.stage1_rider_id IS NOT NULL THEN',
+        '  UPDATE riders SET status = \'Idle\' WHERE rider_id = OLD.stage1_rider_id;',
         'END IF;',
-        '',
-        '-- [2] Stage1 完成  >  释放干线骑手',
-        "IF NEW.order_status='Arrived_At_Point' THEN",
-        "  UPDATE riders SET status='Idle';",
+        'IF NEW.order_status = \'Completed\' AND OLD.stage2_rider_id IS NOT NULL THEN',
+        '  UPDATE riders SET status = \'Idle\' WHERE rider_id = OLD.stage2_rider_id;',
         'END IF;',
-    ], 11)
-    txt(sl, 7.0, 5.0, 5.5, 1.5, '核心价值：状态一改，骑手自动释放\n触发器 = 状态机的执行器\n省去所有应用层的手动状态同步代码', 14, GREEN)
+        '-- 取消 → 释放所有骑手',
+    ], 15, highlights={1, 2, 3, 4, 5, 6})
 
-    # ---- SLIDE 22: Trigger 7 Capacity Pre-Check ----
-    sl = S(prs); bar(sl, '触发器 7：寄存点容量预检 —— 防止骑手白跑', p())
-    txt(sl, 0.3, 1.2, 6.0, 0.3, 'trg_check_pickup_point_capacity（新增）', 15, BLUE, True)
-    txt(sl, 0.3, 1.55, 6.0, 0.25, 'BEFORE INSERT ON orders', 11, GRAY)
-    code(sl, 0.3, 1.9, 6.0, 1.1, [
-        'SELECT current_packages, capacity',
-        'INTO v_pt_current, v_pt_capacity',
-        'FROM pickup_points',
-        'WHERE point_id = NEW.pickup_point_id',
-        'FOR UPDATE;  -- 锁定寄存点行',
+    # ===== SLIDE 25: Trigger 7 — Capacity Pre-Check =====
+    sl = S(prs); bar(sl, '触发器 7（新增）：寄存点容量预检', P())
+    T(sl, 0.5, 1.2, 12, 0.4, '之前的问题：只有 chk_capacity 硬约束 → 骑手送到了才拦截 → 骑手白跑一趟，成果被 ROLLBACK', 18, RED)
+    CODE(sl, 0.3, 1.9, 6.5, 2.5, [
+        'CREATE TRIGGER trg_check_pickup_point_capacity',
+        'BEFORE INSERT ON orders',
+        'FOR EACH ROW',
+        'BEGIN',
         '',
-        'IF v_pt_current >= v_pt_capacity THEN',
-        "  SIGNAL '该寄存点已满!';",
-        'END IF;',
-    ], 11)
-
-    txt(sl, 0.3, 3.2, 6.0, 0.3, '之前的问题', 14, RED, True)
-    mtxt(sl, 0.3, 3.6, 6.0, 1.0, [
-        '只有 chk_capacity — 入库时才拦截',
-        '骑手已完成配送，扫码入库  >  柜满  >  ROLLBACK',
-        '骑手白跑一趟，成果被抹掉',
-    ], 12, DARK, Pt(4))
-    txt(sl, 0.3, 4.8, 6.0, 0.3, '加入后的效果', 14, GREEN, True)
-    mtxt(sl, 0.3, 5.2, 6.0, 1.0, [
-        '下单时 FOR UPDATE 查容量  >  满  >  直接拒绝',
-        '用户换邻近寄存点，骑手不会送到一个满柜',
-    ], 12, DARK, Pt(4))
-
+        '  -- ★ FOR UPDATE 锁定寄存点行',
+        '  SELECT current_packages, capacity',
+        '  INTO v_pt_current, v_pt_capacity',
+        '  FROM pickup_points',
+        '  WHERE point_id = NEW.pickup_point_id',
+        '  FOR UPDATE;',
+        '',
+        '  IF v_pt_current >= v_pt_capacity THEN',
+        "    SIGNAL '45000'",
+        "      SET MESSAGE_TEXT = '寄存点已满！'",
+        '  END IF;',
+        'END',
+    ], 15, highlights={6, 7, 8, 9, 10, 12, 13, 14})
     # Right: two-layer protection
-    txt(sl, 6.8, 1.2, 5.5, 0.3, '两层防护体系', 16, BLUE, True)
-    # Layer 1
-    l1 = sl.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(6.8), Inches(1.8), Inches(5.5), Inches(1.2))
+    T(sl, 7.3, 1.2, 5.5, 0.5, '两层防护体系', 22, BLUE, True)
+    l1 = sl.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(7.3), Inches(1.9), Inches(5.5), Inches(1.5))
     l1.fill.solid(); l1.fill.fore_color.rgb = RGBColor(0xE8, 0xF5, 0xE9)
     l1.line.color.rgb = GREEN; l1.line.width = Pt(2)
-    txt(sl, 7.0, 1.9, 5.1, 0.3, '第一层：下单容量预检（主动）', 14, GREEN, True)
-    mtxt(sl, 7.0, 2.3, 5.1, 0.6, [
-        'trg + sp_create_order  双保险',
+    T(sl, 7.6, 2.0, 5.0, 0.3, '✔ 第一层：下单容量预检（主动防护）', 18, GREEN, True)
+    MT(sl, 7.6, 2.5, 5.0, 0.8, [
+        'Trig 7 + sp_create_order 双保险',
         'FOR UPDATE 防并发容量击穿',
-    ], 11, DARK, Pt(3))
-    # Layer 2
-    l2 = sl.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(6.8), Inches(3.3), Inches(5.5), Inches(1.2))
+        '用户在 App 下单时就被引导分流',
+    ], 15, DARK, Pt(3))
+    l2 = sl.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(7.3), Inches(3.7), Inches(5.5), Inches(1.5))
     l2.fill.solid(); l2.fill.fore_color.rgb = RGBColor(0xFF, 0xEB, 0xEE)
     l2.line.color.rgb = RED; l2.line.width = Pt(2)
-    txt(sl, 7.0, 3.4, 5.1, 0.3, '第二层：物理硬约束（被动兜底）', 14, RED, True)
-    mtxt(sl, 7.0, 3.8, 5.1, 0.6, [
-        'chk_capacity CHECK 约束',
-        '极端并发绕过时最后一关',
-    ], 11, DARK, Pt(3))
-    # Answer the key question
-    txt(sl, 6.8, 5.0, 5.5, 1.5, '爆仓 = 柜子满了不让订这个柜\n不是不让订外卖，是引导\n用户选别的寄存点', 16, DARK)
+    T(sl, 7.6, 3.8, 5.0, 0.3, '✔ 第二层：物理硬约束（被动兜底）', 18, RED, True)
+    MT(sl, 7.6, 4.3, 5.0, 0.8, [
+        'chk_capacity CHECK(current<=capacity)',
+        '只有在极端并发绕过第一层时才触发',
+        '最后的安全网，80格绝不81包',
+    ], 15, DARK, Pt(3))
+    T(sl, 0.5, 5.5, 12, 1.5, '结论：爆仓 = 柜子满了不让选这个柜，不是不让订外卖。用户下单时就被引导到邻近有空位的寄存点。chk_capacity 降级为最后安全网。', 18, GREEN, True)
 
-    # ---- SLIDE 23: 7 Triggers Summary ----
-    sl = S(prs); bar(sl, '七重触发器总览', p())
-    srows = [
-        ['1', '库存防超卖 (检查)', 'BEFORE INSERT', 'order_items', 'FOR UPDATE 锁行  >  验库存+下架  >  SIGNAL'],
-        ['2', '库存防超卖 (扣减)', 'AFTER INSERT', 'order_items', 'stock = stock - quantity'],
-        ['3', '骑手类型校验', 'BEFORE INSERT', 'orders', 'stage1 必须是 Trunk, stage2 必须是 Floor'],
-        ['4', '骑手类型校验', 'BEFORE UPDATE', 'orders', '同 #3，仅在骑手变更时触发（性能优化）'],
-        ['5', '骑手状态管理', 'AFTER INSERT', 'orders', '指派骑手  >  自动设为 Delivering'],
-        ['6', '骑手状态管理', 'AFTER UPDATE', 'orders', '完成/取消  >  自动释放为 Idle'],
-        ['7', '容量预检 (NEW!)', 'BEFORE INSERT', 'orders', 'FOR UPDATE 查柜容量  >  满则拒'],
+    # ===== SLIDE 26: 7 Triggers Summary =====
+    sl = S(prs); bar(sl, '七重触发器总览', P())
+    TB(sl, 0.3, 1.3, [0.4, 2.5, 1.4, 1.4, 1.4, 5.0],
+       ['#', '功能', '时机', '事件', '表', '核心逻辑一句话'],
+       [
+           ['1', '库存防超卖(检查)', 'BEFORE', 'INSERT', 'order_items', 'FOR UPDATE锁行 → 验库存+下架 → 拒绝'],
+           ['2', '库存防超卖(扣减)', 'AFTER', 'INSERT', 'order_items', 'stock = stock - quantity'],
+           ['3', '骑手类型校验', 'BEFORE', 'INSERT', 'orders', 'stage1=Trunk, stage2=Floor'],
+           ['4', '骑手类型校验', 'BEFORE', 'UPDATE', 'orders', '同#3，仅骑手变更时触发'],
+           ['5', '骑手状态管理', 'AFTER', 'INSERT', 'orders', '指派骑手 → Delivering'],
+           ['6', '骑手状态管理', 'AFTER', 'UPDATE', 'orders', '完成/取消 → Idle'],
+           ['7', '容量预检 (NEW!)', 'BEFORE', 'INSERT', 'orders', 'FOR UPDATE查容量 → 满则拒'],
+       ], 11)
+    T(sl, 0.5, 5.8, 12, 1.0, '技术栈：FOR UPDATE 行级锁 | SIGNAL 异常拦截 | OLD/NEW 状态对比 | ENUM + NOT EXISTS 双重保护', 15, GRAY)
+
+    # ===== SLIDE 27: Triggers classification =====
+    sl = S(prs); bar(sl, '触发器分类与设计哲学', P())
+    categories = [
+        ('库存防线', 'Trig 1 + Trig 2', 'FOR UPDATE 锁库存 → 验 → 扣\n并发安全由数据库保证', BLUE),
+        ('类型防线', 'Trig 3 + Trig 4', 'ENUM + 触发器双重约束\nStage1 绝不等于 Stage2', GREEN),
+        ('状态防线', 'Trig 5 + Trig 6', '订单改 → 骑手自动改\n应用层零状态同步代码', ORANGE),
+        ('容量防线', 'Trig 7 (NEW)', '下单前查容量 FOR UPDATE\n满则拒，骑手不会白跑', RED),
     ]
-    tbl(sl, 0.3, 1.3, [0.4, 2.8, 1.6, 1.6, 6.0], ['#', '功能', '时机', '表', '核心逻辑'], srows, 10)
-    txt(sl, 0.5, 5.5, 12, 1.0, '分类：库存管理 x2 | 骑手类型约束 x2 | 状态自动管理 x2 | 容量预检 x1\n技术：FOR UPDATE 行级锁 | SIGNAL 异常拦截 | OLD/NEW 状态对比 | ENUM+NOT EXISTS', 12, GRAY)
+    for i, (title, trigs, desc, clr) in enumerate(categories):
+        x = 0.3 + i * 3.2
+        CARD(sl, x, 1.5, 2.9, 3.5, title, [trigs, '', desc], clr)
+    T(sl, 0.5, 5.5, 12, 1.5, '设计哲学：数据库层全自动防护 → 即使应用层有 bug、有人绕过 Flask 直接操作 MySQL，数据完整性也不会被破坏。\n这是数据库课程的核心价值——约束写在离数据最近的地方。', 18, DARK, True)
 
-    # ---- SLIDE 24: Trigger detail - stock FOR UPDATE in practice ----
-    sl = S(prs); bar(sl, 'FOR UPDATE 实测：并发下单场景演示', p())
-    code(sl, 0.3, 1.2, 3.8, 2.5, [
-        '-- 同一道菜，只剩 1 份库存',
-        '-- 两个学生同时下单',
-        '',
-        '-- Session A（先到，加锁成功）',
+    # ===== SLIDE 28: FOR UPDATE demo =====
+    sl = S(prs); bar(sl, 'FOR UPDATE 实测：并发场景验证', P())
+    T(sl, 0.5, 1.3, 12, 0.4, '同一道菜只剩 1 份，两个学生同时下单 —— 看数据库如何处理', 18, DARK)
+    # Two sessions
+    CODE(sl, 0.3, 2.0, 6.0, 3.0, [
+        '-- Session A（先到，获得锁）',
         'START TRANSACTION;',
+        '',
         'SELECT stock FROM dishes',
-        "  WHERE dish_id=1 FOR UPDATE;  -- stock=1",
-        "INSERT INTO order_items ...     -- 扣到 0",
-        'COMMIT;                       -- 释放锁',
-    ], 11)
-    code(sl, 4.3, 1.2, 3.8, 2.5, [
+        "  WHERE dish_id=1 FOR UPDATE;",
+        '  → stock = 1  ✔',
+        '',
+        "INSERT INTO order_items ...",
+        '  → stock: 1 → 0',
+        '',
+        'COMMIT;  -- 释放 X 锁',
+    ], 16, highlights=[])
+    T(sl, 0.3, 5.2, 6.0, 0.5, 'A 获胜，正常下单，库存扣到 0', 18, GREEN, True)
+    CODE(sl, 6.8, 2.0, 6.0, 3.0, [
         '-- Session B（后到，等待锁）',
         'START TRANSACTION;',
+        '',
         'SELECT stock FROM dishes',
-        "  WHERE dish_id=1 FOR UPDATE;  -- 阻塞...",
-        '-- A 提交后，B 获得锁',
-        "  -- stock=0 < quantity=1",
-        "  -- SIGNAL '库存不足!'",
+        "  WHERE dish_id=1 FOR UPDATE;",
+        '  → 阻塞等待 A 释放锁...',
+        '',
+        '-- A 提交后 B 获得锁',
+        '  → stock = 0',
+        "  → 0 < 1 → SIGNAL '库存不足!'",
+        '',
         'ROLLBACK;',
-        '-- B 的下单请求被正确拒绝',
-    ], 11)
-    txt(sl, 8.5, 1.2, 4.5, 0.3, '没有 FOR UPDATE 会怎样？', 14, RED, True)
-    mtxt(sl, 8.5, 1.7, 4.3, 2.0, [
-        'A: SELECT stock=1',
-        'B: SELECT stock=1  (也读到 1)',
-        'A: INSERT + stock=0',
-        'B: INSERT + stock=-1  !!!',
-        '超卖！库存变成负数！',
-    ], 12, DARK, Pt(4))
-    txt(sl, 0.5, 4.2, 12, 0.3, '核心结论', 15, BLUE, True)
-    mtxt(sl, 0.5, 4.7, 12, 2.0, [
-        'FOR UPDATE 是数据库课程的核心考点 —— 将"读-判断-写"三步变成原子的一个操作',
-        '应用层 synchronized / Redis 分布式锁 / 乐观锁重试 —— 都不如数据库层的 FOR UPDATE 简洁可靠',
-        '本系统在两个关键场景使用它：库存检查（触发器1）和容量预检（触发器7 + sp_create_order）',
-    ], 13, DARK, Pt(6))
+    ], 16, highlights=[])
+    T(sl, 6.8, 5.2, 6.0, 0.5, 'B 正确被拒绝，库存没有变成 -1', 18, GREEN, True)
 
-    # ---- SLIDE 25: SECTION 05 ----
-    section(prs, '05', '存储过程与事务管理', '4 个存储过程 · ACID 事务 · ROLLBACK 回滚 · 游标')
-    p()
+    # ===== SLIDE 29: 7 triggers all in one table for overview =====
+    # Skip — already in slide 26-27
 
-    # ---- SLIDE 26: sp_create_order ----
-    sl = S(prs); bar(sl, 'sp_create_order：原子下单（四步一事务）', p())
+    # ===== SLIDE 30: SECTION 05 =====
+    sec(prs, '05', '存储过程与事务管理', '4 个存储过程 · ACID 事务 · ROLLBACK 回滚 · 游标恢复')
+    P()
+
+    # ===== SLIDE 31: sp_create_order =====
+    sl = S(prs); bar(sl, 'sp_create_order：原子下单（四步一事务）', P())
+    T(sl, 0.3, 1.2, 6.5, 0.4, '流程', 20, BLUE, True)
     steps = [
-        ('[1] 容量预检', 'FOR UPDATE 锁寄存点行 > 查 capacity > 满则拒', BLUE),
-        ('[2] 余额检查', '查 users.balance > 不足 SIGNAL', BLUE),
-        ('[3] 扣款 + 插订单', 'UPDATE balance + INSERT INTO orders', GREEN),
-        ('[4] 插明细（触发锁库存）', 'INSERT INTO order_items > 触发 Trig 1(FOR UPDATE 验库存) > 触发 Trig 2(扣库存)', GREEN),
+        ('[1] 容量预检', 'FOR UPDATE 锁寄存点 → 查 capacity → 满则拒'),
+        ('[2] 余额检查', '查 balance → 不足 SIGNAL'),
+        ('[3] 扣款 + 创单', 'UPDATE balance + INSERT INTO orders'),
+        ('[4] 写明细', 'INSERT INTO order_items → 触发库存触发器链'),
     ]
-    for i, (title, desc, clr) in enumerate(steps):
-        y = 1.3 + i * 0.9
-        number_badge(sl, 0.5, y + 0.05, i + 1, clr)
-        txt(sl, 1.2, y + 0.05, 3.0, 0.4, title, 15, clr, True)
-        txt(sl, 4.5, y + 0.05, 8.0, 0.5, desc, 13, DARK)
-    txt(sl, 0.5, 5.0, 12, 0.4, '事务保护', 15, BLUE, True)
-    mtxt(sl, 0.5, 5.5, 12, 1.5, [
-        'START TRANSACTION > 四步全部成功 > COMMIT',
-        '任一环节失败 > EXIT HANDLER 捕获 > ROLLBACK（扣款+订单+明细全撤销）> RESIGNAL 向上抛错',
-        '这是 ACID 中 A（原子性）的教科书级实现',
-    ], 13, DARK, Pt(6))
+    for i, (title, desc) in enumerate(steps):
+        y = 1.8 + i * 0.7
+        BADGE(sl, 0.5, y, i + 1, BLUE, 0.4)
+        T(sl, 1.1, y + 0.02, 2.0, 0.35, title, 16, BLUE, True)
+        T(sl, 3.3, y + 0.02, 3.5, 0.35, desc, 15, DARK)
 
-    # ---- SLIDE 27: Two-stage SPs ----
-    sl = S(prs); bar(sl, '两段配送存储过程', p())
-    # Left: Stage1 Arrival
-    txt(sl, 0.3, 1.2, 6.0, 0.3, 'sp_arrive_at_pickup_point —— 干线入库', 15, BLUE, True)
-    code(sl, 0.3, 1.6, 6.0, 2.0, [
+    CODE(sl, 0.3, 4.7, 6.5, 1.8, [
+        '-- 事务保护框架',
+        'DECLARE EXIT HANDLER FOR SQLEXCEPTION',
+        'BEGIN',
+        '  ROLLBACK;  -- 四步全撤',
+        '  RESIGNAL;  -- 向上抛错',
+        'END;',
+        '',
+        'START TRANSACTION;',
+        '  -- 四步操作...',
+        'COMMIT;  -- 全成功才提交',
+    ], 15, highlights={1, 2, 3, 4, 8, 9})
+
+    T(sl, 7.3, 1.2, 5.5, 5.5, 'ACID 体现在本系统\n\n'
+        'A-原子性\n'
+        '四步全部成功才 COMMIT\n'
+        '任一失败 → ROLLBACK 全部撤销\n\n'
+        'C-一致性\n'
+        '12 个 CHECK 约束保证数据合法\n'
+        'chk_capacity, balance>=0, stock>=0\n\n'
+        'I-隔离性\n'
+        'FOR UPDATE 行级锁\n'
+        '并发事务互不干扰\n\n'
+        'D-持久性\n'
+        'InnoDB redo log\n'
+        'COMMIT 后绝不丢失', 15, DARK)
+
+    # ===== SLIDE 32: Two-stage SPs =====
+    sl = S(prs); bar(sl, '两段配送存储过程 + 取消退款', P())
+    # Stage1
+    T(sl, 0.3, 1.3, 4.0, 0.4, 'sp_arrive_at_pickup_point', 18, BLUE, True)
+    CODE(sl, 0.3, 1.8, 4.0, 2.5, [
         'START TRANSACTION;',
         '',
-        '-- Step 1: 状态跳转 + 打时间戳',
-        "UPDATE orders SET order_status='Arrived_At_Point',",
-        '  stage1_completed_at=CURRENT_TIMESTAMP',
-        '  WHERE order_id=p_order_id;',
+        '-- Step 1: 状态跳转',
+        "UPDATE orders SET",
+        "  order_status='Arrived_At_Point',",
+        '  stage1_completed_at=NOW()',
+        'WHERE order_id=p_order_id;',
         '',
-        '-- Step 2: 寄存点计数 +1（触发 chk_capacity）',
+        '-- Step 2: 包裹数+1',
         'UPDATE pickup_points',
-        '  SET current_packages=current_packages+1',
+        '  SET current_packages=''current+1',
         '  WHERE point_id=v_point_id;',
+        '  -- → chk_capacity 执行检查',
         '',
-        '-- 触发器自动: 干线骑手  >  Idle',
+        '-- Trig: 干线骑手 → Idle',
         'COMMIT;',
-    ], 11)
+    ], 14)
 
-    txt(sl, 0.3, 3.8, 6.0, 0.3, '爆仓时', 14, RED, True)
-    mtxt(sl, 0.3, 4.2, 6.0, 1.5, [
-        'Step 2 中 chk_capacity 拒绝  >  ROLLBACK',
-        'Step 1 的状态和时间戳也回滚',
-        '订单回到 Stage1_Assigned',
-        '改进方向：引入"已到达等空位"中间态',
-    ], 12, DARK, Pt(4))
-
-    # Right: Stage2 Delivery
-    txt(sl, 6.8, 1.2, 5.5, 0.3, 'sp_stage2_deliver —— 最终送达', 15, GREEN, True)
-    code(sl, 6.8, 1.6, 5.5, 1.3, [
+    # Stage2
+    T(sl, 4.6, 1.3, 4.0, 0.4, 'sp_stage2_deliver', 18, GREEN, True)
+    CODE(sl, 4.6, 1.8, 4.0, 1.5, [
         'START TRANSACTION;',
         '',
-        "UPDATE orders SET order_status='Completed',",
-        '  stage2_completed_at=CURRENT_TIMESTAMP',
-        '  WHERE order_id=p_order_id;',
+        "UPDATE orders SET",
+        "  order_status='Completed',",
+        '  stage2_completed_at=NOW()',
+        'WHERE order_id=p_order_id;',
         '',
         'UPDATE pickup_points',
-        '  SET current_packages=current_packages-1',
+        '  SET current_packages=''current-1',
         '  WHERE point_id=v_point_id',
-        '    AND current_packages>0;  -- 保护',
+        '    AND current_packages>0;',
         '',
-        '-- 触发器自动: 楼栋骑手  >  Idle',
+        '-- Trig: 楼栋骑手 → Idle',
         'COMMIT;',
-    ], 11)
+    ], 14)
 
-    txt(sl, 6.8, 3.2, 5.5, 0.3, 'sp_cancel_order —— 取消退款', 15, BLUE, True)
-    mtxt(sl, 6.8, 3.6, 5.5, 2.5, [
-        '用游标遍历 order_items > 逐道菜恢复库存',
-        '已入库的包裹 > current_packages - 1',
-        '退款到学生钱包',
-        '触发器自动释放所有骑手  >  Idle',
-    ], 12, DARK, Pt(4))
+    # Cancel
+    T(sl, 8.9, 1.3, 4.0, 0.4, 'sp_cancel_order', 18, RED, True)
+    MT(sl, 8.9, 1.8, 4.0, 3.0, [
+        '✔ 检查状态',
+        'Completed/Cancelled 不能取消',
+        '',
+        '✔ 退款',
+        'UPDATE balance + total',
+        '',
+        '✔ 恢复库存',
+        '游标遍历 order_items',
+        '→ 逐菜品 stock + qty',
+        '',
+        '✔ 释放包裹',
+        '已入库→ current-1',
+        '',
+        '✔ 标记取消',
+        'Trig → 释放所有骑手',
+    ], 14, DARK, Pt(4))
 
-    # ---- SLIDE 28: SECTION 06 ----
-    section(prs, '06', '视图与窗口函数', '饱和度预警 · RANK() OVER · AI Text-to-SQL')
-    p()
+    T(sl, 0.5, 5.5, 12, 1.5, '每个 SP 都有 EXIT HANDLER FOR SQLEXCEPTION → ROLLBACK → RESIGNAL。ACID 的教科书级实现。', 16, GREEN, True)
 
-    # ---- SLIDE 29: Views ----
-    sl = S(prs); bar(sl, '2 个分析视图', p())
-    # View 1
-    txt(sl, 0.3, 1.2, 6.0, 0.3, 'vw_pickup_point_analytics —— 饱和度预警', 15, BLUE, True)
-    code(sl, 0.3, 1.6, 6.0, 2.0, [
+    # ===== SLIDE 33: Transaction & Capacity =====
+    sl = S(prs); bar(sl, '事务回滚与爆仓处理流程', P())
+    T(sl, 0.5, 1.3, 12, 0.4, '爆仓时的完整回滚链路', 20, RED, True)
+    MT(sl, 0.5, 1.9, 5.5, 4.5, [
+        '[1] 用户下单',
+        'sp_create_order',
+        '→ FOR UPDATE 查容量 → 80/80 满!',
+        '→ SIGNAL → 用户看到:',
+        '"该寄存点已满，请选邻近寄存点"',
+        '→ 用户换 2 期寄存点下单 ✔',
+        '',
+        '[2] 极端情况（绕过第一层）',
+        'sp_arrive_at_pickup_point',
+        '→ UPDATE current_packages=81',
+        '→ chk_capacity: 81 > 80!',
+        '→ ROLLBACK (状态+时间戳全回退)',
+        '→ 订单回到 Stage1_Assigned',
+        '→ 正常情况走不到这一步',
+    ], 15, DARK, Pt(6))
+    T(sl, 6.5, 1.9, 6.0, 4.5, '两层防护总结\n\n'
+        '✔ 第一层（主动）\n'
+        '下单时 FOR UPDATE 查容量\n'
+        '满 → 拒绝 + 引导换柜\n'
+        '防的是 99.9% 的场景\n\n'
+        '✔ 第二层（被动）\n'
+        '入库时 chk_capacity 硬约束\n'
+        '超 → ROLLBACK\n'
+        '防的是 0.1% 的极端并发\n\n'
+        '两层之间有 FOR UPDATE\n'
+        '保证各自的检查是原子的\n'
+        '不会出现"同时看到最后一格"', 15, DARK)
+
+    # ===== SLIDE 34: SECTION 06 =====
+    sec(prs, '06', '视图 · 窗口函数 · AI 查询', '饱和度预警 · RANK() OVER · DeepSeek Text-to-SQL')
+    P()
+
+    # ===== SLIDE 35: View 1 — Saturation =====
+    sl = S(prs); bar(sl, '视图 1：vw_pickup_point_analytics —— 饱和度预警', P())
+    CODE(sl, 0.3, 1.3, 7.0, 3.5, [
         'CREATE VIEW vw_pickup_point_analytics AS',
         'SELECT',
         '  p.point_name,',
         '  p.capacity AS max_capacity,',
         '  p.current_packages,',
         '  ROUND(p.current_packages/p.capacity*100, 2)',
-        '    AS saturation_pct,       -- 饱和度%',
-        '  sub.backlog_count',
+        '    AS saturation_pct,          -- 饱和度%',
+        '  COALESCE(sub.backlog_count, 0)',
+        '    AS backlog_count            -- 溞留件数',
         'FROM pickup_points p',
         'LEFT JOIN (',
-        "  SELECT pickup_point_id, COUNT(*) cnt",
+        "  SELECT pickup_point_id, COUNT(*) AS cnt",
         '  FROM orders',
         "  WHERE order_status IN ('Arrived_At_Point',",
         "                          'Stage2_Assigned')",
         '  GROUP BY pickup_point_id',
-        ') sub ON p.point_id=sub.pickup_point_id;',
-    ], 9)
-    mtxt(sl, 0.3, 3.8, 6.0, 2.0, [
-        '驱动大屏"爆仓预警" Tab',
-        '> 80% = 黄色预警  |  = 100% = 红色爆仓',
-        '每 30 秒查询一次，数据实时更新',
-    ], 12, DARK, Pt(4))
+        ') sub ON p.point_id = sub.pickup_point_id;',
+    ], 14)
+    T(sl, 7.8, 1.3, 5.0, 0.5, '驱动大屏爆仓预警 Tab', 20, ORANGE, True)
+    MT(sl, 7.8, 2.0, 5.0, 4.0, [
+        '大屏每 30 秒查询一次',
+        '',
+        'saturation_pct > 80%',
+        '→ 黄色预警',
+        '→ "接近爆仓，注意调度"',
+        '',
+        'saturation_pct = 100%',
+        '→ 红色爆仓',
+        '→ "已满，新订单请换寄存点"',
+        '',
+        'backlog_count = current_packages',
+        '→ chk_capacity 保证绝不超容',
+        '',
+        '视图 = 把复杂 JOIN 封装成',
+        '一条简单的 SELECT',
+    ], 15, DARK, Pt(6))
 
-    # View 2
-    txt(sl, 6.8, 1.2, 5.5, 0.3, 'vw_merchant_sales_rank —— 销售排行', 15, GREEN, True)
-    code(sl, 6.8, 1.6, 5.5, 1.3, [
+    # ===== SLIDE 36: View 2 — Sales Rank =====
+    sl = S(prs); bar(sl, '视图 2：vw_merchant_sales_rank + RANK() OVER 窗口函数', P())
+    CODE(sl, 0.3, 1.3, 7.0, 3.0, [
         'CREATE VIEW vw_merchant_sales_rank AS',
         'SELECT',
         '  m.merchant_name,',
-        '  COUNT(DISTINCT o.order_id) orders,',
-        '  SUM(o.total_amount) total_sales,',
+        '  COUNT(DISTINCT o.order_id) AS total_orders,',
+        '  IFNULL(SUM(o.total_amount), 0) AS total_sales,',
+        '',
         '  RANK() OVER (',
         '    ORDER BY SUM(o.total_amount) DESC',
-        '  ) AS sales_rank',
+        '  ) AS sales_rank    -- ★ 窗口函数',
+        '',
         'FROM merchants m',
         'LEFT JOIN orders o',
-        "  ON m.merchant_id=o.merchant_id",
-        "  AND o.order_status='Completed'",
+        "  ON m.merchant_id = o.merchant_id",
+        "  AND o.order_status = 'Completed'",
         'GROUP BY m.merchant_id;',
-    ], 9)
-    txt(sl, 6.8, 3.2, 5.5, 0.3, 'RANK() OVER 窗口函数', 14, GREEN, True)
-    mtxt(sl, 6.8, 3.6, 5.5, 2.5, [
-        '一行 SQL 完成排名，数据库引擎优化执行',
-        '传统做法：子查询 + 变量，复杂且易错',
-        'RANK()：同销售额并列排名（1,2,2,4）',
-        '仅统计 Completed 订单，排除未完成干扰',
-    ], 12, DARK, Pt(4))
+    ], 14, highlights={7, 8, 9})
+    T(sl, 7.8, 1.3, 5.0, 0.5, 'RANK() OVER 是什么？', 20, ORANGE, True)
+    MT(sl, 7.8, 2.0, 5.0, 4.0, [
+        '窗口函数 = 在结果集的"窗口"',
+        '上做计算，不改变行数',
+        '',
+        '传统做法：',
+        '子查询 + @变量漂移',
+        '复杂、易出错、性能差',
+        '',
+        'RANK() OVER：',
+        '一行 SQL 搞定排名',
+        '数据库引擎优化执行',
+        '',
+        'RANK() vs ROW_NUMBER()：',
+        'RANK: 同分同名次 (1,2,2,4)',
+        'DENSE_RANK: 连续名次 (1,2,2,3)',
+        'ROW_NUMBER: 无并列 (1,2,3,4)',
+    ], 15, DARK, Pt(5))
 
-    # ---- SLIDE 30: AI Text-to-SQL ----
-    sl = S(prs); bar(sl, 'AI Text-to-SQL：自然语言查数据', p())
-    txt(sl, 0.5, 1.2, 12, 0.4, '集成 DeepSeek API，搜索框输入中文  >  AI 生成 SQL  >  数据库执行  >  返回结果', 15, BLUE, True)
-    # Examples
-    examples = [
-        ('输入', 'AI 生成的 SQL', '结果'),
-        ('"今天卖了多少钱？"', 'SELECT SUM(total_amount) FROM orders WHERE...', '12,580 元'),
-        ('"哪个寄存点快满了？"', 'SELECT point_name,saturation_pct FROM vw_pickup...', '3期 = 100%'),
-        ('"哪个商家最受欢迎？"', 'SELECT * FROM vw_merchant_sales_rank LIMIT 1', '蜜雪冰城'),
-    ]
-    tbl(sl, 0.5, 1.9, [3.0, 5.5, 3.5], examples[0], examples[1:], 11)
-    txt(sl, 0.5, 4.0, 12, 0.4, '技术实现', 15, BLUE, True)
-    mtxt(sl, 0.5, 4.5, 12, 2.0, [
-        'Schema 注入：系统提示词包含完整的 7 张表结构、字段说明、ENUM 值、视图信息',
-        '安全限制：仅允许 SELECT 语句，禁止 INSERT/UPDATE/DELETE/DROP — 防止 AI 幻觉导致数据损坏',
-        '透明展示：前端同时显示生成的 SQL 和查询结果，用户可以看到 AI 的逻辑',
-        '成本极低：DeepSeek API，单次查询 < 0.01 元人民币',
-    ], 13, DARK, Pt(6))
+    # ===== SLIDE 37: AI Text-to-SQL =====
+    sl = S(prs); bar(sl, 'AI Text-to-SQL：自然语言查数据库', P())
+    TB(sl, 0.5, 1.3, [3.0, 5.5, 3.5],
+       ['用户输入', 'AI 生成 SQL', '结果'],
+       [
+           ['"今天卖了多少钱？"', 'SELECT SUM(total_amount) FROM orders\nWHERE DATE(created_at)=CURDATE()\nAND order_status=\'Completed\'', '12,580 元'],
+           ['"哪个寄存点快满了？"', 'SELECT point_name, saturation_pct\nFROM vw_pickup_point_analytics\nORDER BY saturation_pct DESC', '3期 = 100%'],
+           ['"最受欢迎商家是谁？"', 'SELECT * FROM vw_merchant_sales_rank\nLIMIT 1', '蜜雪冰城'],
+       ], 13)
+    T(sl, 0.5, 4.0, 12, 0.5, '技术实现', 20, BLUE, True)
+    MT(sl, 0.5, 4.6, 12, 2.0, [
+        '✔ Schema 注入：系统提示词包含完整的 7 张表结构 + 字段说明 + ENUM 值 + 视图信息 → AI 准确理解数据库',
+        '✔ 安全限制：仅允许 SELECT，禁止 INSERT/UPDATE/DELETE/DROP → AI 幻觉不会破坏数据',
+        '✔ 透明展示：前端同时显示生成的 SQL + 查询结果 → 用户可验证 AI 逻辑',
+        '✔ 成本极低：DeepSeek API 单次查询 < 0.01 元人民币',
+    ], 15, DARK, Pt(6))
 
-    # ---- SLIDE 31: SECTION 07 ----
-    section(prs, '07', '系统大屏与可视化展示', 'Flask + ECharts 实时监控 · 3 个功能 Tab')
-    p()
+    # ===== SLIDE 38: SECTION 07 =====
+    sec(prs, '07', '系统大屏与可视化展示', 'Flask + ECharts 实时监控 · 3 个功能 Tab')
+    P()
 
-    # ---- SLIDE 32: Dashboard Overview ----
-    sl = S(prs); bar(sl, '大屏总览', p())
-    img_w(sl, os.path.join(IMG, '01_dashboard_overview.png'), 0.3, 1.1, 12.5)
+    # ===== SLIDE 39: Dashboard Overview =====
+    sl = S(prs); bar(sl, '大屏总览', P())
+    PIC(sl, os.path.join(IMG, '01_dashboard_overview.png'), 0.3, 1.3, 12.7)
 
-    # ---- SLIDE 33: KPI + Order Section ----
-    sl = S(prs); bar(sl, 'KPI 指标卡', p())
-    img_w(sl, os.path.join(IMG, '04_kpi_top.png'), 0.3, 1.1, 12.0)
-    txt(sl, 0.5, 6.0, 12, 0.5, '今日订单数 · 今日营收 · 活跃骑手 · 活跃商家 · 爆仓点数  —  5 个 KPI 卡片，30 秒自动刷新', 13, GRAY)
+    # ===== SLIDE 40: KPI Cards =====
+    sl = S(prs); bar(sl, 'KPI 指标卡', P())
+    PIC(sl, os.path.join(IMG, '04_kpi_top.png'), 0.3, 1.3, 12.7)
+    T(sl, 0.5, 6.3, 12, 0.5, '今日订单数 · 今日营收 · 活跃骑手 · 活跃商家 · 爆仓点数 —— 5 个 KPI 卡片，30 秒自动刷新', 16, GRAY)
 
-    # ---- SLIDE 34: Order Management ----
-    sl = S(prs); bar(sl, '订单管理', p())
-    img_w(sl, os.path.join(IMG, '02_order_section.png'), 0.3, 1.1, 12.0)
-    txt(sl, 0.5, 6.0, 12, 0.5, '按状态筛选（6 态）+ 实时数据表格，支撑运营决策', 13, GRAY)
+    # ===== SLIDE 41: Order Management =====
+    sl = S(prs); bar(sl, '订单管理', P())
+    PIC(sl, os.path.join(IMG, '02_order_section.png'), 0.3, 1.3, 12.7)
+    T(sl, 0.5, 6.3, 12, 0.5, '按六态状态筛选 + 实时数据表格 — 每个订单的全程状态一目了然', 16, GRAY)
 
-    # ---- SLIDE 35: Overflow Warning ----
-    sl = S(prs); bar(sl, '爆仓预警', p())
-    img_w(sl, os.path.join(IMG, '10_overflow_dashboard.png'), 0.3, 1.1, 8.0)
-    img_w(sl, os.path.join(IMG, '11_overflow_pickup.png'), 8.6, 1.1, 4.2)
-    txt(sl, 0.5, 5.8, 12, 0.5, '饱和度柱状图：> 80% 黄色预警  |  = 100% 红色爆仓  |  实时监控 12 个寄存点', 13, GRAY)
+    # ===== SLIDE 42: Overflow Warning =====
+    sl = S(prs); bar(sl, '爆仓预警', P())
+    PIC(sl, os.path.join(IMG, '10_overflow_dashboard.png'), 0.3, 1.3, 8.5)
+    PIC(sl, os.path.join(IMG, '11_overflow_pickup.png'), 9.2, 1.3, 3.7)
+    T(sl, 0.5, 6.3, 12, 0.5, '饱和度柱状图：> 80% 黄色预警  |  100% 红色爆仓  |  实时监控 12 个寄存点', 16, GRAY)
 
-    # ---- SLIDE 36: Pickup Points Management ----
-    sl = S(prs); bar(sl, '寄存点管理', p())
-    img_w(sl, os.path.join(IMG, '03_pickup_points.png'), 0.3, 1.1, 12.0)
+    # ===== SLIDE 43: Pickup Points =====
+    sl = S(prs); bar(sl, '寄存点管理', P())
+    PIC(sl, os.path.join(IMG, '03_pickup_points.png'), 0.3, 1.3, 12.7)
 
-    # ---- SLIDE 37: More Management Pages ----
-    sl = S(prs); bar(sl, '管理页面：商家 / 学生 / 骑手 / 菜品', p())
-    pages = [
-        ('05_merchants.png', 0.3, 1.1, 6.0),
-        ('06_students.png', 6.8, 1.1, 6.0),
-        ('07_riders.png', 0.3, 3.6, 6.0),
-        ('08_dishes.png', 6.8, 3.6, 6.0),
-    ]
+    # ===== SLIDE 44: More Pages =====
+    sl = S(prs); bar(sl, '管理页面', P())
+    pages = [('05_merchants.png', 0.3, 1.3, 6.0),
+             ('06_students.png', 6.8, 1.3, 6.0),
+             ('07_riders.png', 0.3, 4.0, 6.0),
+             ('08_dishes.png', 6.8, 4.0, 6.0)]
     for f, x, y, w in pages:
-        img_w(sl, os.path.join(IMG, f), x, y, w)
+        PIC(sl, os.path.join(IMG, f), x, y, w)
 
-    # ---- SLIDE 38: SECTION 08 ----
-    section(prs, '08', '创新点总结与成果交付', '7 大创新 · 项目交付物 · 未来展望')
-    p()
+    # ===== SLIDE 45: SECTION 08 =====
+    sec(prs, '08', '创新总结与成果交付', '7 大创新 · 项目交付物 · 未来展望')
+    P()
 
-    # ---- SLIDE 39: Innovations ----
-    sl = S(prs); bar(sl, '七大创新点', p())
+    # ===== SLIDE 46: Innovations =====
+    sl = S(prs); bar(sl, '七大创新点', P())
     inno = [
-        ('FOR UPDATE 行级锁防超卖', 'SELECT...FOR UPDATE 原子化"读-判断-写"，高并发场景下单库存绝不超卖', BLUE),
-        ('七重触发器防护体系', '库存(2) + 骑手类型(2) + 状态管理(2) + 容量预检(1)，数据库层全自动', BLUE),
-        ('两段式配送状态机', '6 态 ENUM + 双骑手 + 3 时间戳，覆盖全流程从下单到签收', GREEN),
-        ('chk_capacity 物理硬约束', 'CHECK(current<=capacity) + 容量预检双层防护，80 格绝不 81 包', GREEN),
-        ('RANK() OVER 窗口函数', '一行 SQL 完成商户销售排行，比应用层排序更快更准确', ORANGE),
-        ('AI Text-to-SQL', 'DeepSeek + Schema 注入，自然语言查数据，仅允许 SELECT', ORANGE),
-        ('Cloudflare Tunnel 部署', '免费隧道，localhost 映射公网，评委手机扫码即访问', RGBColor(0x7B, 0x1F, 0xA2)),
+        ('FOR UPDATE 行级锁防超卖', 'SELECT...FOR UPDATE 原子化"读-判断-写"，高并发绝不超卖', BLUE),
+        ('七重触发器防护体系', '库存(2)+骑手类型(2)+状态管理(2)+容量预检(1)，全自动', BLUE),
+        ('两段式配送状态机', '6态ENUM+双骑手+3时间戳，全链路追踪', GREEN),
+        ('chk_capacity 硬约束', 'CHECK(current<=capacity)，80格绝不81包，双层防护', GREEN),
+        ('RANK() OVER 窗口函数', '一行SQL排名，比应用层更快更准，MySQL 8.0新特性', ORANGE),
+        ('AI Text-to-SQL', 'DeepSeek+Schema注入，自然语言查数据，仅允许SELECT', ORANGE),
+        ('Cloudflare Tunnel', '免费公网隧道，评委扫码即看实时大屏', RGBColor(0x7B, 0x1F, 0xA2)),
     ]
     for i, (t, d, clr) in enumerate(inno):
-        y = 1.1 + i * 0.85
-        number_badge(sl, 0.5, y + 0.02, i + 1, clr)
-        txt(sl, 1.2, y + 0.05, 3.5, 0.4, t, 14, clr, True)
-        txt(sl, 4.8, y + 0.05, 7.5, 0.6, d, 11, DARK)
+        y = 1.2 + i * 0.85
+        BADGE(sl, 0.5, y + 0.02, i + 1, clr, 0.45)
+        T(sl, 1.2, y + 0.05, 4.0, 0.4, t, 18, clr, True)
+        T(sl, 5.5, y + 0.05, 7.0, 0.6, d, 15, DARK)
 
-    # ---- SLIDE 40: Deliverables ----
-    sl = S(prs); bar(sl, '项目交付成果', p())
+    # ===== SLIDE 47: Deliverables =====
+    sl = S(prs); bar(sl, '项目交付成果', P())
     deliverables = [
-        ('数据库设计', 'campus_delivery_db.sql\n7 表 · 4 索引 · 7 触发器\n4 存储过程 · 2 视图', BLUE),
-        ('模拟数据', 'generate_mock_data.py\n5000 条订单\n容量感知生成器', GREEN),
-        ('Flask 大屏', 'app.py + 模板\n3 Tab + ECharts\nAI Text-to-SQL', ORANGE),
-        ('文档', '实践报告 .docx\n答辩 PPT .pptx\nREADME.md', RGBColor(0x7B, 0x1F, 0xA2)),
+        ('数据库', 'campus_delivery_db.sql\n7表 4索引 7触发器\n4SP 2视图', BLUE),
+        ('模拟数据', 'generate_mock_data.py\n5000条订单\n容量感知生成器', GREEN),
+        ('Flask 大屏', 'app.py + 模板\nREST API + ECharts\nAI Text-to-SQL', ORANGE),
+        ('文档', '实践报告.docx\n答辩 PPT.pptx\nREADME.md', RGBColor(0x7B, 0x1F, 0xA2)),
         ('部署', 'Cloudflare Tunnel\n公网访问\n扫码即看', RED),
     ]
-    for i, (t, d, clr) in enumerate(deliverables):
+    for i, (title, desc, clr) in enumerate(deliverables):
         x = 0.3 + i * 2.55
-        card(sl, x, 1.5, 2.35, 3.5, t, d.split('\n'), clr)
-    txt(sl, 0.5, 5.5, 12, 0.5, 'Git 仓库 · 全部代码已提交推送 · 分支: master', 13, GRAY)
+        CARD(sl, x, 1.8, 2.35, 3.5, title, desc.split('\n'), clr)
+    T(sl, 0.5, 6.0, 12, 0.5, 'GitHub: sou1maker/database  |  全部代码已提交推送  |  master 分支', 16, GRAY, align=PP_ALIGN.CENTER)
 
-    # ---- SLIDE 41: Future ----
-    sl = S(prs); bar(sl, '改进方向与未来展望', p())
+    # ===== SLIDE 48: Future + Thanks =====
+    sl = S(prs); bar(sl, '改进方向', P())
     future = [
-        ('柜满排队', '骑手已送到但柜满的包裹进入"等待空位"队列，不抹掉骑手成果', BLUE),
-        ('智能调度', '下单时自动推荐邻近有空位的寄存点，用户一键切换', GREEN),
-        ('路线优化', '楼栋骑手多单拼单路径规划，一次取 5-8 件集中配送', ORANGE),
-        ('实时追踪', '接入地图 API，用户实时看包裹位置（商家 > 寄存点 > 寝室）', RGBColor(0x7B, 0x1F, 0xA2)),
-        ('全链路压测', 'sysbench 测试 QPS 上限，验证 FOR UPDATE 并发性能瓶颈', RED),
+        ('柜满排队', '骑手送到的包裹进入等待队列，不抹掉已完成工作', BLUE),
+        ('智能调度', '下单时自动推荐邻近有空位的寄存点', GREEN),
+        ('路线优化', '楼栋骑手一次取5-8件，路径规划批量配送', ORANGE),
+        ('实时追踪', '接入地图API，用户看包裹从商家到寝室', RGBColor(0x7B, 0x1F, 0xA2)),
+        ('压测验证', 'sysbench测试QPS上限，验证FOR UPDATE瓶颈', RED),
     ]
     for i, (t, d, clr) in enumerate(future):
         x = 0.3 + i * 2.55
-        card(sl, x, 1.5, 2.35, 2.5, t, [d], clr)
+        CARD(sl, x, 1.8, 2.35, 2.5, t, [d], clr)
+    T(sl, 1.0, 5.5, 11, 1.0, '感谢各位老师聆听！欢迎扫码访问实时大屏', 24, BLUE, True, PP_ALIGN.CENTER)
+    T(sl, 1.0, 6.2, 11, 0.5, 'MySQL 8.0  ·  Flask  ·  ECharts  ·  DeepSeek AI  |  2026 年 6 月', 14, GRAY, align=PP_ALIGN.CENTER)
 
-    # ---- SLIDE 42: Thanks ----
-    sl = S(prs); bar(sl, '感谢聆听！', p())
-    txt(sl, 1.0, 2.5, 11, 1.0, '校园外卖两段式配送数据库系统', 32, BLUE, True, PP_ALIGN.CENTER)
-    txt(sl, 1.0, 3.8, 11, 0.5, '欢迎扫码访问实时大屏  |  GitHub: sou1maker', 16, GRAY, align=PP_ALIGN.CENTER)
-    txt(sl, 1.0, 5.0, 11, 0.5, 'MySQL 8.0 · Flask · ECharts · DeepSeek AI  |  2026 年 6 月', 13, GRAY, align=PP_ALIGN.CENTER)
-
-    p()
+    P()
 
     # ===== SAVE =====
     out = os.path.join(os.path.dirname(__file__), '校园外卖两段式配送系统_答辩汇报.pptx')
