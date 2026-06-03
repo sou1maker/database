@@ -133,7 +133,7 @@ erDiagram
 | `pickup_points` | 12 | 寄存柜 | `capacity` 容量上限，CHECK 约束防爆仓 |
 | `riders` | 15 | 两段式骑手 | `rider_type` ENUM（Stage1_Trunk / Stage2_Floor） |
 | `orders` | 5,000 | 订单主表 | `order_status` 六态流转，双骑手追踪 |
-| `order_items` | ~10,000 | 订单明细 | `price_at_order` 下单瞬间快照价 |
+| `order_items` | 5,000 | 订单明细 | `price_at_order` 下单瞬间快照价 |
 
 **数据库对象**：2 个视图（`vw_pickup_point_analytics`、`vw_merchant_sales_rank`）、4 个存储过程（下单 / 到达寄存点 / 楼栋送达 / 取消订单）、6 个触发器（库存校验 + 库存扣减 + 骑手类型校验 x2 + 骑手状态自动管理 x2）。
 
