@@ -1,11 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-Campus Delivery Two-Stage Distribution · Real-time Dashboard v4.0
-Flask + ECharts + MySQL + DeepSeek Text-to-SQL
-"""
-import os
-import sys
-import io
+import os, sys, io
 
 if sys.platform == "win32":
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
@@ -27,9 +21,7 @@ app = Flask(__name__)
 CORS(app)
 
 
-# ================================================================
-# REST APIs
-# ================================================================
+# REST API
 
 def _range_filter(r):
     """Generate SQL date filter by range param"""
@@ -199,9 +191,7 @@ def side_tables():
         conn.close()
 
 
-# ================================================================
-# AI Text-to-SQL (DeepSeek)
-# ================================================================
+# AI Text-to-SQL
 
 DB_SCHEMA = """Database: campus_delivery_db (Campus Two-Stage Delivery)
 Tables: users(user_id,username,phone,dorm_building,room_number,balance)
@@ -259,9 +249,7 @@ def ai_query():
         return jsonify({"success": False, "error": str(e)})
 
 
-# ================================================================
 # Main page
-# ================================================================
 
 @app.route("/")
 def index():
@@ -269,7 +257,6 @@ def index():
 
 
 if __name__ == "__main__":
-    print("\n  Campus Delivery · Real-time Dashboard v4.0")
-    print("  Flask + ECharts + MySQL + DeepSeek AI")
+    print("\n  校园外卖两段式配送系统")
     print("  http://localhost:5000\n")
     app.run(host="0.0.0.0", port=5000, debug=False)

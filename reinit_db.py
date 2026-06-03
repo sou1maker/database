@@ -1,8 +1,5 @@
-"""用 Python 重建完整数据库（兼容 pymysql，跳过 DELIMITER 语法）"""
-import sys
-import io
+import sys, io
 
-# ---- 解决 Windows 终端中文乱码 ----
 if sys.platform == "win32":
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8")
@@ -178,7 +175,7 @@ END
 
 # 5 & 6: auto rider status management (insert + update)
 cur.execute("""
-CREATE TRIGGER trg_rider_status_insert
+CREATE TRIGGER trg_rider_delivering_insert
 AFTER INSERT ON orders
 FOR EACH ROW
 BEGIN
@@ -192,7 +189,7 @@ END
 """)
 
 cur.execute("""
-CREATE TRIGGER trg_rider_status_update
+CREATE TRIGGER trg_rider_delivering_update
 AFTER UPDATE ON orders
 FOR EACH ROW
 BEGIN
@@ -220,6 +217,25 @@ BEGIN
         IF OLD.stage2_rider_id IS NOT NULL THEN
             UPDATE riders SET status = 'Idle' WHERE rider_id = OLD.stage2_rider_id;
         END IF;
+    END IF;
+END
+""")
+
+# 7: pre-check pickup point capacity before order insert
+cur.execute("""
+CREATE TRIGGER trg_check_pickup_point_capacity
+BEFORE INSERT ON orders
+FOR EACH ROW
+BEGIN
+    DECLARE v_pt_current INT;
+    DECLARE v_pt_capacity INT;
+
+    SELECT current_packages, capacity INTO v_pt_current, v_pt_capacity
+    FROM pickup_points WHERE point_id = NEW.pickup_point_id FOR UPDATE;
+
+    IF v_pt_current >= v_pt_capacity THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = '下单失败：该寄存点已满，请选择邻近寄存点下单！';
     END IF;
 END
 """)
@@ -420,13 +436,6 @@ for n,p,t in riders:
 conn.commit()
 cur.close()
 conn.close()
-print("[OK] 数据库重建成功！")
-print("  - 7 张核心业务表")
-print("  - 12 个寄存点")
-print("  - 15 名骑手（8名干线 + 7名楼栋）")
-print("  - 6 个触发器（库存检查 + 库存扣减 + 骑手类型校验x2 + 骑手状态管理x2）")
-print("  - 4 个存储过程（下单/入库/送达/取消）")
-print("  - 2 个大屏视图（饱和度分析 + 商户排行）")
-print("  现在请运行: python generate_mock_data.py")
+print("数据库重建完毕，请运行 python generate_mock_data.py")
 
 

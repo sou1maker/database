@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-"""数据库连接池模块 — 统一管理 MySQL 连接，避免重复建连"""
 import os
 import pymysql
 from dbutils.pooled_db import PooledDB

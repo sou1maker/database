@@ -1,24 +1,10 @@
 # -*- coding: utf-8 -*-
-"""
-=================================================================
-校园外卖两段式配送数据库系统 · 模拟数据生成器 v3.0
-- 历史订单（今天之前）：全部 Completed（外卖时效性）
-- 今日订单：真实各种配送状态（实时监控模拟）
-- 2个寄存点爆仓（>80%饱和度）
-=================================================================
-"""
-
-import sys
-import io
+import sys, io, random, time, os
+from datetime import datetime, timedelta
 
 if sys.platform == "win32":
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8")
-
-import random
-import time
-from datetime import datetime, timedelta
-import os
 
 import pymysql
 from faker import Faker
@@ -55,8 +41,6 @@ def get_connection():
 
 
 def clean_old_data(conn):
-    print("=" * 60)
-    print("[步骤 0] 清理旧数据……")
     with conn.cursor() as cursor:
         cursor.execute("SET FOREIGN_KEY_CHECKS = 0")
         cursor.execute("TRUNCATE TABLE order_items")
@@ -66,11 +50,9 @@ def clean_old_data(conn):
         cursor.execute("TRUNCATE TABLE users")
         cursor.execute("SET FOREIGN_KEY_CHECKS = 1")
     conn.commit()
-    print("[完成] 旧数据已清空")
 
 
 def generate_users(conn, num=100):
-    print(f"\n[步骤 1] 生成 {num} 个学生用户……")
     sql = """INSERT INTO users (username, phone, dorm_building, room_number, balance)
              VALUES (%s, %s, %s, %s, %s)"""
     data = []
@@ -89,11 +71,9 @@ def generate_users(conn, num=100):
     with conn.cursor() as cursor:
         cursor.executemany(sql, data)
     conn.commit()
-    print(f"[完成] {num} 个学生用户")
 
 
 def generate_merchants(conn, num=20):
-    print(f"\n[步骤 2] 生成 {num} 个商家……")
     prefixes = ["好再来","天天","一品","香满园","味美滋","食尚","舌尖","小当家","阿妈",
                 "旺角","老街","校园","学子","翰林","状元","川湘","粤港","东北","西北","江南"]
     suffixes = ["麻辣烫","黄焖鸡","奶茶店","饺子馆","盖浇饭","米线店","炸鸡店","烘焙坊",
@@ -121,11 +101,9 @@ def generate_merchants(conn, num=20):
     with conn.cursor() as cursor:
         cursor.executemany(sql, data)
     conn.commit()
-    print(f"[完成] {num} 个商家")
 
 
 def generate_dishes(conn, dishes_per_merchant=8):
-    print(f"\n[步骤 3] 每个商家生成 {dishes_per_merchant} 道菜品……")
     dish_names = [
         "经典麻辣烫","番茄牛腩面","宫保鸡丁饭","鱼香肉丝饭","糖醋里脊饭",
         "酸菜鱼米线","香辣鸡腿堡","珍珠奶茶","芒果冰沙","鸡蛋灌饼",
@@ -155,15 +133,12 @@ def generate_dishes(conn, dishes_per_merchant=8):
     with conn.cursor() as cursor:
         cursor.executemany(sql, data)
     conn.commit()
-    print(f"[完成] {len(data)} 道菜品")
 
 
 def generate_orders(conn):
-    """生成订单：历史全部Completed + 今天各种实时状态"""
     NUM_TODAY = 1500
     NUM_HISTORY = 3500
     TOTAL = NUM_TODAY + NUM_HISTORY
-    print(f"\n[步骤 4] 生成 {TOTAL} 条订单（{NUM_HISTORY}历史 + {NUM_TODAY}今日）……")
 
     with conn.cursor() as cursor:
         cursor.execute("SELECT user_id FROM users")
@@ -184,15 +159,17 @@ def generate_orders(conn):
     for d in dishes_data:
         dishes_by_merchant.setdefault(d["merchant_id"], []).append(d)
 
-    # 找爆仓目标寄存点：3期（容量80）和6期（容量50）
+    # 3期85%黄色预警 + 6期100%红色爆仓
     overload_targets = []
+    overload_target_fill = {}
     for p in points_data:
         if "3期" in p["point_name"]:
             overload_targets.append((p["point_id"], p["capacity"], "3期"))
+            overload_target_fill[p["point_id"]] = int(p["capacity"] * 0.85)
         if "6期" in p["point_name"]:
             overload_targets.append((p["point_id"], p["capacity"], "6期"))
+            overload_target_fill[p["point_id"]] = p["capacity"]
 
-    # 今日订单状态权重（模拟实时配送流）
     today_statuses = (
         ["Paid"] * 10 +
         ["Stage1_Assigned"] * 15 +
@@ -214,13 +191,8 @@ def generate_orders(conn):
     now = datetime.now()
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
 
-    # Track backlog per point (Arrived_At_Point + Stage2_Assigned)
-    # Enforce: no point exceeds its capacity
     point_backlog = {p["point_id"]: 0 for p in points_data}
-
-    # Target overload: 3期 and 6期 fill to ~85% for dashboard demo
     overload_target_ids = [pid for pid, _, _ in overload_targets]
-    overload_target_fill = {pid: int(cap * 0.85) for pid, cap, _ in overload_targets}
 
     with conn.cursor() as cursor:
         for i in range(TOTAL):
@@ -228,7 +200,6 @@ def generate_orders(conn):
             merchant_id = random.choice(merchant_ids)
 
             if i < NUM_HISTORY:
-                # ---- 历史订单：全部 Completed ----
                 days_ago = random.randint(1, 30)
                 hour = random.randint(8, 22)
                 minute = random.randint(0, 59)
@@ -241,63 +212,50 @@ def generate_orders(conn):
                 stage2_rider = None
                 point_id = random.choice(points_data)["point_id"]
             else:
-                # ---- 今日订单：真实配送状态 ----
                 order_status = random.choice(today_statuses)
-                # 时间分布在今天 8:00 到现在
                 max_hour = now.hour
                 max_minute = now.minute
                 if max_hour < 8:
                     max_hour = 8
                     max_minute = 0
                 hour = random.randint(8, max_hour) if max_hour > 8 else 8
-                if hour == max_hour:
-                    minute = random.randint(0, max_minute)
-                else:
-                    minute = random.randint(0, 59)
+                minute = random.randint(0, max_minute) if hour == max_hour else random.randint(0, 59)
                 created_at = today_start.replace(hour=hour, minute=minute, second=random.randint(0, 59))
 
-                # 寄存点容量约束：Arrived_At_Point / Stage2_Assigned 算入当前包裹数
-                # 模拟真实 sp_arrive_at_pickup_point 的 chk_capacity CHECK 约束
                 point_id = random.choice(points_data)["point_id"]
                 if order_status in ("Arrived_At_Point", "Stage2_Assigned"):
-                    # 优先把爆仓目标点填充到 ~85%（展示大屏预警效果）
                     for pid in overload_target_ids:
                         if point_backlog[pid] < overload_target_fill[pid]:
                             point_id = pid
                             break
-                    # 如果选中点已满，找还有空位的点
+                    if point_id in overload_target_ids and point_backlog[point_id] >= overload_target_fill[point_id]:
+                        other_points = [p for p in points_data
+                            if p["point_id"] not in overload_target_ids
+                            or point_backlog[p["point_id"]] < overload_target_fill[p["point_id"]]]
+                        if other_points:
+                            point_id = random.choice(other_points)["point_id"]
                     point_cap = next(p["capacity"] for p in points_data if p["point_id"] == point_id)
                     if point_backlog[point_id] >= point_cap:
                         available_points = [p for p in points_data if point_backlog[p["point_id"]] < p["capacity"]]
                         if available_points:
                             point_id = random.choice(available_points)["point_id"]
                         else:
-                            # 所有点都满了 → 此状态无法入仓，降级为 Completed
                             order_status = "Completed"
                     if order_status in ("Arrived_At_Point", "Stage2_Assigned"):
                         point_backlog[point_id] += 1
 
-                # Rider assignment — follow real flow:
-                # Paid: no rider
-                # Stage1_Assigned: trunk rider assigned
-                # Arrived_At_Point: trunk rider stays (trigger releases him when status changes)
-                # Stage2_Assigned: floor rider assigned
-                # Completed/Cancelled: no riders active
                 stage1_rider = None
                 stage2_rider = None
                 if order_status == "Stage1_Assigned":
                     stage1_rider = random.choice(trunk_riders) if trunk_riders else None
                 elif order_status == "Arrived_At_Point":
-                    # Inherit trunk rider from Stage1 so trigger can release him
                     stage1_rider = random.choice(trunk_riders) if trunk_riders else None
                 elif order_status == "Stage2_Assigned":
                     stage2_rider = random.choice(floor_riders) if floor_riders else None
                 elif order_status == "Completed":
-                    # Completed orders passed through both stages, keep rider IDs for history
                     stage1_rider = random.choice(trunk_riders) if trunk_riders else None
                     stage2_rider = random.choice(floor_riders) if floor_riders else None
 
-                # 时间戳
                 stage1_completed_at = None
                 stage2_completed_at = None
                 if order_status in ("Arrived_At_Point", "Stage2_Assigned", "Completed"):
@@ -306,7 +264,6 @@ def generate_orders(conn):
                     base = stage1_completed_at or created_at
                     stage2_completed_at = base + timedelta(minutes=random.randint(5, 25))
 
-            # 拼装菜品
             available = dishes_by_merchant.get(merchant_id, [])
             if not available:
                 continue
@@ -324,15 +281,10 @@ def generate_orders(conn):
             order_id = list(cursor.fetchone().values())[0]
             cursor.execute(item_sql, (order_id, dish["dish_id"], qty, price))
 
-            if (i + 1) % 500 == 0 or i == TOTAL - 1:
+            if (i + 1) % 500 == 0:
                 conn.commit()
-                print(f"   [进度] {i+1}/{TOTAL} ({ (i+1)*100//TOTAL }%)")
 
-    # Sync rider status: triggers auto-manage Delivering on assignment.
-    # Bulk INSERT fires AFTER INSERT trigger which skips Completed/Cancelled/Arrived_At_Point.
-    # But we also need to handle riders on stage1 who should be Delivering.
-    # Simple approach: set ALL riders Idle, then explicitly set Delivering for active ones.
-    print("\n   [Riders] Syncing rider status...")
+    # Sync rider status
     with conn.cursor() as cursor:
         cursor.execute("UPDATE riders SET status = 'Idle'")
         cursor.execute("""
@@ -346,12 +298,8 @@ def generate_orders(conn):
             )
         """)
         conn.commit()
-        cursor.execute("SELECT COUNT(*) AS cnt FROM riders WHERE status = 'Delivering'")
-        print(f"   [Riders] {cursor.fetchone()['cnt']} riders delivering")
 
-
-    # 同步寄存点包裹计数（backlog <= capacity 由生成阶段保证）
-    print("\n   [寄存点] 同步包裹计数……")
+    # Sync pickup point package counts
     with conn.cursor() as cursor:
         cursor.execute("""
             SELECT pp.point_id, pp.point_name, pp.capacity, COUNT(o.pickup_point_id) AS cnt
@@ -360,42 +308,24 @@ def generate_orders(conn):
                 AND o.order_status IN ('Arrived_At_Point', 'Stage2_Assigned')
             GROUP BY pp.point_id, pp.point_name, pp.capacity
         """)
-        overflow_count = 0
         for row in cursor.fetchall():
-            cnt = row["cnt"]
-            # assert: cnt <= capacity (enforced during generation)
             cursor.execute("UPDATE pickup_points SET current_packages = %s WHERE point_id = %s",
-                           (cnt, row["point_id"]))
-            pct = cnt / row["capacity"] * 100 if row["capacity"] > 0 else 0
-            flag = "  << 爆仓!" if pct > 80 else ""
-            if pct > 80:
-                overflow_count += 1
-            print(f"   {row['point_name']}: {cnt}/{row['capacity']} = {pct:.1f}%{flag}")
+                           (row["cnt"], row["point_id"]))
         conn.commit()
-
-    print(f"\n[完成] {TOTAL} 条订单生成完毕")
 
 
 def main():
-    start = time.time()
-    print("\n" + "=" * 50)
-    print("  校园外卖模拟数据生成器 v3.0")
-    print("  历史订单=全部已完成 | 今日订单=实时状态")
-    print("=" * 50)
-
+    print("正在生成模拟数据...")
     conn = get_connection()
     try:
         clean_old_data(conn)
-        generate_users(conn, 100)
-        generate_merchants(conn, 20)
-        generate_dishes(conn, 8)
+        generate_users(conn)
+        generate_merchants(conn)
+        generate_dishes(conn)
         generate_orders(conn)
-        elapsed = time.time() - start
-        print(f"\n{'=' * 50}")
-        print(f"  全部完成! 耗时 {elapsed:.1f} 秒")
-        print(f"{'=' * 50}")
+        print("数据生成完毕，请运行 python app.py 启动大屏")
     except Exception as e:
-        print(f"\n[错误] {e}")
+        print(f"生成失败: {e}")
         raise
     finally:
         conn.close()

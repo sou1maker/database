@@ -1,16 +1,10 @@
-# -*- coding: utf-8 -*-
-"""校园外卖两段式配送系统 · 基础测试"""
-import sys
-import io
+import sys, io, unittest, os
 
 if sys.platform == "win32":
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8")
 
-import unittest
-import os
 from dotenv import load_dotenv
-
 load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 
 from app import app
