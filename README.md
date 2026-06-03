@@ -116,9 +116,9 @@ erDiagram
 ```
 
 <p align="center">
-  <img src="images/er_diagram.png" alt="E-R 图" width="85%">
+  <img src="images/er_diagram.png" alt="E-R 图 (PNG)" width="85%">
   <br>
-  <em>校园外卖两段式配送系统 E-R 图</em>
+  <em>校园外卖两段式配送系统 E-R 图（<a href="images/er_diagram.svg">SVG 矢量版</a>）</em>
 </p>
 
 ---
@@ -135,7 +135,7 @@ erDiagram
 | `orders` | 5,000 | 订单主表 | `order_status` 六态流转，双骑手追踪 |
 | `order_items` | 5,000 | 订单明细 | `price_at_order` 下单瞬间快照价 |
 
-**数据库对象**：2 个视图（`vw_pickup_point_analytics`、`vw_merchant_sales_rank`）、4 个存储过程（下单 / 到达寄存点 / 楼栋送达 / 取消订单）、6 个触发器（库存校验 + 库存扣减 + 骑手类型校验 x2 + 骑手状态自动管理 x2）。
+**数据库对象**：2 个视图（`vw_pickup_point_analytics`、`vw_merchant_sales_rank`）、4 个存储过程（下单 / 到达寄存点 / 楼栋送达 / 取消订单）、7 个触发器（库存校验 + 库存扣减 + 骑手类型校验 x2 + 骑手状态自动管理 x2 + 容量预检）。
 
 ---
 
@@ -168,7 +168,8 @@ erDiagram
 | `test_app.py` | 自动化测试（11 个用例） |
 | `requirements.txt` | Python 依赖清单 |
 | `.env.example` | 环境变量模板 |
-| `images/er_diagram.png` | E-R 实体关系图 |
+| `images/er_diagram.png` | E-R 实体关系图（PNG） |
+| `images/er_diagram.svg` | E-R 实体关系图（SVG 矢量） |
 
 ---
 
