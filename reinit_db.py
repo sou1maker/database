@@ -105,8 +105,9 @@ for t in tables:
 cur.execute("CREATE INDEX idx_orders_status ON orders(order_status)")
 cur.execute("CREATE INDEX idx_orders_created ON orders(created_at)")
 cur.execute("CREATE INDEX idx_dishes_merchant ON dishes(merchant_id, status)")
+cur.execute("CREATE INDEX idx_orders_point_status ON orders(pickup_point_id, order_status)")
 
-# ==================== Triggers (6 total) ====================
+# ==================== Triggers (7 total) ====================
 # 1: stock check before order item insert
 cur.execute("""
 CREATE TRIGGER trg_check_dish_stock_before_order
