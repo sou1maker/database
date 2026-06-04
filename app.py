@@ -194,15 +194,16 @@ def side_tables():
 # AI Text-to-SQL
 
 DB_SCHEMA = """Database: campus_delivery_db (Campus Two-Stage Delivery)
-Tables: users(user_id,username,phone,dorm_building,room_number,balance)
-merchants(merchant_id,merchant_name,phone,address,rating)
-dishes(dish_id,merchant_id,dish_name,price,stock,status)
-pickup_points(point_id,point_name,location,capacity,current_packages)
-riders(rider_id,rider_name,phone,rider_type,status)
-orders(order_id,user_id,merchant_id,pickup_point_id,total_amount,order_status,stage1_rider_id,stage2_rider_id,created_at,stage1_completed_at,stage2_completed_at)
-order_items(item_id,order_id,dish_id,quantity,price_at_order)
+Tables:
+  users(user_id,username,phone,dorm_building,room_number,balance DECIMAL)
+  merchants(merchant_id,merchant_name,phone,address,rating DECIMAL(2,1) max 5.0)
+  dishes(dish_id,merchant_id INT FK,dish_name,price DECIMAL,stock INT,status INT: 1=on_sale 0=off_sale)
+  pickup_points(point_id,point_name,location,capacity INT,current_packages INT)
+  riders(rider_id,rider_name,phone,rider_type ENUM: 'Stage1_Trunk'=trunk-to-point 'Stage2_Floor'=point-to-dorm, status ENUM: 'Idle' 'Delivering' 'Offline')
+  orders(order_id,user_id FK,merchant_id FK,pickup_point_id FK,total_amount DECIMAL,order_status ENUM: 'Paid' 'Stage1_Assigned' 'Arrived_At_Point' 'Stage2_Assigned' 'Completed' 'Cancelled', stage1_rider_id FK,stage2_rider_id FK,created_at DATETIME,stage1_completed_at DATETIME,stage2_completed_at DATETIME)
+  order_items(item_id,order_id FK,dish_id FK,quantity INT,price_at_order DECIMAL)
 Views: vw_pickup_point_analytics, vw_merchant_sales_rank
-SELECT only. Amount in CNY. Only count Completed orders. Use Chinese aliases. Return raw SQL without markdown."""
+Important: status=1 for available dishes. order_status='Completed' for completed orders. FK means foreign key. All amounts in CNY. Use Chinese column aliases. Return raw SQL without markdown."""
 
 
 @app.route("/api/ai_query", methods=["POST"])

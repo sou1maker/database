@@ -124,10 +124,14 @@ body{
 .quick-btn:hover{background:rgba(99,102,241,0.2)}
 .ai-result{margin-top:12px}
 .ai-sql{
-  background:rgba(0,0,0,0.3);padding:12px 16px;border-radius:8px;
-  font-family:'Consolas','Courier New',monospace;font-size:0.82rem;
-  color:#fbbf24;overflow-x:auto;margin:8px 0;
+  background:rgba(0,0,0,0.3);padding:16px 20px;border-radius:8px;
+  font-family:'Consolas','Courier New',monospace;font-size:0.85rem;
+  color:#e2e8f0;overflow-x:auto;margin:8px 0;line-height:1.9;
+  border-left:3px solid #22C55E;white-space:pre-wrap;
 }
+.ai-sql .kw{color:#22C55E;font-weight:600}
+.ai-sql .cmt{color:#9CA3AF;font-style:italic}
+.ai-sql .str{color:#A7F3D0}
 .ai-table{width:100%;border-collapse:collapse;font-size:0.84rem;margin-top:8px}
 .ai-table th{text-align:left;padding:8px 12px;background:rgba(99,102,241,0.1);color:#94a3b8}
 .ai-table td{padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.04)}
@@ -500,6 +504,40 @@ async function loadHourlyDist() {
 // AI助手
 // ================================================================
 
+function formatSQL(sql) {
+  // Break SQL into lines by keywords, highlight keywords/strings/comments
+  const KEYWORDS = ['SELECT','FROM','WHERE','AND','OR','JOIN','LEFT JOIN','RIGHT JOIN',
+    'INNER JOIN','ON','ORDER BY','GROUP BY','HAVING','LIMIT','OFFSET','INSERT INTO',
+    'UPDATE','DELETE FROM','SET','CREATE TABLE','DROP TABLE','ALTER TABLE','AS','IN',
+    'NOT IN','BETWEEN','LIKE','IS NULL','IS NOT NULL','EXISTS','UNION','DISTINCT',
+    'CASE','WHEN','THEN','ELSE','END','COUNT','SUM','AVG','MAX','MIN','DESC','ASC'];
+  let lines = [];
+  let current = '';
+  const tokens = sql.replace(/\n+/g,' ').replace(/\s+/g,' ').trim().split(/(?=\b(?:SELECT|FROM|WHERE|AND|OR|JOIN|LEFT JOIN|RIGHT JOIN|INNER JOIN|ON|ORDER BY|GROUP BY|HAVING|LIMIT|OFFSET|INSERT|UPDATE|DELETE|SET|CREATE|DROP|ALTER|UNION|DISTINCT|CASE|WHEN|THEN|ELSE|END)\b)/i);
+  for (let t of tokens) {
+    t = t.trim();
+    if (!t) continue;
+    // highlight keywords
+    let hl = t;
+    for (let kw of KEYWORDS.sort((a,b)=>b.length-a.length)) {
+      const re = new RegExp('\\b('+kw.replace(/\s+/g,'\\s+')+')\\b','gi');
+      hl = hl.replace(re, (m) => {
+        const preserved = m.replace(/\s+/g,' ');
+        return `</span><span class="kw">${preserved}</span><span>`;
+      });
+    }
+    // highlight single-quoted strings
+    hl = hl.replace(/'[^']*'/g, (m) => `</span><span class="str">${m}</span><span>`);
+    // highlight comments
+    hl = hl.replace(/(--.*)/g, '<span class="cmt">$1</span>');
+    hl = '<span>' + hl + '</span>';
+    hl = hl.replace(/<span><\/span>/g,'');
+    hl = hl.replace(/<span>\s*<\/span>/g,' ');
+    lines.push(hl);
+  }
+  return lines.join('\n');
+}
+
 async function askAI(question) {
   const q = question || document.getElementById("aiInput").value.trim();
   if (!q) return;
@@ -513,8 +551,8 @@ async function askAI(question) {
     });
     const data = await res.json();
     if (data.success) {
-      let html = `<div style="color:#10b981;font-weight:600;margin-bottom:6px">查询成功，共 ${data.rows.length} 条</div>`;
-      if (data.sql) html += `<div class="ai-sql">${data.sql}</div>`;
+      let html = `<div style="color:#10b981;font-weight:600;margin-bottom:8px">查询成功，共 ${data.rows.length} 条</div>`;
+      if (data.sql) html += `<div class="ai-sql">${formatSQL(data.sql)}</div>`;
       if (data.rows.length > 0) {
         html += `<table class="ai-table"><thead><tr>${data.columns.map(c=>`<th>${c}</th>`).join("")}</tr></thead><tbody>`;
         html += data.rows.map(r => `<tr>${r.map(v=>`<td>${v??""}</td>`).join("")}</tr>`).join("");
@@ -525,7 +563,7 @@ async function askAI(question) {
       }
       resultDiv.innerHTML = html;
     } else {
-      resultDiv.innerHTML = `<div style="color:#ef4444;font-weight:600">错误: ${data.error||"未知错误"}</div>${data.sql?`<div class="ai-sql">${data.sql}</div>`:""}`;
+      resultDiv.innerHTML = `<div style="color:#ef4444;font-weight:600">错误: ${data.error||"未知错误"}</div>${data.sql?`<div class="ai-sql">${formatSQL(data.sql)}</div>`:""}`;
     }
   } catch(e) {
     resultDiv.innerHTML = `<div style="color:#ef4444">请求失败: ${e.message}</div>`;
